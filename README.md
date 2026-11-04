@@ -1,20 +1,30 @@
-# Tableau Insights Bot — build kit
+# Tableau Insights Bot (demo)
 
-A local chatbot that explains any Tableau workbook, finds definition problems, rebuilds dashboard numbers from the
-packaged extract and writes evidence-backed insights. Claude does the reasoning through tools; your data stays on
-your machine and only redacted metadata and privacy-filtered aggregates are sent, every request logged locally.
+Open any Tableau workbook (`.twbx`) on your laptop, see its dashboards redrawn from its own data in a
+Tableau-style viewer, and (from step S5) ask Claude about them. Data stays on your machine.
 
-## Start here
+Plan and status: `docs/WORK_PLAN.md`. Rules for Claude Code: `CLAUDE.md`.
 
-1. Make an empty folder, copy everything in this kit into it, `git init`, commit.
-2. Open it in VS Code with the Claude Code extension.
-3. Open `docs/BUILD_PLAN.md` and paste the M0 prompt into Claude Code. Continue milestone by milestone.
+## Run the app
 
-| File | For |
-| --- | --- |
-| `CLAUDE.md` | Rules Claude Code follows on every task (data boundary, stack, commands, layout) |
-| `docs/SPEC.md` | What to build: architecture, engine modules, tools, orchestrator, prompt, UI, config, tests, security |
-| `docs/TABLEAU_REFERENCE.md` | How `.twbx` / `.twb` / `.hyper` are structured, marked verified vs assumed |
-| `docs/BUILD_PLAN.md` | Ten milestones with "done when" checks and copy-paste prompts |
-| `config/privacy.yaml`, `.env.example`, `.streamlit/config.toml`, `.gitignore` | Ready-made config |
-| `reference/prototype_scripts/` | Working scripts from a manual analysis, for API usage only |
+```powershell
+cd C:\tabbot
+.venv\Scripts\streamlit run src\tabbot\ui\app.py
+```
+
+Opens at http://127.0.0.1:8501 (local only). Use **Open workbook** to load a `.twbx`, or **Try the demo workbook**.
+
+## Engine commands (no app, no LLM)
+
+```powershell
+.venv\Scripts\tabbot inspect path\to\workbook.twbx   # what the bot understood: sheets, filters, calcs, data
+.venv\Scripts\python -m pytest -q                    # tests (built on a synthetic workbook, no real data)
+```
+
+## Setup from scratch
+
+```powershell
+py install 3.13
+py -3.13 -m venv .venv
+.venv\Scripts\python -m pip install -e ".[dev]"
+```
