@@ -12,7 +12,9 @@ Overrides in force:
 - **Entity to count** = the field the workbook's own sheets use most inside COUNT DISTINCT (`ctd:`) measures;
   fallback: an id-like column (id-ish name, high distinct count, several rows per value). User can override.
 - **No small-count suppression** (`min_cell_count: 1`). Claude still never receives rows, paths or raw XML.
-- **Anthropic API only** for now (no Bedrock). Model `claude-sonnet-5-5`, id from `.env`.
+- **Anthropic API only** for now (no Bedrock). Default model `claude-opus-5-5` (effort `medium`, server-side
+  refusal fallback `fallbacks: "default"`), all from `.env`. Thinking is always on for this model: never send
+  `thinking: disabled`, `budget_tokens`, sampling params or forced `tool_choice`.
 - **UI** is a Tableau-style dashboard viewer (charts redrawn from the extract) with a small right-side chat
   panel. Every chart shows an Exact/Approximate badge; never present a redraw as verified unless compared.
 - Python 3.13 venv at `.venv` (`.venv\Scripts\python`). Run Python that reads untrusted files with `-I`.

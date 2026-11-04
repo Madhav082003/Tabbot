@@ -5,6 +5,7 @@ Engine logic lives in tabbot.* ; this file only lays things out. Session state k
   qf      {page: {field_raw: [values]}} quick-filter selections
   cache   rebuild results           compare  {sheet: CompareReport}     chat_open  bool
   lints   workbook findings         analysis {key: (ctx, {recipe: AnalysisResult})} checks {key: [Check]}
+  chat    ChatSession               chat_log [{role, text, tools}]   pending_nav (page, {raw: values}) from Claude
 """
 
 from __future__ import annotations
@@ -21,6 +22,8 @@ from tabbot.analysis.lints import Finding, run_lints
 from tabbot.analysis.recipes import context_for, run_standard
 from tabbot.analysis.summary import key_facts
 from tabbot.config import get_settings
+from tabbot.llm.audit import AuditLog
+from tabbot.llm.orchestrator import ChatSession
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.twb.model import Dashboard, Zone
 from tabbot.ui.charts import figure_for
@@ -86,6 +89,7 @@ def _load(path: Path) -> None:
     st.session_state.page = OVERVIEW
     st.session_state.qf, st.session_state.cache, st.session_state.compare = {}, {}, {}
     st.session_state.lints, st.session_state.analysis, st.session_state.checks = None, {}, {}
+    st.session_state.chat, st.session_state.chat_log, st.session_state.pending_nav = None, [], None
 
 
 def _load_upload(uploaded) -> None:
@@ -373,6 +377,8 @@ def _render_findings(lw: LoadedWorkbook) -> None:
             where = ", ".join(f.dashboards or f.sheets)
             st.markdown(f"{SEV_ICON[f.severity]} **{f.title}** · `{f.code}`" + (f" · _{where}_" if where else ""))
             st.markdown(f.message)
+            if f.evidence.get("file"):
+                st.caption(f"File: {f.evidence['file']} (shown here only; never sent to Claude)")
 
 
 def _render_overview(lw: LoadedWorkbook) -> None:
@@ -433,18 +439,102 @@ def _render_start_page() -> None:
                   "whether the redraw is exact."),
                  ("🔎 Problems found", "Rule-based checks: misnamed sheets, counting dates, copied filters, "
                   "partial periods…"),
-                 ("💬 Ask Claude", "Claude explains the numbers and switches the view for you (step S5).")]
+                 ("💬 Ask Claude", "Claude explains the numbers, cites them, and switches the view for you.")]
         for col, (title, text) in zip(f, feats, strict=True):
             col.markdown(f"<div class='tb-feature'><b>{title}</b><br><span>{text}</span></div>",
                          unsafe_allow_html=True)
 
 
-def _render_chat_panel() -> None:
+SUGGESTIONS = ["What are the key insights on this dashboard?", "Is anything wrong in how this workbook is built?",
+               "What drove the biggest change?"]
+
+
+def _chat_session(lw: LoadedWorkbook) -> ChatSession:
+    if st.session_state.get("chat") is None:
+        st.session_state.chat = ChatSession(lw, get_settings())
+    return st.session_state.chat
+
+
+def _app_context(lw: LoadedWorkbook, page: str) -> str:
+    sel = {k: v for k, v in st.session_state.qf.get(page, {}).items() if v}
+    labels = {}
+    d = lw.model.dashboard(page)
+    if d is not None:
+        for q in d.quick_filters:
+            if q.field.raw in sel:
+                labels[q.field.label] = sel[q.field.raw]
+    return f"Open page: {page}" + (f"; quick filters: {labels}" if labels else "; no quick filters set")
+
+
+def _ask(lw: LoadedWorkbook, page: str, question: str, box) -> None:
+    log = st.session_state.chat_log
+    log.append({"role": "user", "text": question, "tools": []})
+    with box:
+        with st.chat_message("user"):
+            st.markdown(question)
+        with st.chat_message("assistant"), st.spinner("Looking at the workbook…"):
+            turn = _chat_session(lw).ask(question, _app_context(lw, page))
+    tools = [f"{'⚠️' if t.is_error else '🔧'} {t.name}({', '.join(f'{k}={v}' for k, v in t.input.items())})"
+             + (f" → {t.preview}" if t.preview else "") for t in turn.tool_calls]
+    meta = ""
+    if turn.usage:
+        u = turn.usage
+        meta = (f"{turn.rounds} round(s) · in {u.get('input_tokens', 0):,} "
+                f"(+{u.get('cache_read_input_tokens', 0):,} cached) · out {u.get('output_tokens', 0):,}")
+    log.append({"role": "assistant", "text": turn.text or "_(no answer)_", "tools": tools, "meta": meta,
+                "error": bool(turn.error)})
+    if turn.actions:
+        a = turn.actions[-1]
+        st.session_state.pending_nav = (a.page, a.quick_filters)
+    st.rerun()
+
+
+def _render_chat_panel(lw: LoadedWorkbook, page: str) -> None:
+    settings = get_settings()
     with st.container(border=True):
-        st.markdown("**Ask Claude**")
-        st.caption("Chat is connected in step S5. It will explain these dashboards, cite the numbers, and switch "
-                   "the view for you.")
-        st.chat_input("Ask about this workbook…", disabled=True, key="chat_disabled")
+        st.markdown("**💬 Ask Claude**")
+        ready = bool(settings.anthropic_api_key) or settings.dry_run
+        st.caption(f"{settings.claude_model} · effort {settings.claude_effort}"
+                   + (" · DRY RUN (nothing is sent)" if settings.dry_run else ""))
+        if not ready:
+            st.info("Add your Anthropic API key to start chatting:\n\n1. Copy `C:\\tabbot\\.env.example` to "
+                    "`.env`\n2. Paste the key after `ANTHROPIC_API_KEY=`\n3. Restart the app")
+        box = st.container(height=560, border=False)
+        with box:
+            if not st.session_state.chat_log:
+                st.caption("Claude sees the workbook's structure and summary numbers computed here - never the data "
+                           "rows. Every request is logged below before it is sent.")
+            for m in st.session_state.chat_log:
+                with st.chat_message(m["role"]):
+                    st.markdown(m["text"])
+                    if m.get("tools"):
+                        with st.expander(f"{len(m['tools'])} tool call(s)"):
+                            for t in m["tools"]:
+                                st.caption(t)
+                    if m.get("meta"):
+                        st.caption(m["meta"])
+        pending = None
+        if not st.session_state.chat_log and ready:
+            for i, sug in enumerate(SUGGESTIONS):
+                if st.button(sug, key=f"sug{i}", width="stretch"):
+                    pending = sug
+        q = st.chat_input("Ask about this workbook…", key="chat_in", disabled=not ready)
+        question = q or pending
+        if question:
+            _ask(lw, page, question, box)
+        with st.expander("What was sent to Claude"):
+            entries = AuditLog(settings.workspace_dir / "audit" / "outbound.jsonl").read(last=10)
+            if not entries:
+                st.caption("Nothing sent yet.")
+            for e in reversed(entries):
+                st.caption(f"{e['ts']} · {e['chars']:,} chars (~{e['approx_tokens']:,} tokens)"
+                           + (" · dry run" if e.get("dry_run") else ""))
+            if entries:
+                if st.toggle("Show the latest request in full", key="show_req"):
+                    st.json(entries[-1]["request"], expanded=False)
+            if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
+                st.session_state.chat, st.session_state.chat_log = None, []
+                st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- page
@@ -455,7 +545,7 @@ def main() -> None:
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
     for k, v in (("qf", {}), ("cache", {}), ("compare", {}), ("chat_open", True), ("lints", None),
-                 ("analysis", {}), ("checks", {})):
+                 ("analysis", {}), ("checks", {}), ("chat", None), ("chat_log", []), ("pending_nav", None)):
         st.session_state.setdefault(k, v)
 
     auto = os.environ.get("TABBOT_AUTOLOAD")
@@ -491,6 +581,16 @@ def main() -> None:
         _render_start_page()
         return
 
+    nav = st.session_state.get("pending_nav")   # set by Claude's show_in_app; applied before any widget exists
+    if nav:
+        target, sel = nav
+        st.session_state.page = target
+        st.session_state.qf[target] = dict(sel)
+        d = lw.model.dashboard(target)
+        for q in (d.quick_filters if d else []):
+            st.session_state[f"qf::{target}::{q.field.raw}"] = list(sel.get(q.field.raw, []))
+        st.session_state.pending_nav = None
+
     pages = [OVERVIEW, FINDINGS] + [d.name for d in lw.model.dashboards] + \
         [SHEET_PREFIX + w.name for w in lw.model.worksheets if not w.hidden]
     if st.session_state.get("page") not in pages:
@@ -513,7 +613,7 @@ def main() -> None:
             _render_dashboard(lw, lw.model.dashboard(page))
     if chat_col is not None:
         with chat_col:
-            _render_chat_panel()
+            _render_chat_panel(lw, page)
 
 
 main()

@@ -1,0 +1,179 @@
+"""Claude layer without an API key: a fake client returns scripted responses."""
+
+import json
+import os
+
+import pytest
+
+from tabbot.config import load_settings
+from tabbot.llm.orchestrator import ChatSession
+from tabbot.llm.provider import FALLBACK_BETA
+from tabbot.llm.tools import ToolContext, dispatch, tool_definitions
+from tabbot.loader import load_workbook
+
+
+@pytest.fixture(scope="module")
+def lw(fixture_twbx, tmp_path_factory):
+    settings = load_settings().model_copy(update={"workspace_dir": tmp_path_factory.mktemp("ws")})
+    loaded = load_workbook(fixture_twbx, settings=settings)
+    yield loaded
+    loaded.close()
+
+
+def settings_for(tmp_path, **kw):
+    return load_settings().model_copy(update={"workspace_dir": tmp_path, "anthropic_api_key": "test", **kw})
+
+
+def tool_use(i, name, inp):
+    return {"type": "tool_use", "id": f"tu_{i}", "name": name, "input": inp}
+
+
+def response(blocks, stop):
+    return {"content": blocks, "stop_reason": stop,
+            "usage": {"input_tokens": 100, "output_tokens": 20, "cache_read_input_tokens": 50}}
+
+
+class FakeClient:
+    """Checks the audit log already has an entry for every request at the moment it is 'sent'."""
+
+    def __init__(self, script, audit_path):
+        self.script, self.audit_path, self.requests = list(script), audit_path, []
+
+    def create(self, **req):
+        lines = self.audit_path.read_text(encoding="utf-8").splitlines() if self.audit_path.exists() else []
+        assert len(lines) == len(self.requests) + 1, "request sent before it was written to the audit log"
+        self.requests.append(json.loads(json.dumps(req, default=str)))
+        item = self.script.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+
+SCRIPT = [
+    response([{"type": "text", "text": "Let me look."},
+              tool_use(1, "list_dashboards", {}),
+              tool_use(2, "run_analysis", {"sheet": "Category Heatmap", "recipe": "standard"})], "tool_use"),
+    response([tool_use(3, "show_in_app", {"page": "Category by Quarter"}),
+              tool_use(4, "get_chart_data", {"sheet": "No Such Sheet"})], "tool_use"),
+    response([{"type": "text", "text": "**Data**: Category C grew 248 → 639 (R1)."}], "end_turn"),
+]
+
+
+def test_tool_loop(lw, tmp_path):
+    s = settings_for(tmp_path)
+    fake = FakeClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl")
+    chat = ChatSession(lw, s, client=fake)
+    turn = chat.ask("Key insights?", app_context="Open page: Overview")
+
+    assert turn.text.startswith("**Data**") and turn.stop_reason == "end_turn" and turn.rounds == 3
+    assert [t.name for t in turn.tool_calls] == ["list_dashboards", "run_analysis", "show_in_app", "get_chart_data"]
+    assert [t.is_error for t in turn.tool_calls] == [False, False, False, True]
+    assert [(a.page, a.quick_filters) for a in turn.actions] == [("Category by Quarter", {})]
+    assert turn.usage["input_tokens"] == 300 and turn.usage["cache_read_input_tokens"] == 150
+
+    roles = [m["role"] for m in chat.messages]
+    assert roles == ["user", "assistant", "user", "assistant", "user", "assistant"]
+    first = chat.messages[0]["content"]
+    assert first[0]["text"].startswith("<app_context>") and first[1]["text"] == "Key insights?"
+    # all tool results of a turn in ONE user message, matching ids, errors flagged
+    r1, r2 = chat.messages[2]["content"], chat.messages[4]["content"]
+    assert [b["tool_use_id"] for b in r1] == ["tu_1", "tu_2"] and all(b["type"] == "tool_result" for b in r1)
+    assert r2[1]["is_error"] is True and "no worksheet" in r2[1]["content"]
+    # assistant turns appended exactly as returned (append-only history)
+    assert chat.messages[1]["content"] == SCRIPT[0]["content"]
+
+    req = fake.requests[0]
+    assert req["model"] == s.claude_model and req["output_config"] == {"effort": s.claude_effort}
+    assert req["fallbacks"] == "default" and req["betas"] == [FALLBACK_BETA]
+    assert req["cache_control"] == {"type": "ephemeral"}
+    assert not {"temperature", "top_p", "top_k", "tool_choice", "thinking"} & set(req)
+    assert {t["name"] for t in req["tools"]} == {t["name"] for t in tool_definitions()}
+    # later requests carry the whole growing history (prefix stays identical for caching)
+    assert fake.requests[2]["messages"][:5] == json.loads(json.dumps(chat.messages[:5], default=str))
+
+
+def test_dry_run_never_sends(lw, tmp_path):
+    s = settings_for(tmp_path, dry_run=True)
+
+    class Boom:
+        def create(self, **_):
+            raise AssertionError("dry run must not send")
+
+    chat = ChatSession(lw, s, client=Boom())
+    turn = chat.ask("hello")
+    assert turn.dry_run and "Dry run" in turn.text and chat.messages == []
+    entry = json.loads((tmp_path / "audit" / "outbound.jsonl").read_text(encoding="utf-8").splitlines()[-1])
+    assert entry["dry_run"] is True and entry["request"]["messages"][0]["content"][-1]["text"] == "hello"
+    assert "test" not in json.dumps(entry)  # the API key is never logged
+
+
+def test_errors_and_refusal(lw, tmp_path):
+    s = settings_for(tmp_path)
+    fake = FakeClient([RuntimeError("Could not resolve authentication method. Expected api_key")],
+                      tmp_path / "audit" / "outbound.jsonl")
+    chat = ChatSession(lw, s, client=fake)
+    turn = chat.ask("hi")
+    assert turn.error and "API key" in turn.text and chat.messages == []  # history stays valid
+
+    fake2 = FakeClient([response([], "refusal")], tmp_path / "audit2" / "outbound.jsonl")
+    s2 = s.model_copy(update={"workspace_dir": tmp_path / "w2"})
+    fake2.audit_path = tmp_path / "w2" / "audit" / "outbound.jsonl"
+    chat2 = ChatSession(lw, s2, client=fake2)
+    assert "declined" in chat2.ask("hi").text
+
+
+def test_tool_definitions_are_valid():
+    defs = tool_definitions()
+    assert len({d["name"] for d in defs}) == len(defs) == 7
+    for d in defs:
+        assert d["input_schema"]["type"] == "object" and len(d["description"].split(". ")) >= 2
+
+
+SENSITIVE_MARKERS = ["R00001", "R00002", "#1-1", "jdoe", "Client Data", "C:/Users", "fixture_source.xlsx"]
+
+
+def test_no_sensitive_values_leak(lw):
+    ctx = ToolContext(lw=lw)
+    calls = [("list_dashboards", {}), ("get_findings", {})]
+    for ws in lw.model.worksheets:
+        calls += [("describe_sheet", {"sheet": ws.name}), ("get_chart_data", {"sheet": ws.name}),
+                  ("run_analysis", {"sheet": ws.name, "recipe": "standard"})]
+    calls += [("query_data", {"dimensions": [{"field": f}]}) for f in ("NOTES", "RECORD_ID", "CHANNEL", "AGE_UNIT")]
+    calls += [("query_data", {"filters": [{"field": "RECORD_ID", "values": ["R00001"]}]}),
+              ("run_analysis", {"sheet": "Records Trend", "recipe": "flag_share", "flag_field": "NOTES",
+                                "flag_value": "x"})]
+    outputs = {f"{n} {i}": dispatch(ctx, n, i) for n, i in calls}
+    for key, (out, _) in outputs.items():
+        for marker in SENSITIVE_MARKERS:
+            if marker == "R00001" and "query_data" in key and "R00001" in key:
+                continue  # the request itself names it; the answer must be an error (checked below)
+            assert marker not in out, (key, marker)
+    assert outputs["query_data {'dimensions': [{'field': 'NOTES'}]}"][1] is True
+    assert outputs["query_data {'dimensions': [{'field': 'RECORD_ID'}]}"][1] is True
+    assert outputs["query_data {'filters': [{'field': 'RECORD_ID', 'values': ['R00001']}]}"][1] is True
+    assert all(len(o) <= ctx.max_chars + 20 for o, _ in outputs.values())
+
+
+def test_show_in_app_with_filter(lw):
+    ctx = ToolContext(lw=lw)
+    out, err = dispatch(ctx, "show_in_app", {"page": "Volume Trend", "quick_filters": {"CHANNEL": ["Web"]}})
+    assert not err
+    assert ctx.actions[-1].quick_filters == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
+    _, err = dispatch(ctx, "show_in_app", {"page": "Volume Trend", "quick_filters": {"REGION": ["North"]}})
+    assert err
+
+
+@pytest.mark.llm
+@pytest.mark.skipif(not os.environ.get("ANTHROPIC_API_KEY") and not (
+        __import__("pathlib").Path(__file__).resolve().parents[1] / ".env").exists(), reason="no API key")
+def test_live_insights(lw, tmp_path, expected):
+    s = load_settings().model_copy(update={"workspace_dir": tmp_path})
+    if not s.anthropic_api_key:
+        pytest.skip("no ANTHROPIC_API_KEY in .env")
+    chat = ChatSession(lw, s)
+    turn = chat.ask("What are the key insights on the Category by Quarter dashboard, and what drove the change?",
+                    app_context="Open page: Category by Quarter")
+    assert turn.error is None, turn.text
+    text = turn.text
+    assert expected["story"]["driver_value"] in text and "Category C" in text
+    assert "Data" in text and any(t.name == "run_analysis" for t in turn.tool_calls)
