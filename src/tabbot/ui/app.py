@@ -35,22 +35,42 @@ DASH_HEIGHT_PX = 760
 
 CSS = """
 <style>
-  #MainMenu, footer, header [data-testid="stToolbar"] {visibility: hidden;}
-  .block-container {padding-top: 0.6rem; padding-bottom: 1rem; max-width: 100%;}
-  .tb-bar {background: #1F3A5F; color: #fff; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px;
-           display: flex; align-items: baseline; gap: 14px; font-family: 'Segoe UI', Arial, sans-serif;}
-  .tb-bar .brand {font-weight: 600; font-size: 18px; letter-spacing: .2px;}
-  .tb-bar .wb {font-size: 13px; opacity: .85;}
-  .tb-title {font-family: 'Segoe UI', Arial, sans-serif; font-size: 20px; font-weight: 600; color: #333;
-             margin: 4px 0 2px 0;}
-  .tb-sheet {font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; color: #444;}
+  /* remove Streamlit's own header strip: it overlapped the top of the page */
+  header[data-testid="stHeader"] {display: none !important;}
+  #MainMenu, footer {visibility: hidden;}
+  .block-container {padding: 0.9rem 1.4rem 1rem 1.4rem !important; max-width: 100% !important;}
+  html, body, [class*="css"] {font-family: 'Segoe UI', 'Benton Sans', Arial, sans-serif;}
+
+  /* app bar */
+  .st-key-appbar {background: #1F3A5F; border-radius: 8px; padding: 10px 14px 10px 16px; min-height: 52px;
+                  justify-content: center;}
+  .st-key-appbar p {color: #fff; margin: 0;}
+  .st-key-appbar .brand {font-weight: 600; font-size: 18px; letter-spacing: .2px; color: #fff;}
+  .st-key-appbar .wb {font-size: 13px; color: #C9D6E8; margin-left: 12px;}
+  .st-key-appbar button {background: rgba(255,255,255,.10) !important; color: #fff !important;
+                         border: 1px solid rgba(255,255,255,.35) !important;}
+  .st-key-appbar button:hover {background: rgba(255,255,255,.22) !important;}
+  .st-key-appbar button p {color: #fff !important;}
+
+  /* page tabs, Tableau style */
+  .st-key-pagebar {border-bottom: 1px solid #D9D9D9; margin: 2px 0 6px 0; padding-bottom: 4px;}
+  .st-key-pagebar button {border-radius: 4px 4px 0 0 !important; font-size: 13px !important;}
+
+  .tb-title {font-size: 20px; font-weight: 600; color: #333; margin: 4px 0 2px 0;}
+  .tb-sheet {font-size: 13px; font-weight: 600; color: #444;}
   .tb-badge {display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-left: 6px;
              font-weight: 500; vertical-align: middle;}
   .ok {background: #E3F1E6; color: #2E7D32;} .warn {background: #FFF3D6; color: #9A6700;}
   .bad {background: #FDE2E1; color: #B42318;} .ver {background: #E3EEFA; color: #1F4E79;}
   .tb-check {font-size: 12px; color: #555; background: #F7F7F7; border-left: 3px solid #F28E2B;
              padding: 6px 10px; margin: 6px 0; border-radius: 3px;}
-  div[data-testid="stVerticalBlockBorderWrapper"] {background: #fff;}
+
+  /* start page */
+  .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 4px 0;}
+  .tb-hero p {font-size: 15px; color: #555; margin: 0 0 6px 0;}
+  .tb-feature {background: #F6F8FB; border-radius: 8px; padding: 12px 14px; height: 100%;}
+  .tb-feature b {color: #1F3A5F;}
+  .tb-feature span {font-size: 13px; color: #555;}
 </style>
 """
 
@@ -245,7 +265,7 @@ def _render_sheet(lw: LoadedWorkbook, sheet: str, page: str, height: int) -> Non
 def _render_quick_filters(lw: LoadedWorkbook, d: Dashboard, page: str) -> None:
     if not d.quick_filters:
         return
-    cols = st.columns(min(len(d.quick_filters), 4))
+    cols = st.columns(max(4, len(d.quick_filters)))  # compact dropdowns, like Tableau's quick filters
     sel = st.session_state.qf.setdefault(page, {})
     for i, q in enumerate(d.quick_filters):
         ds = q.field.datasource
@@ -267,9 +287,23 @@ def _render_dashboard(lw: LoadedWorkbook, d: Dashboard) -> None:
             unsafe_allow_html=True)
     _render_quick_filters(lw, d, page)
     grouped: dict[str, list[str]] = {}
+    total_w = max((z.x + z.w for z in d.zones if z.name in d.sheets), default=0)
     for row in _rows_of_zones(d):
-        cols = st.columns([max(z.w, 1) for z in row])
-        for col, z in zip(cols, row, strict=True):
+        widths, slots, cursor = [], [], 0
+        for z in sorted(row, key=lambda z: z.x):
+            if total_w and z.x - cursor > 0:      # empty space in the Tableau layout
+                widths.append(z.x - cursor)
+                slots.append(None)
+            widths.append(max(z.w, 1))
+            slots.append(z)
+            cursor = z.x + z.w
+        if total_w and total_w - cursor > 0:
+            widths.append(total_w - cursor)
+            slots.append(None)
+        cols = st.columns(widths)
+        for col, z in zip(cols, slots, strict=True):
+            if z is None:
+                continue
             with col:
                 h = max(260, int(z.h / 100_000 * DASH_HEIGHT_PX)) if z.h else 340
                 _render_sheet(lw, z.name, page, h)
@@ -346,8 +380,8 @@ def _render_overview(lw: LoadedWorkbook) -> None:
     st.markdown(f"<div class='tb-title'>{lw.source_name}</div>", unsafe_allow_html=True)
     c = st.columns(4)
     c[0].metric("Dashboards", len(m.dashboards))
-    c[1].metric("Worksheets", len(m.worksheets), f"{sum(w.hidden for w in m.worksheets)} hidden",
-                delta_color="off")
+    c[1].metric("Worksheets", len(m.worksheets))
+    c[1].caption(f"{sum(w.hidden for w in m.worksheets)} hidden (shown inside dashboards)")
     c[2].metric("Calculated fields", len(m.calculated_fields))
     c[3].metric("Extract rows", f"{sum(t.rows for t in lw.tables):,}" if lw.tables else "no extract")
     for ds in m.datasources:
@@ -372,6 +406,37 @@ def _render_overview(lw: LoadedWorkbook) -> None:
                     + (f"; filters: {', '.join(q.field.label for q in d.quick_filters)}" if d.quick_filters else ""))
     for n in lw.notes + m.unsupported:
         st.caption(f"Note: {n}")
+
+
+def _render_start_page() -> None:
+    st.write("")
+    _, mid, _ = st.columns([1, 2.2, 1])
+    with mid:
+        st.markdown("<div class='tb-hero'><h1>Open a Tableau workbook</h1>"
+                    "<p>Your dashboards are redrawn from the workbook's own data, checked for definition problems "
+                    "and analysed — everything runs on this computer.</p></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            up = st.file_uploader("Upload a packaged workbook (.twbx)", type=["twbx", "twb"], key="upload_main")
+            if up is not None:
+                _load_upload(up)
+                st.rerun()
+            c1, c2 = st.columns([1, 1.4], vertical_alignment="center")
+            with c1:
+                if st.button("▶ Try the demo workbook", key="demo_main", type="primary", width="stretch"):
+                    _load_demo()
+                    st.rerun()
+            with c2:
+                st.caption("Made-up data with a hidden growth story and a few planted definition problems.")
+        st.write("")
+        f = st.columns(3)
+        feats = [("📊 Dashboards, redrawn", "Every sheet rebuilt from its definition and data, with a badge saying "
+                  "whether the redraw is exact."),
+                 ("🔎 Problems found", "Rule-based checks: misnamed sheets, counting dates, copied filters, "
+                  "partial periods…"),
+                 ("💬 Ask Claude", "Claude explains the numbers and switches the view for you (step S5).")]
+        for col, (title, text) in zip(f, feats, strict=True):
+            col.markdown(f"<div class='tb-feature'><b>{title}</b><br><span>{text}</span></div>",
+                         unsafe_allow_html=True)
 
 
 def _render_chat_panel() -> None:
@@ -399,34 +464,39 @@ def main() -> None:
         st.session_state.loaded_digest = "autoload"
 
     lw: LoadedWorkbook | None = st.session_state.get("lw")
-    top = st.columns([7, 2, 1.3])
-    with top[0]:
-        st.markdown(f"<div class='tb-bar'><span class='brand'>📊 Tableau Insights</span>"
-                    f"<span class='wb'>{lw.source_name if lw else 'no workbook open'}</span></div>",
-                    unsafe_allow_html=True)
-    with top[1], st.popover("📂 Open workbook", width="stretch"):
-        up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key="upload")
-        if up is not None:
-            _load_upload(up)
-        if st.button("Try the demo workbook", key="demo", width="stretch"):
-            _load_demo()
-            st.rerun()
-    with top[2]:
-        label = "Hide chat ▸" if st.session_state.chat_open else "◂ Chat"
-        if st.button(label, width="stretch", key="chat_toggle"):
-            st.session_state.chat_open = not st.session_state.chat_open
-            st.rerun()
+    with st.container(key="appbar"):
+        if lw is None:
+            st.markdown("<span class='brand'>📊 Tableau Insights</span>", unsafe_allow_html=True)
+        else:
+            top = st.columns([7, 1.6, 1.2], vertical_alignment="center")
+            with top[0]:
+                st.markdown(f"<span class='brand'>📊 Tableau Insights</span>"
+                            f"<span class='wb'>{lw.source_name}</span>", unsafe_allow_html=True)
+            with top[1], st.popover("📂 Open workbook", width="stretch"):
+                up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key="upload")
+                if up is not None:
+                    _load_upload(up)
+                    st.rerun()
+                if st.button("Try the demo workbook", key="demo", width="stretch"):
+                    _load_demo()
+                    st.rerun()
+            with top[2]:
+                label = "Hide chat ▸" if st.session_state.chat_open else "◂ Show chat"
+                if st.button(label, width="stretch", key="chat_toggle"):
+                    st.session_state.chat_open = not st.session_state.chat_open
+                    st.rerun()
 
     lw = st.session_state.get("lw")
     if lw is None:
-        st.info("Open a Tableau workbook (.twbx) with **📂 Open workbook**, or try the demo workbook.")
+        _render_start_page()
         return
 
     pages = [OVERVIEW, FINDINGS] + [d.name for d in lw.model.dashboards] + \
         [SHEET_PREFIX + w.name for w in lw.model.worksheets if not w.hidden]
     if st.session_state.get("page") not in pages:
         st.session_state.page = OVERVIEW
-    st.segmented_control("Pages", pages, key="page", label_visibility="collapsed")
+    with st.container(key="pagebar"):
+        st.segmented_control("Pages", pages, key="page", label_visibility="collapsed")
     page = st.session_state.get("page") or OVERVIEW
 
     main_col, chat_col = (st.columns([3.3, 1]) if st.session_state.chat_open else (st.container(), None))

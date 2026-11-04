@@ -5,3 +5,10 @@ gatherUsageStats = false
 address = "127.0.0.1"
 headless = true
 maxUploadSize = 2000
+
+[theme]
+base = "light"
+primaryColor = "#4E79A7"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F5F8"
+textColor = "#2E2E2E"

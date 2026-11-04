@@ -55,7 +55,7 @@ def figure_for(res: RebuildResult, height: int = 360) -> tuple[go.Figure | None,
             hovertemplate="%{y}<br>%{x}<br>" + m.label + ": %{z:,}<extra></extra>"))
         fig.update_yaxes(autorange="reversed", showgrid=False, tickfont=dict(size=10))
         fig.update_xaxes(side="top", tickfont=dict(size=10), type="category")
-        h = max(height, min(28 * len(pv) + 60, 1400))
+        h = max(220, min(30 * len(pv) + 90, 1400))  # follow the number of rows, like Tableau's cells
         return _style(fig, h), None, notes
 
     if kind in ("line", "area"):
