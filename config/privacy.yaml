@@ -1,0 +1,16 @@
+# What may leave this machine. See docs/SPEC.md sections 4, 5.5, 5.6 and 10.
+min_cell_count: 1                 # demo: no suppression (user decision 2026-11-04). Set 5 to hide counts below 5 from Claude.
+                                  # Lower it only if rare small counts matter (e.g. fatal outcomes) and your rules allow it.
+max_rows: 200                     # rows per tool result
+max_chars: 12000                  # characters per tool result
+mask_formula_literals: false      # true = string literals in formulas become "<str>"
+sensitive_column_patterns:        # case-insensitive regex on column names
+  - "patient|subject|person|name|email|phone|address|postcode|zip"
+  - "birth|dob|ssn|mrn|national.?id|passport"
+  - "verbatim|narrative|comment|note|description|free.?text"
+  - "(^|_)id$|caseid|case_id"     # ids may be counted, never returned
+sensitive_columns: []             # exact column names confirmed by the user in the UI
+free_text_detection:
+  min_avg_length: 30
+  min_distinct_ratio: 0.5
+redact_connection_paths: true

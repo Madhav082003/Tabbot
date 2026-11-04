@@ -1,0 +1,22 @@
+# secrets and local data — never commit
+.env
+workspace/
+audit/
+*.twbx
+*.twb
+*.hyper
+*.tde
+*.parquet
+tests/fixtures/out/
+tests/fixtures/private/
+hyperd*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
