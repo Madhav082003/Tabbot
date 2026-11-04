@@ -66,8 +66,12 @@ class FieldRef(BaseModel):
     def label(self) -> str:
         name = self.caption or self.field
         if self.kind == "measure":
-            return f"{self.aggregation.replace('_', ' ').upper()}({name})" if self.aggregation != "user_aggregate" \
-                else name
+            words = {"count_distinct": "Distinct count of", "count": "Count of"}
+            if self.aggregation == "user_aggregate":
+                return name
+            if self.aggregation in words:
+                return f"{words[self.aggregation]} {name}"
+            return f"{self.aggregation.upper()}({name})"
         if self.kind in ("date_part", "date_trunc"):
             return f"{self.date_grain.upper()}({name})"
         return name

@@ -36,5 +36,5 @@ def test_empty_and_garbage():
 def test_labels():
     r = parse_ref("[ds].[ctd:CASEID:qk]")
     r.caption = "Case Id"
-    assert r.label == "COUNT DISTINCT(Case Id)"
+    assert r.label == "Distinct count of Case Id"
     assert parse_ref("[ds].[qr:D:ok]").label == "QUARTER(D)"
