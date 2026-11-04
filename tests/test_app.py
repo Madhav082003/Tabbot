@@ -48,3 +48,18 @@ def test_quick_filter_changes_view(app):
     ms[0].set_value(["Web"]).run()
     assert not app.exception
     assert app.session_state["qf"]["Volume Trend"] == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
+
+
+def test_findings_page_and_analysis_panel(app):
+    app.session_state["page"] = "🔎 Findings"
+    app.run()
+    assert not app.exception
+    text = _markdown(app)
+    assert "Sheet name doesn't match what it shows" in text and "Counts dates, not records" in text
+
+    app.session_state["page"] = "Category by Quarter"
+    app.run()
+    assert not app.exception
+    text = _markdown(app)
+    assert "CHANNEL = Web" in text          # analysis panel key facts
+    assert "incomplete" in text              # partial-period check in the checks bar
