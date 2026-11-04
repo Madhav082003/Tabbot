@@ -29,6 +29,7 @@ from tabbot.twb.model import Dashboard, Zone
 from tabbot.ui.charts import figure_for
 from tabbot.views.compare import compare_with_tableau
 from tabbot.views.rebuild import RebuildResult, field_values, rebuild_worksheet
+from tabbot.workspace import purge_workspaces
 
 OVERVIEW = "ℹ️ Overview"
 FINDINGS = "🔎 Findings"
@@ -82,14 +83,27 @@ CSS = """
 
 
 def _load(path: Path) -> None:
-    old: LoadedWorkbook | None = st.session_state.get("lw")
-    if old is not None:
-        old.close()
+    _close_workbook()
     st.session_state.lw = load_workbook(path, settings=get_settings())
     st.session_state.page = OVERVIEW
     st.session_state.qf, st.session_state.cache, st.session_state.compare = {}, {}, {}
     st.session_state.lints, st.session_state.analysis, st.session_state.checks = None, {}, {}
     st.session_state.chat, st.session_state.chat_log, st.session_state.pending_nav = None, [], None
+
+
+def _close_workbook() -> None:
+    """Release the open workbook and delete its local copy (unpacked files and data)."""
+    old: LoadedWorkbook | None = st.session_state.get("lw")
+    if old is not None:
+        old.close(delete=True)
+    st.session_state.lw = None
+    st.session_state.loaded_digest = None
+
+
+@st.cache_resource(show_spinner=False)
+def _purge_leftovers_once() -> int:
+    """At server start: delete workbook copies left by earlier runs (sessions live in memory only)."""
+    return purge_workspaces(get_settings().workspace_dir)
 
 
 def _load_upload(uploaded) -> None:
@@ -544,12 +558,14 @@ def main() -> None:
     st.set_page_config(page_title="Tableau Insights", page_icon="📊", layout="wide",
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
+    _purge_leftovers_once()
     for k, v in (("qf", {}), ("cache", {}), ("compare", {}), ("chat_open", True), ("lints", None),
                  ("analysis", {}), ("checks", {}), ("chat", None), ("chat_log", []), ("pending_nav", None)):
         st.session_state.setdefault(k, v)
 
     auto = os.environ.get("TABBOT_AUTOLOAD")
-    if auto and st.session_state.get("lw") is None:
+    if auto and not st.session_state.get("autoloaded"):   # once per session, so "Close workbook" sticks
+        st.session_state.autoloaded = True
         _load(Path(auto))
         st.session_state.loaded_digest = "autoload"
 
@@ -569,6 +585,10 @@ def main() -> None:
                     st.rerun()
                 if st.button("Try the demo workbook", key="demo", width="stretch"):
                     _load_demo()
+                    st.rerun()
+                if st.button("🗑 Close workbook & delete local copy", key="close_wb", width="stretch"):
+                    _close_workbook()
+                    st.session_state.chat, st.session_state.chat_log = None, []
                     st.rerun()
             with top[2]:
                 label = "Hide chat ▸" if st.session_state.chat_open else "◂ Show chat"

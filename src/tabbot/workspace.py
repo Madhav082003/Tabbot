@@ -57,9 +57,24 @@ def new_workspace(base_dir: Path) -> Workspace:
     return Workspace(id=wid, root=Path(base_dir) / wid)
 
 
-def delete_workspace(ws: Workspace) -> None:
+def delete_workspace(ws: Workspace) -> bool:
+    """Delete a workspace (the unpacked workbook and its data copies). Returns True if it is gone."""
     if ws.root.exists():
         shutil.rmtree(ws.root, ignore_errors=True)
+    return not ws.root.exists()
+
+
+def purge_workspaces(base_dir: Path, keep: tuple[str, ...] = ("audit", "_demo")) -> int:
+    """Delete every per-upload workspace under base_dir (left over from earlier runs). Returns how many."""
+    base = Path(base_dir)
+    if not base.exists():
+        return 0
+    n = 0
+    for child in base.iterdir():
+        if child.is_dir() and child.name not in keep:
+            shutil.rmtree(child, ignore_errors=True)
+            n += not child.exists()
+    return n
 
 
 def _check_member(info: zipfile.ZipInfo, dest: Path) -> Path:
