@@ -261,9 +261,9 @@ def l12_large_exclude(model: WorkbookModel, threshold: int = 20) -> list[Finding
 
 def l14_local_path(model: WorkbookModel) -> list[Finding]:
     return [Finding(code="L14", severity="info", title="Connection points to a local file",
-                    message=f"Data source '{ds.caption or ds.name}' was built from a local file "
-                            f"({ds.connection_file}); its path (which may include a user or client name) is stored in "
-                            "the workbook. The packaged extract is a snapshot.",
+                    message=f"Data source '{ds.caption or ds.name}' was built from a local file; its path "
+                            "(which may include a user or client name) is stored in the workbook. The packaged "
+                            "extract is a snapshot.",
                     evidence={"datasource": ds.caption or ds.name, "file": ds.connection_file})
             for ds in model.datasources if ds.connection_has_local_path]
 

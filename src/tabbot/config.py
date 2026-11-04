@@ -32,7 +32,9 @@ class PrivacySettings(BaseModel):
 class Settings(BaseModel):
     llm_provider: str = "anthropic"
     anthropic_api_key: str | None = Field(default=None, repr=False)
-    claude_model: str = "claude-sonnet-5-5"
+    claude_model: str = "claude-opus-5-5"
+    claude_effort: str = "medium"           # low | medium | high | xhigh | max
+    use_fallback: bool = True               # server-side refusal fallback
     max_tool_rounds: int = 20
     workspace_dir: Path = PROJECT_ROOT / "workspace"
     max_unzipped_mb: int = 2000
@@ -59,7 +61,9 @@ def load_settings(env_file: Path | None = None, privacy_file: Path | None = None
     return Settings(
         llm_provider=os.getenv("LLM_PROVIDER") or "anthropic",
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY") or None,
-        claude_model=os.getenv("CLAUDE_MODEL") or "claude-sonnet-5-5",
+        claude_model=os.getenv("CLAUDE_MODEL") or "claude-opus-5-5",
+        claude_effort=os.getenv("CLAUDE_EFFORT") or "medium",
+        use_fallback=_bool(os.getenv("CLAUDE_FALLBACK"), True),
         max_tool_rounds=int(os.getenv("MAX_TOOL_ROUNDS") or 20),
         workspace_dir=ws.resolve(),
         max_unzipped_mb=int(os.getenv("MAX_UNZIPPED_MB") or 2000),

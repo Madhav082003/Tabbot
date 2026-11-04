@@ -14,6 +14,17 @@ cd C:\tabbot
 
 Opens at http://127.0.0.1:8501 (local only). Use **Open workbook** to load a `.twbx`, or **Try the demo workbook**.
 
+## Chat with Claude
+
+1. Create an API key at https://console.anthropic.com (separate from a Claude.ai subscription) and add credit.
+2. Copy `.env.example` to `.env` and paste the key after `ANTHROPIC_API_KEY=`. `.env` is never committed.
+3. Restart the app. The chat panel on the right is now active.
+
+Claude only sees workbook structure and summary numbers computed on this machine - never data rows, file paths or
+values of id/free-text fields. Every request is written to `workspace/audit/outbound.jsonl` before it is sent and can
+be inspected in the app ("What was sent to Claude"). Set `DRY_RUN=true` in `.env` to log requests without sending.
+Default model: `claude-opus-5-5`; set `CLAUDE_MODEL=claude-sonnet-5-5` for a cheaper, faster model.
+
 ## Engine commands (no app, no LLM)
 
 ```powershell

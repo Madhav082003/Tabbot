@@ -63,3 +63,34 @@ def test_findings_page_and_analysis_panel(app):
     text = _markdown(app)
     assert "CHANNEL = Web" in text          # analysis panel key facts
     assert "incomplete" in text              # partial-period check in the checks bar
+
+
+def test_chat_panel_without_key_and_claude_navigation(app):
+    assert not app.exception
+    text = _markdown(app) + " ".join(i.value for i in app.info)
+    assert "Ask Claude" in text
+    # Claude's show_in_app result is applied on the next run, before widgets exist
+    app.session_state["pending_nav"] = ("Volume Trend", {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]})
+    app.run()
+    assert not app.exception
+    assert app.session_state["page"] == "Volume Trend"
+    assert app.session_state["qf"]["Volume Trend"] == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
+    ms = [m for m in app.multiselect if m.label == "CHANNEL"]
+    assert ms and ms[0].value == ["Web"]
+
+
+def test_chat_dry_run_round_trip(fixture_twbx, monkeypatch, tmp_path):
+    monkeypatch.setenv("TABBOT_AUTOLOAD", str(fixture_twbx))
+    monkeypatch.setenv("WORKSPACE_DIR", str(tmp_path))
+    monkeypatch.setenv("DRY_RUN", "true")
+    from tabbot import config
+
+    config.get_settings.cache_clear()
+    at = AppTest.from_file(str(APP), default_timeout=120)
+    at.run()
+    at.chat_input[0].set_value("What is in this workbook?").run()
+    assert not at.exception
+    log = at.session_state["chat_log"]
+    assert log[0]["role"] == "user" and "Dry run" in log[1]["text"]
+    assert (tmp_path / "audit" / "outbound.jsonl").exists()
+    config.get_settings.cache_clear()
