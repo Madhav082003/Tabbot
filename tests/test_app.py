@@ -94,3 +94,14 @@ def test_chat_dry_run_round_trip(fixture_twbx, monkeypatch, tmp_path):
     assert log[0]["role"] == "user" and "Dry run" in log[1]["text"]
     assert (tmp_path / "audit" / "outbound.jsonl").exists()
     config.get_settings.cache_clear()
+
+
+def test_open_new_workbook_deletes_previous_copy(app, tmp_path):
+    first = app.session_state["lw"].workspace.root
+    assert first.exists()
+    app.button(key="demo").click().run()
+    assert not app.exception
+    assert not first.exists()                       # previous copy deleted
+    assert app.session_state["lw"].workspace.root.exists()
+    app.button(key="close_wb").click().run()
+    assert not app.exception and app.session_state["lw"] is None

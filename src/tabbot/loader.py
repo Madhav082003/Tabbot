@@ -11,7 +11,7 @@ from tabbot.data.profile import TableProfile, detect_entity, entity_consistency,
 from tabbot.data.store import Store
 from tabbot.twb.model import WorkbookModel
 from tabbot.twb.parser import parse_workbook
-from tabbot.workspace import Package, Workspace, new_workspace, open_upload
+from tabbot.workspace import Package, Workspace, delete_workspace, new_workspace, open_upload
 
 
 @dataclass
@@ -40,9 +40,13 @@ class LoadedWorkbook:
         t = self.table_for(datasource)
         return self.profiles.get(t) if t else None
 
-    def close(self) -> None:
+    def close(self, delete: bool = False) -> None:
+        """Release the data store; with delete=True also remove the local copy of the workbook and its data."""
         if self.store is not None:
             self.store.close()
+            self.store = None
+        if delete:
+            delete_workspace(self.workspace)
 
 
 def load_workbook(path: Path | str, settings: Settings | None = None,
@@ -50,18 +54,25 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
     settings = settings or get_settings()
     path = Path(path)
     ws = new_workspace(settings.workspace_dir)
-    pkg = open_upload(path, ws, extra_extracts, settings.max_unzipped_mb)
-    model = parse_workbook(pkg.workbook, thumbnails_dir=ws.thumbnails)
-    lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model)
-
-    if pkg.unsupported_extracts:
-        lw.notes.append(f"{len(pkg.unsupported_extracts)} old-format .tde extract(s) cannot be read")
-    if not pkg.extracts:
-        lw.notes.append("no .hyper extract in the package: structure only, no data")
-        return lw
-
-    lw.tables = export_to_parquet(pkg.extracts, ws.parquet, ws.logs)
-    lw.store = Store(lw.tables)
+    lw: LoadedWorkbook | None = None
+    try:
+        pkg = open_upload(path, ws, extra_extracts, settings.max_unzipped_mb)
+        model = parse_workbook(pkg.workbook, thumbnails_dir=ws.thumbnails)
+        lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model)
+        if pkg.unsupported_extracts:
+            lw.notes.append(f"{len(pkg.unsupported_extracts)} old-format .tde extract(s) cannot be read")
+        if not pkg.extracts:
+            lw.notes.append("no .hyper extract in the package: structure only, no data")
+            return lw
+        lw.tables = export_to_parquet(pkg.extracts, ws.parquet, ws.logs)
+        lw.store = Store(lw.tables)
+    except Exception:
+        # never leave a partial copy of the workbook or its data behind
+        if lw is not None:
+            lw.close(delete=True)
+        else:
+            delete_workspace(ws)
+        raise
     for t in lw.tables:
         lw.profiles[t.name] = profile_table(lw.store, t.name, settings.privacy)
     if len(lw.tables) > 1:
