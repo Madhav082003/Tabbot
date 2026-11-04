@@ -35,6 +35,7 @@ class DimSpec:
     grain: str | None
     ref: FieldRef
     sql: str
+    date_sql: str | None = None   # underlying date (TIMESTAMP) expression for date parts/truncations
 
 
 @dataclass
@@ -62,6 +63,17 @@ class RebuildResult:
     truncated: bool = False
     title: str | None = None
     applied_quick_filters: dict[str, list[str]] = field(default_factory=dict)
+    # what analyses need to re-query the same view: table view name, WHERE clauses and their parameters
+    datasource: str | None = None
+    view: str | None = None
+    where_sql: list[str] = field(default_factory=list)
+    where_params: list = field(default_factory=list)
+
+    def time_dims(self) -> list[DimSpec]:
+        return [d for d in self.dims if d.date_sql]
+
+    def where_clause(self) -> str:
+        return (" WHERE " + " AND ".join(self.where_sql)) if self.where_sql else ""
 
     def dims_by_role(self, *roles: str) -> list[DimSpec]:
         return [d for d in self.dims if d.role in roles]
@@ -145,6 +157,10 @@ class _Ctx:
             sql = f"CAST(date_trunc('{part}', {d}) AS DATE)" if part in TRUNC_DATE else f"date_trunc('{part}', {d})"
             return sql, "date_trunc", part
         raise Unsupported(f"field reference {ref.raw} ({kind})")
+
+    def date_sql(self, ref: FieldRef) -> str:
+        """The underlying date of a date-part / date-trunc reference, as a TIMESTAMP expression."""
+        return _to_date(self.resolve(ref.field), "TIMESTAMP").sql
 
     def measure_sql(self, ref: FieldRef) -> str:
         agg = ref.aggregation
@@ -276,7 +292,8 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
                     continue
                 sql, kind, grain = ctx.dim_sql(ref)
                 dim_by_raw[ref.raw] = DimSpec(alias=f"d{len(dim_by_raw)}", label=ref.label, role=role, kind=kind,
-                                              grain=grain, ref=ref, sql=sql)
+                                              grain=grain, ref=ref, sql=sql,
+                                              date_sql=ctx.date_sql(ref) if kind != "dimension" else None)
             else:
                 res.reasons.append(f"skipped {ref.label} ({ref.kind}) on {role}")
         except Unsupported as exc:
@@ -344,6 +361,8 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
         df, res.truncated = df.iloc[:MAX_ROWS], True
         res.reasons.append(f"view has more than {MAX_ROWS:,} cells; showing the first {MAX_ROWS:,}")
     res.data = df
+
+    res.datasource, res.view, res.where_sql, res.where_params = ws.datasource, ctx.view, where, params_w
 
     # ---- sanity checks
     res.checks = _checks(ctx, ws, res, where, params_w)

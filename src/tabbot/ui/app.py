@@ -4,6 +4,7 @@ Engine logic lives in tabbot.* ; this file only lays things out. Session state k
   lw      LoadedWorkbook            page     selected page (dashboard name, sheet or overview) - S5 sets it too
   qf      {page: {field_raw: [values]}} quick-filter selections
   cache   rebuild results           compare  {sheet: CompareReport}     chat_open  bool
+  lints   workbook findings         analysis {key: (ctx, {recipe: AnalysisResult})} checks {key: [Check]}
 """
 
 from __future__ import annotations
@@ -15,6 +16,10 @@ from pathlib import Path
 
 import streamlit as st
 
+from tabbot.analysis.checks import Check, chart_checks
+from tabbot.analysis.lints import Finding, run_lints
+from tabbot.analysis.recipes import context_for, run_standard
+from tabbot.analysis.summary import key_facts
 from tabbot.config import get_settings
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.twb.model import Dashboard, Zone
@@ -23,6 +28,8 @@ from tabbot.views.compare import compare_with_tableau
 from tabbot.views.rebuild import RebuildResult, field_values, rebuild_worksheet
 
 OVERVIEW = "ℹ️ Overview"
+FINDINGS = "🔎 Findings"
+SEV_ICON = {"error": "🟥", "warn": "🟧", "info": "🟦"}
 SHEET_PREFIX = "📄 "
 DASH_HEIGHT_PX = 760
 
@@ -58,6 +65,7 @@ def _load(path: Path) -> None:
     st.session_state.lw = load_workbook(path, settings=get_settings())
     st.session_state.page = OVERVIEW
     st.session_state.qf, st.session_state.cache, st.session_state.compare = {}, {}, {}
+    st.session_state.lints, st.session_state.analysis, st.session_state.checks = None, {}, {}
 
 
 def _load_upload(uploaded) -> None:
@@ -135,21 +143,52 @@ def _badge(res: RebuildResult, sheet: str) -> str:
     return "<span class='tb-badge bad'>✗ Could not redraw</span>"
 
 
-def _check_lines(res: RebuildResult) -> list[str]:
-    out = []
-    c = res.checks
-    for col, n in (c.get("unparsed_dates") or {}).items():
-        if n:
-            out.append(f"{n:,} values of {col} could not be read as dates and are missing from the time axis")
-    for field, n in (c.get("filter_members_not_in_data") or {}).items():
-        out.append(f"filter on {field} lists {n} value(s) that do not exist in the data")
-    dt = c.get("distinct_total")
-    if dt and not dt["cells_can_be_summed"]:
-        out.append(f"cells cannot be added up: they sum to {dt['sum_of_cells']:,} but there are "
-                   f"{dt['distinct_total']:,} distinct in total (one record appears in several cells)")
-    if res.truncated:
-        out.append("view is very large; only part of it is shown")
-    return out
+def _qf_key(page: str) -> tuple:
+    return tuple(sorted((k, tuple(v)) for k, v in st.session_state.qf.get(page, {}).items() if v))
+
+
+def _checks(lw: LoadedWorkbook, sheet: str, page: str) -> list[Check]:
+    key = (sheet, _qf_key(page))
+    if key not in st.session_state.checks:
+        res = _result(lw, sheet, page)
+        ws = lw.model.worksheet(sheet)
+        ctx = None
+        if res.status != "failed" and res.measures and lw.store is not None:
+            try:
+                ctx = context_for(res, lw.store, lw.profile_for(ws.datasource))
+            except ValueError:
+                ctx = None
+        st.session_state.checks[key] = chart_checks(res, ctx)
+    return st.session_state.checks[key]
+
+
+def _lints(lw: LoadedWorkbook) -> list[Finding]:
+    if st.session_state.get("lints") is None:
+        st.session_state.lints = run_lints(lw)
+    return st.session_state.lints
+
+
+def _main_sheet(lw: LoadedWorkbook, d: Dashboard, page: str) -> str | None:
+    """The sheet the dashboard's analysis is built on: one with a time axis and a category, else any measure."""
+    best = None
+    for s in d.sheets:
+        res = _result(lw, s, page)
+        if res.status == "failed" or not res.measures:
+            continue
+        score = (bool(res.time_dims()), any(not x.date_sql for x in res.dims))
+        if best is None or score > best[0]:
+            best = (score, s)
+    return best[1] if best else None
+
+
+def _analysis(lw: LoadedWorkbook, sheet: str, page: str):
+    key = (sheet, _qf_key(page))
+    if key not in st.session_state.analysis:
+        res = _result(lw, sheet, page)
+        ws = lw.model.worksheet(sheet)
+        ctx = context_for(res, lw.store, lw.profile_for(ws.datasource))
+        st.session_state.analysis[key] = (ctx, run_standard(ctx))
+    return st.session_state.analysis[key]
 
 
 def _sheet_title(lw: LoadedWorkbook, sheet: str) -> str:
@@ -187,8 +226,8 @@ def _render_sheet(lw: LoadedWorkbook, sheet: str, page: str, height: int) -> Non
                 f"**Rows:** {', '.join(r.label for r in ws.rows) or '–'}  \n"
                 f"**Columns:** {', '.join(r.label for r in ws.cols) or '–'}  \n"
                 f"**Marks:** {marks or '–'}  \n**Filters:** {filters or '–'}")
-            for line in _check_lines(res):
-                st.markdown(f"<div class='tb-check'>{line}</div>", unsafe_allow_html=True)
+            for c in _checks(lw, sheet, page):
+                st.markdown(f"<div class='tb-check'>{c.message}</div>", unsafe_allow_html=True)
             if res.reasons:
                 st.markdown("**Why approximate:** " + "; ".join(res.reasons))
             st.dataframe(res.labelled(), width="stretch", height=200)
@@ -221,22 +260,85 @@ def _render_quick_filters(lw: LoadedWorkbook, d: Dashboard, page: str) -> None:
 def _render_dashboard(lw: LoadedWorkbook, d: Dashboard) -> None:
     page = d.name
     st.markdown(f"<div class='tb-title'>{d.title or d.name}</div>", unsafe_allow_html=True)
+    issues = [f for f in _lints(lw) if d.name in f.dashboards and f.severity != "info"]
+    if issues:
+        st.markdown("<div class='tb-check' style='border-left-color:#E15759'>" + "<br>".join(
+            f"{SEV_ICON[f.severity]} <b>{f.title}</b>: {f.message}" for f in issues) + "</div>",
+            unsafe_allow_html=True)
     _render_quick_filters(lw, d, page)
-    checks: list[str] = []
+    grouped: dict[str, list[str]] = {}
     for row in _rows_of_zones(d):
         cols = st.columns([max(z.w, 1) for z in row])
         for col, z in zip(cols, row, strict=True):
             with col:
                 h = max(260, int(z.h / 100_000 * DASH_HEIGHT_PX)) if z.h else 340
                 _render_sheet(lw, z.name, page, h)
-                res = _result(lw, z.name, page)
-                checks += [f"<b>{_sheet_title(lw, z.name)}</b>: {c}" for c in _check_lines(res)]
-    if checks:
-        st.markdown("<div class='tb-check'>⚑ " + "<br>⚑ ".join(checks) + "</div>", unsafe_allow_html=True)
+                for c in _checks(lw, z.name, page):
+                    grouped.setdefault(c.message, []).append(_sheet_title(lw, z.name))
+    if grouped:
+        lines = [f"⚑ {msg} <i>({', '.join(names)})</i>" for msg, names in grouped.items()]
+        st.markdown("<div class='tb-check'>" + "<br>".join(lines) + "</div>", unsafe_allow_html=True)
+    _render_analysis(lw, d, page)
     thumb = next((t for t in lw.model.thumbnails if t.name == d.name and t.file), None)
     if thumb is not None:
         with st.expander("Tableau's own preview of this dashboard (from the file)"):
             st.image(thumb.file, width=min(thumb.width or 192, 400))
+
+
+def _render_analysis(lw: LoadedWorkbook, d: Dashboard, page: str) -> None:
+    if lw.store is None:
+        return
+    sheet = _main_sheet(lw, d, page)
+    if sheet is None:
+        return
+    with st.expander(f"📈 Analysis of '{_sheet_title(lw, sheet)}' (computed by the app, not AI)", expanded=True):
+        try:
+            ctx, results = _analysis(lw, sheet, page)
+        except ValueError as exc:
+            st.caption(f"No analysis: {exc}")
+            return
+        for fact in key_facts(results, ctx.grain):
+            st.markdown(f"- {fact}")
+        tabs = st.tabs(["Change by member", "Drivers", "Trend", "Share by year", "Per record"])
+        pc, dr, tr = results["period_compare"], results["driver_scan"], results["trend"]
+        with tabs[0]:
+            st.caption(pc.title)
+            if not pc.table.empty:
+                st.dataframe(pc.table, width="stretch", height=240, hide_index=True)
+        with tabs[1]:
+            if dr.ok and not dr.table.empty:
+                within = (f"Within {dr.summary.get('focus_field')} = {dr.summary.get('focus')}, "
+                          if dr.summary.get("focus") else "")
+                st.caption(f"{within}{dr.summary['last_window']} vs {dr.summary['previous_window']}")
+                st.dataframe(dr.table.drop(columns=["next"]), width="stretch", height=240, hide_index=True)
+            for n in dr.notes:
+                st.caption(n)
+        with tabs[2]:
+            if not tr.table.empty:
+                st.dataframe(tr.table[["label", "value"]], width="stretch", height=240, hide_index=True)
+        with tabs[3]:
+            ss = results["share_shift"]
+            if ss.ok:
+                st.dataframe(ss.table, width="stretch", height=240, hide_index=True)
+        with tabs[4]:
+            mu = results["multiplicity"]
+            if mu.ok:
+                st.caption(mu.title)
+                st.dataframe(mu.table, width="stretch", height=240, hide_index=True)
+
+
+def _render_findings(lw: LoadedWorkbook) -> None:
+    findings = _lints(lw)
+    st.markdown("<div class='tb-title'>Workbook findings</div>", unsafe_allow_html=True)
+    st.caption("Rule-based checks of how the workbook is defined (computed by the app, not AI). "
+               "🟥 wrong result likely · 🟧 can mislead · 🟦 good to know")
+    if not findings:
+        st.success("No definition problems found.")
+    for f in findings:
+        with st.container(border=True):
+            where = ", ".join(f.dashboards or f.sheets)
+            st.markdown(f"{SEV_ICON[f.severity]} **{f.title}** · `{f.code}`" + (f" · _{where}_" if where else ""))
+            st.markdown(f.message)
 
 
 def _render_overview(lw: LoadedWorkbook) -> None:
@@ -287,7 +389,8 @@ def main() -> None:
     st.set_page_config(page_title="Tableau Insights", page_icon="📊", layout="wide",
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
-    for k, v in (("qf", {}), ("cache", {}), ("compare", {}), ("chat_open", True)):
+    for k, v in (("qf", {}), ("cache", {}), ("compare", {}), ("chat_open", True), ("lints", None),
+                 ("analysis", {}), ("checks", {})):
         st.session_state.setdefault(k, v)
 
     auto = os.environ.get("TABBOT_AUTOLOAD")
@@ -319,7 +422,7 @@ def main() -> None:
         st.info("Open a Tableau workbook (.twbx) with **📂 Open workbook**, or try the demo workbook.")
         return
 
-    pages = [OVERVIEW] + [d.name for d in lw.model.dashboards] + \
+    pages = [OVERVIEW, FINDINGS] + [d.name for d in lw.model.dashboards] + \
         [SHEET_PREFIX + w.name for w in lw.model.worksheets if not w.hidden]
     if st.session_state.get("page") not in pages:
         st.session_state.page = OVERVIEW
@@ -330,6 +433,8 @@ def main() -> None:
     with main_col:
         if page == OVERVIEW:
             _render_overview(lw)
+        elif page == FINDINGS:
+            _render_findings(lw)
         elif page.startswith(SHEET_PREFIX):
             name = page[len(SHEET_PREFIX):]
             st.markdown(f"<div class='tb-title'>{_sheet_title(lw, name)}</div>", unsafe_allow_html=True)

@@ -15,7 +15,62 @@ def build_parser() -> argparse.ArgumentParser:
     ins = sub.add_parser("inspect", help="read a .twbx/.twb and print what was found (no data values)")
     ins.add_argument("file", type=Path)
     ins.add_argument("--hyper", type=Path, action="append", default=[], help="extra .hyper for a plain .twb")
+    li = sub.add_parser("lint", help="definition checks on a workbook")
+    li.add_argument("file", type=Path)
+    an = sub.add_parser("analyze", help="checks + standard analyses on one worksheet")
+    an.add_argument("file", type=Path)
+    an.add_argument("worksheet")
+    an.add_argument("--category", help="dimension label to analyse by (default: the sheet's main dimension)")
     return p
+
+
+def cmd_lint(file: Path) -> int:
+    from tabbot.analysis.lints import run_lints
+    from tabbot.loader import load_workbook
+
+    lw = load_workbook(file)
+    findings = run_lints(lw)
+    print(f"{len(findings)} finding(s) in {lw.source_name}")
+    for f in findings:
+        where = ", ".join(f.dashboards or f.sheets)
+        print(f"\n[{f.severity.upper()} {f.code}] {f.title}" + (f"  ({where})" if where else ""))
+        print(f"  {f.message}")
+    lw.close()
+    return 0
+
+
+def cmd_analyze(file: Path, worksheet: str, category: str | None) -> int:
+    from tabbot.analysis.checks import chart_checks
+    from tabbot.analysis.recipes import context_for, run_standard
+    from tabbot.analysis.summary import key_facts
+    from tabbot.loader import load_workbook
+    from tabbot.views.rebuild import rebuild_worksheet
+
+    lw = load_workbook(file)
+    ws = lw.model.worksheet(worksheet)
+    if ws is None:
+        print(f"no worksheet named {worksheet!r}; available: {', '.join(w.name for w in lw.model.worksheets)}")
+        return 2
+    res = rebuild_worksheet(lw.model, ws, lw.store, lw.table_for(ws.datasource), lw.profile_for(ws.datasource))
+    print(f"{ws.name}: {res.chart}, {res.status}" + (f" ({'; '.join(res.reasons)})" if res.reasons else ""))
+    if res.status == "failed":
+        return 1
+    ctx = context_for(res, lw.store, lw.profile_for(ws.datasource), category)
+    print(f"measure: {ctx.measure_label} | time: {ctx.date_label} by {ctx.grain} | category: {ctx.category_label}"
+          f" | entity: {ctx.entity_label}")
+    for c in chart_checks(res, ctx):
+        print(f"check [{c.id}]: {c.message}")
+    results = run_standard(ctx)
+    print("\nKey facts:")
+    for fact in key_facts(results, ctx.grain):
+        print(f"- {fact}")
+    for name in ("period_compare", "driver_scan"):
+        r = results[name]
+        if r.ok and not r.table.empty:
+            print(f"\n{r.title}:")
+            print(r.table.drop(columns=["next"], errors="ignore").head(10).to_string(index=False))
+    lw.close()
+    return 0
 
 
 def cmd_inspect(file: Path, hyper: list[Path]) -> int:
@@ -98,6 +153,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "inspect":
         return cmd_inspect(args.file, args.hyper)
+    if args.command == "lint":
+        return cmd_lint(args.file)
+    if args.command == "analyze":
+        return cmd_analyze(args.file, args.worksheet, args.category)
     build_parser().print_help()
     return 0
 
