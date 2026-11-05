@@ -68,7 +68,11 @@ def test_cost_math():
     u = {"input_tokens": 1_000_000, "output_tokens": 100_000, "cache_read_input_tokens": 500_000}
     assert cost_usd("claude-opus-5-5", u) == pytest.approx(4 + 2 + 0.10)
     assert cost_usd("some-future-model", {"input_tokens": 1_000_000}) == pytest.approx(10)  # unknown = expensive
-    assert estimate_request_usd("claude-opus-5-5", 35_000, 8000) == pytest.approx((10_000 * 4 + 8000 * 20) / 1e6)
+    # uncached prompt is priced as a cache write ($5), output at the full max_tokens
+    assert estimate_request_usd("claude-opus-5-5", 35_000, 4000) == pytest.approx((10_000 * 5 + 4000 * 20) / 1e6)
+    # the part already sent in the previous call is a cache read ($0.20)
+    assert estimate_request_usd("claude-opus-5-5", 35_000, 4000, 28_000) == pytest.approx(
+        (8_000 * 0.20 + 2_000 * 5 + 4000 * 20) / 1e6)
 
 
 def test_every_call_is_logged_with_tokens_and_cost(lw, tmp_path):
@@ -131,6 +135,18 @@ def test_loop_guard_stops_identical_repeats(lw, tmp_path):
     turn = chat.ask("hi")
     assert client.calls == 3 and "loop guard" in turn.text
     assert [t.is_error for t in turn.tool_calls] == [False, True, True]  # repeats are not re-run
+
+
+def test_realistic_question_is_not_blocked(lw, tmp_path):
+    """Regression (2026-11-05): with a $0.25 limit the old worst-case guard stopped every question after 3 calls."""
+    calls = [resp([{"type": "tool_use", "id": f"t{i}", "name": "describe_sheet", "input": {"sheet": n}}], "tool_use",
+                  inp=3, out=250, cached=9000 + 3000 * i)
+             for i, n in enumerate(["Gender Pie", "Region Table", "Category A", "Records Trend", "Serious Trend"])]
+    calls.append(resp([{"type": "text", "text": "Answer."}], "end_turn", inp=3, out=900, cached=25000))
+    client = Scripted(calls)
+    chat = ChatSession(lw, settings_for(tmp_path, max_usd_per_question=0.25, max_tool_rounds=8), client=client)
+    turn = chat.ask("Explain the workbook")
+    assert turn.text == "Answer." and not turn.blocked and client.calls == 6 and turn.est_usd < 0.25
 
 
 def test_tests_never_see_a_real_key(tmp_path):

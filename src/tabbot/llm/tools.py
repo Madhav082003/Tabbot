@@ -42,7 +42,7 @@ class NoInput(BaseModel):
 
 class SheetInput(BaseModel):
     model_config = {"extra": "forbid"}
-    sheet: str = Field(description="Worksheet name exactly as listed by list_dashboards.")
+    sheet: str = Field(description="Worksheet name, or a dashboard name (then its main sheet is used).")
 
 
 class ChartDataInput(SheetInput):
@@ -96,19 +96,12 @@ class QueryInput(BaseModel):
     limit: int = Field(default=50, ge=1, le=200)
 
 
-class ShowInput(BaseModel):
-    model_config = {"extra": "forbid"}
-    page: str = Field(description="Dashboard name, or a visible sheet name, to show in the app.")
-    quick_filters: dict[str, list[str]] = Field(
-        default_factory=dict, description="Optional quick-filter selections to apply on that dashboard: "
-                                          "field label -> values. Empty clears the filters.")
-
-
 TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
     ("list_dashboards", NoInput,
-     "Overview of the open Tableau workbook: data source, what one record is, date range, every dashboard with "
-     "its sheets (chart type and whether the redraw is exact), visible sheets, and finding counts. Call this "
-     "first in a conversation. Returns structure only, no data values."),
+     "Compact overview of the open Tableau workbook: the data source (what one record is, how many, date range, "
+     "fields grouped by kind), calculated fields with readable formulas, and every dashboard with its sheets - "
+     "repeated sheets that differ only by one filter value are grouped into a pattern. Call this first. Returns "
+     "structure only, no data values."),
     ("describe_sheet", SheetInput,
      "The definition of one worksheet: rows, columns, marks (colour/size/label fields), filters, chart type, "
      "whether the redraw is exact or approximate (and why), and its chart checks (partial periods, cells that "
@@ -131,10 +124,6 @@ TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
      "(dates by year/quarter/month), one measure (default: number of distinct records), include/exclude "
      "filters. Identifier, free-text and personal fields cannot be grouped or filtered by. Returns at most 200 "
      "rows with a result id."),
-    ("show_in_app", ShowInput,
-     "Switch the user's screen to a dashboard (or visible sheet) and optionally set its quick filters, so the "
-     "user sees what you are talking about. Use it when you discuss a specific dashboard or a filtered view. "
-     "Returns whether the switch was accepted."),
 ]
 
 
@@ -177,7 +166,7 @@ class ToolError(Exception):
 
 
 @dataclass
-class UIAction:
+class UIAction:  # kept for compatibility; nothing creates these now
     page: str
     quick_filters: dict[str, list[str]]   # field raw ref -> values
 
@@ -189,6 +178,7 @@ class ToolContext:
     max_chars: int = 12000
     results: dict[str, pd.DataFrame] = field(default_factory=dict)
     actions: list[UIAction] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
     _lints: list | None = None
     _n: int = 0
 
@@ -200,13 +190,19 @@ class ToolContext:
         return rid
 
     def sheet(self, name: str) -> Worksheet:
-        ws = self.lw.model.worksheet(name)
-        if ws is None:
-            low = {w.name.lower(): w for w in self.lw.model.worksheets}
-            ws = low.get(name.strip().lower())
-        if ws is None:
-            raise ToolError(f"no worksheet named {name!r}; call list_dashboards for the names")
-        return ws
+        """A worksheet by name, or a dashboard by name (its only sheet, or the first sheet when several)."""
+        m = self.lw.model
+        key = name.strip().lower()
+        ws = m.worksheet(name) or {w.name.lower(): w for w in m.worksheets}.get(key)
+        if ws is not None:
+            return ws
+        d = m.dashboard(name) or {x.name.lower(): x for x in m.dashboards}.get(key)
+        if d is not None and d.sheets:
+            if len(d.sheets) > 1:
+                self.notes.append(f"dashboard {d.name!r} has {len(d.sheets)} sheets; used the first, "
+                                  f"{d.sheets[0]!r}. Its sheets: {d.sheets[:12]}")
+            return m.worksheet(d.sheets[0])
+        raise ToolError(f"no worksheet or dashboard named {name!r}; call list_dashboards for the names")
 
     def lints(self):
         if self._lints is None:
@@ -277,10 +273,46 @@ class ToolContext:
 # --------------------------------------------------------------------------------------------- tools
 
 
-def _sheet_summary(ctx: ToolContext, ws: Worksheet) -> dict:
-    res = ctx.rebuild(ws)
-    return {"sheet": ws.name, "title": (ws.title or "").replace("<Sheet Name>", ws.name) or ws.name,
-            "chart": res.chart, "redraw": res.status, "hidden": ws.hidden}
+def _shape(ws: Worksheet) -> str:
+    """What a sheet shows, ignoring which single value its filters keep (used to find repeated sheets)."""
+    enc = "; ".join(f"{k}={', '.join(r.label for r in v)}" for k, v in sorted(ws.encodings.items()))
+    flt = ", ".join(sorted({f"{f.field.label} {f.mode}" + (" one value" if f.member_count == 1 else "")
+                            for f in ws.filters}))
+    rows = ", ".join(r.label for r in ws.rows) or "-"
+    cols = ", ".join(r.label for r in ws.cols) or "-"
+    return f"{ws.mark} | rows: {rows} | columns: {cols} | marks: {enc or '-'}" + (f" | filters: {flt}" if flt else "")
+
+
+def _title(ws: Worksheet) -> str:
+    t = (ws.title or "").strip()
+    return ws.name if not t or "<Sheet Name>" in t else t
+
+
+def _sheets_summary(sheets: list[Worksheet]) -> list[dict]:
+    groups: dict[str, list[Worksheet]] = {}
+    for w in sheets:
+        groups.setdefault(_shape(w), []).append(w)
+    out = []
+    for shape, ws in groups.items():
+        if len(ws) >= 3:
+            varying = [f.field.label for f in ws[0].filters if f.member_count == 1]
+            out.append({"pattern": shape, "repeated_sheets": len(ws),
+                        "one_per": varying[0] if varying else None,
+                        "examples": [_title(w) for w in ws[:3]]})
+        else:
+            out += [{"sheet": w.name, "title": _title(w), "shows": shape} for w in ws]
+    return out
+
+
+def _fields_summary(prof, sens: set[str]) -> dict:
+    groups: dict[str, list[str]] = {}
+    label = {"categorical": "categories", "high_cardinality": "detailed codes or text (many values)",
+             "text_date": "dates (stored as text)", "date": "dates", "numeric": "numbers",
+             "id": "identifiers", "free_text": "free text"}
+    for c in prof.columns:
+        g = "sensitive (values never shared)" if c.name in sens else label.get(c.kind, c.kind)
+        groups.setdefault(g, []).append(f"{c.name} ({c.distinct:,})" if g == "categories" else c.name)
+    return groups
 
 
 def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
@@ -288,18 +320,18 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
     sources = []
     for ds in m.datasources:
         prof = lw.profile_for(ds.name)
+        calcs = [{"name": f.caption, "formula": (f.formula_readable or "")[:160],
+                  **({"unused": True} if not f.used_by_sheets and not f.used_by_calcs else {})}
+                 for f in ds.fields if f.is_calculated]
         item: dict[str, Any] = {"name": ds.caption or ds.name, "connection": ds.connection_class,
-                                "has_extract": ds.has_extract,
-                                "calculated_fields": [f.caption for f in ds.fields if f.is_calculated]}
+                                "has_extract": ds.has_extract, "calculated_fields": calcs}
         if prof is not None:
             item["rows"] = prof.rows
             if prof.entity:
                 item["record"] = {"field": prof.entity.field, "distinct": prof.entity.distinct,
                                   "rows_per_record": prof.entity.rows_per_entity}
-            item["fields"] = [{"name": c.name, "kind": c.kind, "distinct": c.distinct,
-                               "one_value_per_record": c.entity_level, "sensitive": bool(c.sensitive_reasons)}
-                              for c in prof.columns]
-            dcols = [c for c in prof.columns if c.date_format]
+            item["fields"] = _fields_summary(prof, ctx.sensitive_columns(ds.name))
+            dcols = [c for c in prof.columns if c.date_format and c.entity_level is not False]
             if dcols:
                 c = dcols[0]
                 rng = lw.store.con.execute(
@@ -309,13 +341,16 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
                 item["date_range"] = {"field": c.name, "from": rng[0], "to": rng[1]}
         sources.append(item)
     findings = ctx.lints()
+    on_dash = {s for d in m.dashboards for s in d.sheets}
     return {
         "workbook": lw.source_name,
         "data_sources": sources,
         "dashboards": [{"name": d.name, "quick_filters": [q.field.label for q in d.quick_filters],
-                        "sheets": [_sheet_summary(ctx, m.worksheet(s)) for s in d.sheets]} for d in m.dashboards],
-        "visible_sheets": [w.name for w in m.worksheets if not w.hidden],
-        "findings": {sev: sum(f.severity == sev for f in findings) for sev in ("error", "warn", "info")},
+                        "sheet_count": len(d.sheets),
+                        "sheets": _sheets_summary([m.worksheet(x) for x in d.sheets])} for d in m.dashboards],
+        "sheets_not_on_any_dashboard": [w.name for w in m.worksheets if w.name not in on_dash],
+        "worksheets_total": len(m.worksheets), "hidden_worksheets": sum(w.hidden for w in m.worksheets),
+        "findings": [f"{f.severity}: {f.title}" for f in findings],
         "notes": lw.notes + m.unsupported,
     }
 
@@ -518,32 +553,9 @@ def t_query_data(ctx: ToolContext, inp: QueryInput) -> dict:
     return out
 
 
-def t_show_in_app(ctx: ToolContext, inp: ShowInput) -> dict:
-    m = ctx.lw.model
-    d = m.dashboard(inp.page)
-    if d is None:
-        w = m.worksheet(inp.page)
-        if w is None or w.hidden:
-            raise ToolError(f"no dashboard or visible sheet called {inp.page!r}")
-        ctx.actions.append(UIAction(page=f"📄 {w.name}", quick_filters={}))
-        return {"shown": w.name}
-    refs: dict[str, list[str]] = {}
-    if inp.quick_filters:
-        cands = {q.field.label: q.field for q in d.quick_filters} | {q.field.caption: q.field for q in d.quick_filters
-                                                                     if q.field.caption}
-        for label, values in inp.quick_filters.items():
-            if label not in cands:
-                raise ToolError(f"dashboard {d.name!r} has no quick filter {label!r}; it has "
-                                f"{[q.field.label for q in d.quick_filters]}")
-            refs[cands[label].raw] = [str(v) for v in values]
-    ctx.actions.append(UIAction(page=d.name, quick_filters=refs))
-    return {"shown": d.name, "quick_filters": inp.quick_filters}
-
-
 HANDLERS = {
     "list_dashboards": t_list_dashboards, "describe_sheet": t_describe_sheet, "get_chart_data": t_get_chart_data,
     "run_analysis": t_run_analysis, "get_findings": t_get_findings, "query_data": t_query_data,
-    "show_in_app": t_show_in_app,
 }
 INPUTS = {name: model for name, model, _ in TOOL_SPECS}
 
@@ -554,7 +566,11 @@ def dispatch(ctx: ToolContext, name: str, raw_input: Any) -> tuple[str, bool]:
         return json.dumps({"error": f"unknown tool {name!r}"}), True
     try:
         inp = INPUTS[name].model_validate(raw_input or {})
-        return ctx.cap(HANDLERS[name](ctx, inp)), False
+        ctx.notes = []
+        out = HANDLERS[name](ctx, inp)
+        if ctx.notes:
+            out = {**out, "notes_from_app": list(ctx.notes)}
+        return ctx.cap(out), False
     except ValidationError as exc:
         return json.dumps({"error": "invalid input", "details": exc.errors(include_url=False,
                                                                           include_context=False)}, default=str), True
