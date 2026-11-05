@@ -24,7 +24,39 @@ def build_parser() -> argparse.ArgumentParser:
     for sp in (ins, li, an):
         sp.add_argument("--keep", action="store_true",
                         help="keep the unpacked copy of the workbook and its data in workspace/ (deleted by default)")
+    us = sub.add_parser("usage", help="Claude API usage and estimated cost, per day (from the local usage log)")
+    us.add_argument("--last", type=int, default=10, help="also list the last N logged events")
     return p
+
+
+def cmd_usage(last: int) -> int:
+    from tabbot.config import get_settings
+    from tabbot.llm.usage import UsageLog
+
+    s = get_settings()
+    log = UsageLog(s.workspace_dir / "audit" / "usage.jsonl")
+    days = log.by_day()
+    print(f"Usage log: {log.path}")
+    print(f"Limits: ${s.max_usd_per_question:.2f}/question, ${s.max_usd_per_day:.2f}/day, "
+          f"{s.max_calls_per_day} calls/day, {s.max_tool_rounds} calls/question (estimates; the console bill rules)")
+    if not days:
+        print("No Claude API calls logged yet.")
+        return 0
+    print(f"\n{'date':<12}{'calls':>7}{'blocked':>9}{'errors':>8}{'input':>12}{'cached':>12}{'output':>10}"
+          f"{'≈ USD':>10}")
+    for d in days:
+        print(f"{d['date']:<12}{d['calls']:>7}{d['blocked']:>9}{d['errors']:>8}{d['input_tokens']:>12,}"
+              f"{d['cache_read_input_tokens']:>12,}{d['output_tokens']:>10,}{d['est_usd']:>10.3f}")
+    total = log.totals()
+    print(f"{'total':<12}{total['calls']:>7}{total['blocked']:>9}{total['errors']:>8}{total['input_tokens']:>12,}"
+          f"{total['cache_read_input_tokens']:>12,}{total['output_tokens']:>10,}{total['est_usd']:>10.3f}")
+    if last:
+        print(f"\nLast {last} events:")
+        for e in log.entries()[-last:]:
+            detail = e.get("reason") or (f"in {e.get('input_tokens', 0):,} out {e.get('output_tokens', 0):,} "
+                                         f"≈ ${e.get('est_usd', 0):.4f} ({e.get('stop_reason')})")
+            print(f"  {e['ts']}  {e['event']:<8} q={e.get('question')} r={e.get('round')}  {detail}")
+    return 0
 
 
 def cmd_lint(file: Path, keep: bool = False) -> int:
@@ -169,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_lint(args.file, args.keep)
     if args.command == "analyze":
         return cmd_analyze(args.file, args.worksheet, args.category, args.keep)
+    if args.command == "usage":
+        return cmd_usage(args.last)
     build_parser().print_help()
     return 0
 

@@ -20,7 +20,7 @@ class LLMNotConfigured(RuntimeError):
     """No API key / credentials available."""
 
 
-def make_messages_client(api_key: str | None, timeout: float = 120.0, max_retries: int = 3) -> MessagesClient:
+def make_messages_client(api_key: str | None, timeout: float = 120.0, max_retries: int = 2) -> MessagesClient:
     """Return an object with `.create(**request)` that sends one Messages API request."""
     import anthropic  # imported here so the rest of the app never needs it
 

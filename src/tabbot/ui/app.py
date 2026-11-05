@@ -24,6 +24,7 @@ from tabbot.analysis.summary import key_facts
 from tabbot.config import get_settings
 from tabbot.llm.audit import AuditLog
 from tabbot.llm.orchestrator import ChatSession
+from tabbot.llm.usage import UsageLog
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.twb.model import Dashboard, Zone
 from tabbot.ui.charts import figure_for
@@ -493,14 +494,38 @@ def _ask(lw: LoadedWorkbook, page: str, question: str, box) -> None:
     meta = ""
     if turn.usage:
         u = turn.usage
-        meta = (f"{turn.rounds} round(s) · in {u.get('input_tokens', 0):,} "
-                f"(+{u.get('cache_read_input_tokens', 0):,} cached) · out {u.get('output_tokens', 0):,}")
+        meta = (f"{turn.rounds} call(s) · in {u.get('input_tokens', 0):,} "
+                f"(+{u.get('cache_read_input_tokens', 0):,} cached) · out {u.get('output_tokens', 0):,} "
+                f"· ≈ {_usd(turn.est_usd, 3)}")
     log.append({"role": "assistant", "text": turn.text or "_(no answer)_", "tools": tools, "meta": meta,
                 "error": bool(turn.error)})
     if turn.actions:
         a = turn.actions[-1]
         st.session_state.pending_nav = (a.page, a.quick_filters)
     st.rerun()
+
+
+def _usd(x: float, digits: int = 2) -> str:
+    """Dollar amount for Streamlit markdown (a bare '$' would start a maths formula)."""
+    return "\\$" + f"{x:,.{digits}f}"
+
+
+def _render_usage(settings) -> None:
+    log = UsageLog(settings.workspace_dir / "audit" / "usage.jsonl")
+    today = log.today()
+    share = today["est_usd"] / settings.max_usd_per_day if settings.max_usd_per_day else 0
+    icon = "🟥" if share >= 0.8 else "🟧" if share >= 0.5 else "🟩"
+    with st.expander(f"{icon} Usage today: ≈ {_usd(today['est_usd'])} of {_usd(settings.max_usd_per_day)} limit"):
+        st.progress(min(share, 1.0))
+        st.caption(f"{today['calls']} API call(s) today (limit {settings.max_calls_per_day}) · "
+                   f"in {today['input_tokens']:,} + {today['cache_read_input_tokens']:,} cached · "
+                   f"out {today['output_tokens']:,} tokens"
+                   + (f" · {today['blocked']} blocked" if today["blocked"] else "")
+                   + (f" · {today['errors']} error(s)" if today["errors"] else ""))
+        st.caption(f"Per question: at most {settings.max_tool_rounds} calls and "
+                   f"≈ {_usd(settings.max_usd_per_question)}. Change the limits in C:\\tabbot\\.env. "
+                   "Costs are estimates from config/pricing.yaml; the Anthropic console bill is the source of truth.")
+        st.caption(f"Full log: {log.path}")
 
 
 def _render_chat_panel(lw: LoadedWorkbook, page: str) -> None:
@@ -536,6 +561,7 @@ def _render_chat_panel(lw: LoadedWorkbook, page: str) -> None:
         question = q or pending
         if question:
             _ask(lw, page, question, box)
+        _render_usage(settings)
         with st.expander("What was sent to Claude"):
             entries = AuditLog(settings.workspace_dir / "audit" / "outbound.jsonl").read(last=10)
             if not entries:

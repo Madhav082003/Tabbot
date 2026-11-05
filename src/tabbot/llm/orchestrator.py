@@ -1,7 +1,12 @@
 """The chat loop: send -> run requested tools locally -> send results back -> ... until Claude answers.
 
-Rules (CLAUDE.md data boundary, Claude API guidance):
+Rules (CLAUDE.md data boundary, Claude API guidance, spend safety):
+- before every request: spend limits are checked (per question, per day, calls per day, rounds per question);
+  a request that could pass a limit is NOT sent and the reason is shown and logged;
 - every request is written to the audit log BEFORE it is sent; dry-run writes and never sends;
+- every response's token usage and estimated cost go to the usage log;
+- loop guard: the same tool call (same name and input) repeated in one question is not re-run; a third
+  repeat stops the question;
 - history is append-only: each assistant turn is appended exactly as returned (thinking blocks included);
 - all tool results of one turn go back in ONE user message, failures as is_error results;
 - refusals and token limits are reported, never hidden.
@@ -10,6 +15,8 @@ Rules (CLAUDE.md data boundary, Claude API guidance):
 from __future__ import annotations
 
 import json
+import uuid
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -18,6 +25,10 @@ from tabbot.llm.audit import AuditLog
 from tabbot.llm.prompts import SYSTEM_PROMPT
 from tabbot.llm.provider import MessagesClient, build_request, make_messages_client
 from tabbot.llm.tools import ToolContext, UIAction, dispatch, tool_definitions
+from tabbot.llm.usage import TOKEN_KEYS, Limits, UsageLog, check_before_send, cost_usd
+
+REPEAT_WARN = 2   # 2nd identical call: not re-run, Claude is told to use the earlier result
+REPEAT_STOP = 3   # 3rd identical call: the question is stopped
 
 
 @dataclass
@@ -36,7 +47,9 @@ class Turn:
     stop_reason: str | None = None
     rounds: int = 0
     usage: dict = field(default_factory=dict)
+    est_usd: float = 0.0
     error: str | None = None
+    blocked: str | None = None          # why a request was not sent (spend limit / loop guard)
     dry_run: bool = False
 
 
@@ -56,10 +69,17 @@ class ChatSession:
     def __init__(self, lw, settings: Settings, client: MessagesClient | None = None):
         self.lw = lw
         self.settings = settings
+        self.session_id = uuid.uuid4().hex[:10]
         self.tools_ctx = ToolContext(lw=lw, max_rows=settings.privacy.max_rows, max_chars=settings.privacy.max_chars)
         self.tools = tool_definitions()
         self.messages: list[dict] = []
-        self.audit = AuditLog(settings.workspace_dir / "audit" / "outbound.jsonl")
+        audit_dir = settings.workspace_dir / "audit"
+        self.audit = AuditLog(audit_dir / "outbound.jsonl")
+        self.usage = UsageLog(audit_dir / "usage.jsonl")
+        self.limits = Limits(max_usd_per_question=settings.max_usd_per_question,
+                             max_usd_per_day=settings.max_usd_per_day,
+                             max_calls_per_day=settings.max_calls_per_day,
+                             max_rounds_per_question=settings.max_tool_rounds)
         self._client = client
 
     @property
@@ -71,7 +91,11 @@ class ChatSession:
     def _request(self) -> dict:
         return build_request(model=self.settings.claude_model, system=SYSTEM_PROMPT, tools=self.tools,
                              messages=self.messages, effort=self.settings.claude_effort,
-                             use_fallback=self.settings.use_fallback)
+                             max_tokens=self.settings.max_output_tokens, use_fallback=self.settings.use_fallback)
+
+    def _log(self, event: str, question: str, rnd: int, **kw) -> None:
+        self.usage.append({"event": event, "session": self.session_id, "question": question, "round": rnd,
+                           "model": self.settings.claude_model, **kw})
 
     def ask(self, text: str, app_context: str | None = None) -> Turn:
         content: list[dict] = []
@@ -81,10 +105,28 @@ class ChatSession:
         self.messages.append({"role": "user", "content": content})
         turn = Turn(text="")
         self.tools_ctx.actions = []
+        qid = uuid.uuid4().hex[:8]
+        seen: Counter[str] = Counter()
+        rnd = 0
 
-        for rnd in range(1, self.settings.max_tool_rounds + 1):
-            turn.rounds = rnd
+        while True:
             req = self._request()
+            req_chars = len(json.dumps(req, default=str))
+            reason = check_before_send(self.usage, self.limits, model=req["model"], request_chars=req_chars,
+                                       max_tokens=req["max_tokens"], question_usd=turn.est_usd,
+                                       question_rounds=rnd)
+            if reason:
+                self._log("blocked", qid, rnd + 1, reason=reason)
+                turn.blocked = reason
+                turn.text = (("Stopped to protect your credit before sending another request: " + reason + ".")
+                             + ("\n\nPartial work so far is above; ask a narrower question to continue."
+                                if rnd else ""))
+                if rnd == 0:
+                    self.messages.pop()   # nothing was sent for this question
+                turn.actions = list(self.tools_ctx.actions)
+                return turn
+            rnd += 1
+            turn.rounds = rnd
             self.audit.write(req, dry_run=self.settings.dry_run)          # BEFORE sending
             if self.settings.dry_run:
                 turn.dry_run = True
@@ -97,6 +139,7 @@ class ChatSession:
             except Exception as exc:  # noqa: BLE001 - surfaced to the user, history stays consistent
                 turn.error = _friendly_error(exc)
                 turn.text = turn.error
+                self._log("error", qid, rnd, reason=f"{type(exc).__name__}: {str(exc)[:200]}")
                 if self.messages and self.messages[-1]["role"] == "user" and rnd == 1:
                     self.messages.pop()
                 return turn
@@ -106,9 +149,13 @@ class ChatSession:
             stop = _get(resp, "stop_reason")
             turn.stop_reason = stop
             u = _get(resp, "usage")
-            if u is not None:
-                for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
-                    turn.usage[k] = turn.usage.get(k, 0) + (_get(u, k) or 0)
+            call_usage = {k: int((_get(u, k) if u is not None else 0) or 0) for k in TOKEN_KEYS}
+            served = _get(resp, "model") or req["model"]
+            call_usd = cost_usd(served, call_usage)
+            for k, v in call_usage.items():
+                turn.usage[k] = turn.usage.get(k, 0) + v
+            turn.est_usd = round(turn.est_usd + call_usd, 6)
+            self._log("call", qid, rnd, served_by=served, stop_reason=stop, est_usd=call_usd, **call_usage)
             texts = [b.get("text", "") for b in blocks if b.get("type") == "text"]
 
             if stop == "refusal":
@@ -125,18 +172,30 @@ class ChatSession:
                 turn.actions = list(self.tools_ctx.actions)
                 return turn
 
-            results = []
+            results, stop_loop = [], False
             for tu in tool_uses:   # tools are local and fast; run in order, return all results together
-                out, is_err = dispatch(self.tools_ctx, tu["name"], tu.get("input"))
+                key = tu["name"] + json.dumps(tu.get("input") or {}, sort_keys=True, default=str)
+                seen[key] += 1
+                if seen[key] >= REPEAT_STOP:
+                    stop_loop = True
+                if seen[key] >= REPEAT_WARN:
+                    out, is_err = json.dumps({"error": "this exact call was already made in this question; use "
+                                                       "its earlier result instead of repeating it"}), True
+                else:
+                    out, is_err = dispatch(self.tools_ctx, tu["name"], tu.get("input"))
                 results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": out,
                                 **({"is_error": True} if is_err else {})})
                 turn.tool_calls.append(ToolCall(name=tu["name"], input=tu.get("input") or {}, is_error=is_err,
                                                 preview=_preview(out, is_err)))
-            self.messages.append({"role": "user", "content": results})
-
-        turn.text = "Stopped after the maximum number of tool rounds without a final answer."
-        turn.actions = list(self.tools_ctx.actions)
-        return turn
+            self.messages.append({"role": "user", "content": results})   # keeps history valid
+            if stop_loop:
+                reason = "Claude repeated the same tool call 3 times (loop guard)"
+                self._log("blocked", qid, rnd + 1, reason=reason)
+                turn.blocked = reason
+                turn.text = ("\n\n".join(t for t in texts if t.strip()) + "\n\n" if texts else "") + \
+                    f"Stopped: {reason}. Try asking more specifically."
+                turn.actions = list(self.tools_ctx.actions)
+                return turn
 
 
 def _preview(out: str, is_err: bool) -> str:
