@@ -15,6 +15,12 @@ how Tableau stores a line break in formatted text (≈500 runs in the corpus). L
 - `.twbx` = zip. Members seen: the workbook `.twb` at the root, `Data/.../*.hyper` (64 files in 20 wb; one package
   has 21), `.tde` (old extracts, 3), `.tds` data-source copies (11), images (`.png` 31, `.jpg` 5), `.csv`/`.xls(x)`
   source files, and `.bin`/`.key` geocoding files. **[verified]** Pick the shallowest `.twb` as the workbook.
+- **Which file holds a data source's data** (never assume "any .hyper is the data"): an extract is
+  `<extract><connection class='hyper' dbname='Data/Extracts/x.hyper'>`; a live file connection is
+  `named-connection/connection@filename` (CSV/textscan: `@directory` + `@filename`). Match the declared path to a
+  package member by full path, then path suffix, then file name. `Local Data/` (e.g. `GeocodingData.hyper`, `*.tds`)
+  is Tableau's custom geocoding, not workbook data. Excel relation `table='[Orders$]'` = sheet `Orders`; logical
+  tables join on the workbook's `<relationships>` (e.g. `[Region] = [Region (People)]`). **[verified w004]**
 - Root `<workbook version source-build source-platform original-version xml:base>`. Version `18.1` covers all
   builds from 2020.1 to 2025.2; older files use 8.2, 9.3, 10.0, 10.1. **[verified]**
 - Fingerprint attributes (`WorkbookFingerprinting...author-id`, `machine-id`) on the root: never send. **[verified]**
@@ -133,7 +139,8 @@ Filters ([verified] unless marked):
 | `except` (level-members + `empty-level`) | exclude null/empty |
 | `end count end='top'|'bottom'` > `order expression direction` > level-members | top/bottom N by expression |
 | `range from to level` | range of a discrete ordinal (e.g. quarters 1–4) |
-| `crossjoin` with `user:ui-action-filter` on column `[Action (…)]` | set by a dashboard action |
+| `crossjoin`/`level-members` with `user:ui-action-filter='[ActionN]'` on column `[Action (…)]` | driven by action N - only if `<action name='[ActionN]'>` exists; a missing or absent link = leftover from a removed action, no effect (60 wb: 170 linked, 4 missing, 18 unlinked; plus 1 `Tooltip (…)` viz-in-tooltip filter) |
+| include of both `true` and `false` on a boolean | keeps all non-null values: no practical effect |
 | `reorder-dimensionality` inside except | multi-field exclusion (`[Exclusions (…)]`) |
 | `filter expression` | condition filter (1 wb) |
 | `class='quantitative'` + `<min>`/`<max>` + `included-values` (in-range, non-null, all) | numeric/date range |
@@ -186,3 +193,13 @@ Windows: `window(class worksheet|dashboard, name, hidden)`. Hidden sheets appear
 - A calc can ignore a unit column; a filter can be copied onto charts where it does not belong.
 - Fields can be referenced after they were removed from the data source.
 - The last period of a time axis is often partial.
+
+## Dates and actions (added after the Superstore review)
+
+- `[tmn:Order Date:qk]` (also `tqr`, `tyr`, `twk`, `tdy`) is a **truncation**: a timeline, one point per calendar
+  month. `[mn:Order Date:ok]` (also `qr`, `wk`, `dy`, `wd`) is a **date part**: Jan–Dec with every year added
+  together, unless YEAR of the same field is on the view too. Labels: "Order Date by month (timeline)" vs
+  "MONTH(Order Date) (Jan–Dec, years combined)". **[verified]**
+- Action kind comes from `<command command='tsc:tsl-filter'>` (filter) / `tsc:brush` (highlight). Filter actions also
+  carry `<link expression='tsl:...'>`; only a link that is not `tsl:` (and has no command) is a URL action.
+  Highlight actions never filter. Describe clicks only from the actions list. **[verified 60 wb]**

@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections import Counter
 
 from .fieldref import FieldRef
-from .model import Dashboard, FilterDef, WorkbookModel, Worksheet
+from .model import Action, Dashboard, FilterDef, WorkbookModel, Worksheet
 
 GEO = {"Latitude (generated)", "Longitude (generated)", "Geometry (generated)"}
 
@@ -82,6 +82,43 @@ def infer_chart_type(ws: Worksheet) -> str:
     return base
 
 
+def describe_action_filter(fd: FilterDef, name: str | None = None) -> str:
+    """What an action filter does, from the action it is linked to - never guessed from its name."""
+    name = name or fd.field.caption or fd.field.field
+    if fd.action_status == "linked":
+        return f"{name}: filtered by clicks via the '{fd.action_caption}' action"
+    if fd.action_status == "tooltip":
+        return f"{name}: set by the sheet that shows this one in its tooltip (viz in tooltip)"
+    if fd.action_status == "missing":
+        return f"{name}: left over from a removed action ({fd.action_ref}), no effect"
+    return f"{name}: left over from a removed action (it names no action), no effect"
+
+
+def describe_action(a: Action, model: WorkbookModel | None = None) -> str:
+    """'State Filter: filter action - selecting a mark in Sale Map filters the other sheets of Overview'."""
+    act = {"on-select": "selecting", "on-hover": "hovering over", "on-menu": "choosing from the menu on"}.get(
+        a.activation or "", "selecting")
+    src = f"'{a.source_worksheet}'" if a.source_worksheet else "any sheet"
+    where = f" of dashboard '{a.source_dashboard}'" if a.source_dashboard else ""
+    target = a.params.get("target") or a.source_dashboard or ""
+    excl = [x for x in (a.params.get("exclude") or "").split(",") if x]
+    fields = a.params.get("field-captions") or ("all fields" if a.params.get("special-fields") == "all" else "")
+    on = f" (by {fields})" if fields else ""
+    not_on = f", except {', '.join(excl)}" if excl else ""
+    label = a.caption or a.name
+    if a.kind == "filter":
+        return (f"{label}: filter action - {act} a mark in {src}{where} filters the sheets of '{target}'{not_on}"
+                f"{on}")
+    if a.kind == "highlight":
+        return (f"{label}: highlight action - {act} a mark in {src}{where} highlights matching marks in "
+                f"'{target}'{not_on}{on}; it does not filter anything")
+    if a.kind == "url":
+        return f"{label}: opens a web link when {act} a mark in {src}{where}"
+    if a.kind == "go-to-sheet":
+        return f"{label}: {act} a mark in {src}{where} opens '{target}'"
+    return f"{label}: {a.kind} action from {src}{where}"
+
+
 def describe_filter(fd: FilterDef, max_members: int = 8) -> str:
     name = fd.field.caption or fd.field.field
     if fd.field.kind not in ("dimension", "bare", "special") and fd.field.derivation:
@@ -92,6 +129,9 @@ def describe_filter(fd: FilterDef, max_members: int = 8) -> str:
         more = f", … +{fd.member_count - max_members}" if fd.member_count > max_members else ""
         return ", ".join(vals) + more
     ctx = " [context filter]" if fd.context else ""
+    if m == "include" and fd.keeps_all_values:
+        nulls = "all values" if "%null%" in fd.members else "all non-null values"
+        return f"{name}: keeps {nulls} ({sample()}) - no practical effect{ctx}"
     if m == "include":
         return f"{name}: keeps {fd.member_count} value(s) ({sample()}){ctx}"
     if m == "exclude":
@@ -121,7 +161,7 @@ def describe_filter(fd: FilterDef, max_members: int = 8) -> str:
     if m == "condition":
         return f"{name}: condition {fd.condition}{ctx}"
     if m == "action":
-        return f"{name}: set by a dashboard action{ctx}"
+        return describe_action_filter(fd, name) + ctx
     if m == "set":
         return f"keeps members of the set '{name}'{ctx}"
     if m == "crossjoin":

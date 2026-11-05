@@ -6,6 +6,7 @@ L4 sheet named after one value but filtered to another
 L5 calculation ignores a unit/currency companion column that another calculation uses
 L6 calculated field used by no sheet      L10 hidden sheets (info)   L12 large exclude lists (info)
 L14 connection points to a local file path (info)
+L15 sheets of one dashboard carry different filters (built from a sheet x filter table of the dashboard)
 """
 
 from __future__ import annotations
@@ -102,7 +103,7 @@ def l3_copied_filter(model: WorkbookModel) -> list[Finding]:
     by_key: dict[tuple, list[Worksheet]] = defaultdict(list)
     for ws in model.worksheets:
         for f in ws.filters:
-            if f.mode in ("include", "exclude") and f.members:
+            if f.mode in ("include", "exclude") and f.members and not f.keeps_all_values:
                 by_key[_filter_key(f)].append(ws)
     groups: dict[tuple, list[str]] = defaultdict(list)
     for key, sheets in by_key.items():
@@ -262,10 +263,105 @@ def l12_large_exclude(model: WorkbookModel, threshold: int = 20) -> list[Finding
 def l14_local_path(model: WorkbookModel) -> list[Finding]:
     return [Finding(code="L14", severity="info", title="Connection points to a local file",
                     message=f"Data source '{ds.caption or ds.name}' was built from a local file; its path "
-                            "(which may include a user or client name) is stored in the workbook. The packaged "
-                            "extract is a snapshot.",
+                            "(which may include a user or client name) is stored in the workbook. "
+                            + ("The packaged extract is a snapshot." if ds.has_extract else
+                               "The copy packaged with the workbook is a snapshot of that file."),
                     evidence={"datasource": ds.caption or ds.name, "file": ds.connection_file})
             for ds in model.datasources if ds.connection_has_local_path]
+
+
+def _effective(f: Filter) -> bool:
+    """Does this filter restrict what a sheet shows? (Action filters are driven by clicks; leftovers do nothing.)"""
+    if f.action_status is not None or f.keeps_all_values or f.mode == "all" or f.field.kind == "special":
+        return False          # 'special' = Measure Names/Values: picks measures, not records
+    if f.mode == "range":
+        whole = PART_DOMAIN.get(f.field.derivation)
+        lo, hi = _as_int(f.min), _as_int(f.max)
+        if whole is not None and lo is not None and hi is not None and lo <= whole[0] and hi >= whole[1]:
+            return False      # e.g. QUARTER between 1 and 4: keeps every value
+        return f.min is not None or f.max is not None
+    return f.mode in ("include", "exclude") and bool(f.members)
+
+
+PART_DOMAIN = {"qr": (1, 4), "mn": (1, 12), "wd": (1, 7), "dy": (1, 31), "wk": (1, 53)}
+
+
+def _as_int(v: str | None) -> int | None:
+    try:
+        return int(float((v or "").strip("#")))
+    except ValueError:
+        return None
+
+
+def _num(v: str | None) -> str:
+    v = (v or "").strip("#")
+    try:
+        x = float(v)
+    except ValueError:
+        return v
+    return f"{x:,.3g}" if abs(x) < 1000 else f"{x:,.0f}"
+
+
+def _short(f: Filter) -> str:
+    vals = [("(empty)" if v == "%null%" else v) for v in f.members]
+    if f.mode == "range":
+        lo, hi = _num(f.min) if f.min is not None else None, _num(f.max) if f.max is not None else None
+        return (f"between {lo} and {hi}" if lo is not None and hi is not None
+                else f"at least {lo}" if lo is not None else f"at most {hi}")
+    if f.mode == "include":
+        return f"keeps {', '.join(vals)}" if len(vals) <= 3 else f"keeps {len(vals)} values"
+    return f"excludes {', '.join(vals)}" if len(vals) <= 3 else f"excludes {len(vals)} values"
+
+
+def filter_table(model: WorkbookModel, dashboard: str) -> dict[str, dict[str, str]]:
+    """{filter field: {sheet: what that sheet's filter does, or '-' when the sheet has none}} for one dashboard.
+    Only filters that restrict something count (not click-driven action filters, not keep-everything filters)."""
+    d = next((x for x in model.dashboards if x.name == dashboard), None)
+    if d is None:
+        return {}
+    sheets = [w for w in (model.worksheet(s) for s in d.sheets) if w is not None]
+    table: dict[str, dict[str, str]] = {}
+    for w in sheets:
+        for f in w.filters:
+            if _effective(f):
+                table.setdefault(f.field.label, {})[w.name] = _short(f)
+    for row in table.values():
+        for w in sheets:
+            row.setdefault(w.name, "-")
+    return table
+
+
+def l15_dashboard_filters_differ(model: WorkbookModel) -> list[Finding]:
+    out = []
+    for d in model.dashboards:
+        sheets = [s for s in d.sheets if model.worksheet(s) is not None]
+        if len(sheets) < 2:
+            continue
+        for field_label, row in filter_table(model, d.name).items():
+            versions = defaultdict(list)
+            for sheet, what in row.items():
+                versions[what].append(sheet)
+            if len(versions) < 2:
+                continue
+            missing = versions.get("-", [])
+            if not missing and all(len(v) == 1 for v in versions.values()):
+                continue       # every sheet filtered to its own value: one chart per value (a trellis), by design
+            have = {w: v for w, v in versions.items() if w != "-"}
+            parts = [f"{', '.join(v)} {w}" for w, v in have.items()]
+            msg = (f"On dashboard '{d.name}' the filter on {field_label} is not the same on every sheet: "
+                   + "; ".join(parts))
+            if missing:
+                filtered = [x for v in have.values() for x in v]
+                who = filtered[0] if len(filtered) == 1 else "the filtered sheets"
+                verb = "has" if len(missing) == 1 else "have"
+                msg += (f"; {', '.join(missing)} {verb} no such filter, so "
+                        f"{'its' if len(missing) == 1 else 'their'} numbers include what {who} "
+                        f"{'leaves' if len(filtered) == 1 else 'leave'} out")
+            out.append(Finding(code="L15", severity="info",
+                               title="Sheets on one dashboard use different filters", message=msg + ".",
+                               sheets=[s for v in have.values() for s in v] + missing, dashboards=[d.name],
+                               evidence={"field": field_label, "by_sheet": row}))
+    return out
 
 
 def run_lints(lw) -> list[Finding]:
@@ -289,6 +385,7 @@ def run_lints(lw) -> list[Finding]:
         entity = prof.entity.field if prof is not None and prof.entity else None
     findings = (l4_misnamed_sheet(model, values) + l1_counts_dates(model) + l2_percent_without_percentage(model)
                 + l3_copied_filter(model) + l5_unit_ignored(model, lw.store, view, entity) + l6_unused_calcs(model)
-                + l12_large_exclude(model) + l10_hidden(model) + l14_local_path(model))
+                + l12_large_exclude(model) + l10_hidden(model) + l14_local_path(model)
+                + l15_dashboard_filters_differ(model))
     order = {"error": 0, "warn": 1, "info": 2}
     return sorted(findings, key=lambda f: order[f.severity])

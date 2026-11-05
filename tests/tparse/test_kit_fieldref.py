@@ -72,5 +72,5 @@ def test_shelf_tree_and_refs_share_objects():
 
 def test_labels():
     assert parse_ref("[ds].[ctd:CASEID:qk]").label() == "COUNTD(CASEID)"
-    assert parse_ref("[ds].[qr:Order Date:ok]").label() == "QUARTER(Order Date)"
+    assert parse_ref("[ds].[qr:Order Date:ok]").label() == "QUARTER(Order Date) (Q1–Q4, years combined)"
     assert parse_ref("[ds].[pcto:sum:Sales:qk:1]").label() == "Percent of total of SUM(Sales)"

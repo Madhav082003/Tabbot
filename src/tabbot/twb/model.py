@@ -45,6 +45,9 @@ class Filter(BaseModel):
     min: str | None = None
     max: str | None = None
     raw_function: str | None = None       # top groupfilter function, for diagnostics
+    note: str | None = None               # plain description when the mode alone misleads (action, keeps all)
+    action_status: str | None = None      # linked | missing | unlinked | tooltip (action filters only)
+    keeps_all_values: bool = False        # keeps every value the field can have: no practical effect
 
 
 class Worksheet(BaseModel):

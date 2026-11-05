@@ -22,6 +22,7 @@ class Connection(BaseModel):
     dbname: str | None = None
     schema_name: str | None = None
     filename: str | None = None          # may contain local paths and user names: redact before sharing
+    directory: str | None = None         # textscan (CSV) connections keep the folder here
     port: str | None = None
     username: str | None = None          # never sent anywhere; kept for lint L14
     other: dict[str, str] = {}
@@ -126,6 +127,7 @@ class Extract(BaseModel):
     enabled: bool = False
     tables: list[str] = []
     hyper_tables: list[str] = []         # the relations' table attribute, e.g. "[Extract].[Extract]" (added for tabbot)
+    dbname: str | None = None            # <extract><connection dbname=...>: the .hyper path inside the package
     incremental: bool | None = None
     filters: int = 0
 
@@ -168,6 +170,10 @@ class FilterDef(BaseModel):
     context: bool = False
     filter_group: str | None = None
     is_action_filter: bool = False
+    action_ref: str | None = None        # user:ui-action-filter, e.g. "Action8" (added for tabbot)
+    action_status: str | None = None     # linked | missing (action deleted) | unlinked (no reference) | tooltip
+    action_caption: str | None = None    # caption of the linked action
+    keeps_all_values: bool = False       # include list that names every value the field can have
     functions: list[str] = []            # groupfilter functions seen in the tree
     ui_enumeration: str | None = None
 
@@ -297,6 +303,18 @@ class Action(BaseModel):
     params: dict[str, str] = {}
 
 
+class DataFileLink(BaseModel):
+    """Which file inside the package holds a data source's data (added for tabbot)."""
+    datasource: str
+    connection: str | None = None        # named-connection name (None for the extract)
+    cls: str | None = None               # hyper (extract) | excel-direct | textscan | ...
+    via: str = "file"                    # extract | file
+    declared: str = ""                   # the path as written in the workbook (may be an absolute local path)
+    member: str | None = None            # matching package member, None when the file is not in the package
+    match: str = ""                      # path | suffix | name | "" (not found)
+    tables: list[str] = []               # relation tables read from this file, e.g. ["[Orders$]", "[People$]"]
+
+
 class Window(BaseModel):
     name: str
     cls: str | None = None
@@ -330,6 +348,9 @@ class WorkbookModel(BaseModel):
     unresolved_refs: list[str] = PField(default_factory=list)   # refs the parser could not tie to a field
     unsupported: list[str] = PField(default_factory=list)       # constructs recorded but not interpreted
     warnings: list[str] = PField(default_factory=list)
+    data_links: list[DataFileLink] = PField(default_factory=list)         # data source -> package file
+    unlinked_data_files: list[str] = PField(default_factory=list)         # data files no data source uses
+    geocoding_files: list[str] = PField(default_factory=list)             # Local Data/...: custom geocoding
 
     # convenience lookups
     def worksheet(self, name: str) -> Worksheet | None:

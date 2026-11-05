@@ -54,6 +54,23 @@ TYPE_KEYS = {"nk": "nominal", "ok": "ordinal", "qk": "quantitative"}
 MODIFIER_RE = re.compile(r"^vt[a-z]+$")   # "visual total" settings, e.g. vtsum = total using Sum
 
 
+# what a date PART leaves when years are not on the view too: it combines every year into one cycle
+PART_RANGE = {"quarter": "Q1–Q4", "month": "Jan–Dec", "week": "weeks 1–53", "day": "days 1–31",
+              "weekday": "Mon–Sun", "hour": "hours 0–23", "minute": "minutes 0–59", "second": "seconds 0–59"}
+
+
+def date_label(name: str, grain: str, trunc: bool, with_year: bool = False) -> str:
+    """'Order Date by month (timeline)' for a truncation (tmn); 'MONTH(Order Date) (Jan–Dec, years combined)'
+    for a part (mn). A date part is a cycle that adds up all years - unless YEAR of the same field is also shown."""
+    g = grain.lower()
+    if trunc:
+        return f"{name} by {g} (timeline)"
+    if g in ("year", "mdy", "month/year") or with_year or g not in PART_RANGE:
+        return f"{g.upper()}({name})"
+    years = "days combined" if g in ("hour", "minute", "second") else "years combined"
+    return f"{g.upper()}({name}) ({PART_RANGE[g]}, {years})"
+
+
 class FieldRef(BaseModel):
     raw: str                         # the reference as written, e.g. "[ds].[sum:Sales:qk]"
     datasource: str                  # "ds" (unescaped)
@@ -76,17 +93,18 @@ class FieldRef(BaseModel):
     def is_measure(self) -> bool:
         return self.kind in ("aggregate", "user") or self.table_calc is not None or self.type_key == "qk" and self.kind not in ("dimension", "date_part", "date_trunc")
 
-    def label(self) -> str:
-        """Human label like 'SUM(Sales)', 'QUARTER(Order Date)', '% of total SUM(Sales)'."""
+    def label(self, with_year: bool = False) -> str:
+        """Human label like 'SUM(Sales)', 'Order Date by month (timeline)', 'QUARTER(Order Date) (Q1–Q4, years
+        combined)', '% of total SUM(Sales)'. `with_year`: YEAR of the same field is on the view too."""
         name = self.caption or self.field
         if self.kind == "special":
             return name
         if self.kind in ("dimension", "bare"):
             base = name
         elif self.kind == "date_trunc":
-            base = f"{self.derivation_name.replace('-Trunc', '').upper()}({name}) (continuous)"
+            base = date_label(name, self.derivation_name.replace("-Trunc", ""), trunc=True)
         elif self.kind == "date_part":
-            base = f"{self.derivation_name.upper()}({name})"
+            base = date_label(name, self.derivation_name, trunc=False, with_year=with_year)
         elif self.kind == "user":
             base = f"{name}"
         elif self.kind == "set":
@@ -216,15 +234,20 @@ class Shelf(BaseModel):
         return [r for r in self.refs if r.is_measure]
 
     def describe(self) -> str:
+        years = {r.field for r in self.refs if r.derivation == "yr"}
+
+        def lab(r: FieldRef) -> str:
+            return r.label(with_year=r.field in years)
+
         def walk(n: ShelfNode) -> str:
             if n.ref is not None:
-                return n.ref.label()
+                return lab(n.ref)
             sep = {"+": " + ", "/": " › ", "*": " × "}.get(n.op or "", " ")
             inner = sep.join(walk(i) for i in n.items)
             return inner if len(n.items) == 1 else f"({inner})" if n.op == "+" else inner
         if self.tree is not None:
             return walk(self.tree)
-        return ", ".join(r.label() for r in self.refs)
+        return ", ".join(lab(r) for r in self.refs)
 
 
 def _tokenize_shelf(text: str) -> list[tuple[str, object]]:

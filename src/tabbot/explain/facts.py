@@ -67,12 +67,26 @@ def basics(lw) -> DataBasics | None:
     kds = _kit_ds(lw, ds)
     usage = {f.name: len(f.used_by) for f in kds.fields} if kds else {}
     direct = {f.name: len(f.used_directly_by) for f in kds.fields} if kds else {}
-    ent = prof.entity
+    # a "record" is what the workbook itself mostly counts with COUNT DISTINCT. A guessed id, or one sheet's
+    # COUNTD(Customer Name) in a workbook that mostly sums Sales, would turn every number into "customers":
+    # then one row is one record.
+    ent = prof.entity if prof.entity is not None and prof.entity.method == "workbook_countd" else None
+    if ent is not None:
+        measure_sheets = countd_sheets = 0
+        for w in lw.model.worksheets:
+            if w.datasource != ds:
+                continue
+            refs = [r for r in w.all_refs() if r.kind == "measure"]
+            if refs:
+                measure_sheets += 1
+                countd_sheets += any(r.aggregation == "count_distinct" and r.field == ent.field for r in refs)
+        if measure_sheets and countd_sheets / measure_sheets < 0.5:
+            ent = None
     b = DataBasics(datasource=ds, table=table, view=view, rows=prof.rows, entity=ent.field if ent else None,
                    entities=ent.distinct if ent else prof.rows, rows_per_entity=ent.rows_per_entity if ent else 1.0,
                    sensitive=set(prof.sensitive_suggestions))
     # main date: the date column most used by sheets (directly or via calculations)
-    dates = [c for c in prof.columns if c.kind in ("date", "text_date") and c.entity_level is not False]
+    dates = [c for c in prof.columns if c.kind in ("date", "text_date") and (ent is None or c.entity_level is not False)]
     if dates:
         c = max(dates, key=lambda c: (usage.get(c.name, 0), -dates.index(c)))
         b.date_col = c.name

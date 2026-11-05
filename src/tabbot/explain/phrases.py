@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 
+from tabbot.tparse.fieldref import PART_RANGE
 from tabbot.tparse.fieldref import FieldRef as KRef
 from tabbot.tparse.model import FilterDef
 from tabbot.tparse.model import Worksheet as KWorksheet
@@ -95,10 +96,12 @@ class Phraser:
     def dimension(self, r: KRef) -> str:
         n = name(r)
         if r.kind == "date_part":
-            return f"{PART_WORD.get(r.derivation_name, r.derivation_name.lower())} of {n}"
+            rng = PART_RANGE.get(r.derivation_name.lower())
+            word = PART_WORD.get(r.derivation_name, r.derivation_name.lower())
+            return f"{word} of {n}" + (f" ({rng}, all years added together)" if rng else "")
         if r.kind == "date_trunc":
             part = r.derivation_name.replace("-Trunc", "")
-            return f"{n} by {PART_WORD.get(part, part.lower())} (as a continuous timeline)"
+            return f"{n} by {PART_WORD.get(part, part.lower())} (a timeline, one point per period)"
         if r.kind == "set":
             return f"in/out of the set {n}"
         return n
@@ -116,7 +119,12 @@ class Phraser:
                     k += 1
                     parts.append(refs[k])
                 words = [PART_WORD.get(p.derivation_name, p.derivation_name.lower()) for p in parts]
-                out.append(f"{' and '.join(words)} of {name(r)}")
+                txt = f"{' and '.join(words)} of {name(r)}"
+                has_year = any(x.derivation == "yr" and x.field == r.field for x in refs)
+                rng = PART_RANGE.get(parts[0].derivation_name.lower())
+                if not has_year and rng:
+                    txt += f" ({rng}, all years added together)"
+                out.append(txt)
             else:
                 out.append(self.dimension(r))
             k += 1
@@ -139,7 +147,12 @@ class Phraser:
         detail_d = [r for ch in ("lod", "detail", "shape", "wedge-size") for r in by_channel.get(ch, [])
                     if not r.is_measure]
         chart = ws.chart_type or "chart"
-        mtxt = join(list(dict.fromkeys(self.measure(m) for m in measures))) or "the listed values"
+        mtxt = join(list(dict.fromkeys(self.measure(m) for m in measures)))
+        if not mtxt:
+            # Measure Values: the numbers shown are the ones the Measure Names filter keeps
+            mn = next((f for f in ws.filters if f.field.field == "Measure Names" and f.members), None)
+            mtxt = (f"{len(mn.members)} headline numbers ({join([clean_measure(x) for x in mn.members])})"
+                    if mn else "several measures")
         parts = []
         if chart.startswith("pie") or chart.startswith("donut"):
             slices = color_d or detail_d
@@ -193,7 +206,7 @@ class Phraser:
             parts.append(f"a {chart} of the {mtxt}" + (f" by {self.dims(cats)}" if cats else ""))
         if ws.table_calcs:
             parts.append("using a table calculation (" + join([t.type or "calculation" for t in ws.table_calcs]) + ")")
-        return " ".join(parts)
+        return tidy(" ".join(parts))
 
     # ------------------------------------------------------------------ filters
     def filter(self, fd: FilterDef, values_in_data: list[str] | None = None, max_list: int = 5) -> str | None:
@@ -203,7 +216,11 @@ class Phraser:
         vals = ["(empty)" if v == "%null%" else v for v in fd.members]
         m = fd.mode
         ctx = " (context filter)" if fd.context else ""
+        if fd.field.kind == "special":
+            return None          # Measure Names/Values: chooses which numbers are shown, not which records
         if m == "include":
+            if fd.keeps_all_values:
+                return None      # keeps true and false: removes only records with no value at all
             if values_in_data is not None and set(values_in_data) <= set(fd.members) and len(values_in_data) > 1:
                 return (f"keeps a list of {len(vals)} {n} values that currently covers every {n} in the data, "
                         f"so it does not remove anything today (new values would be left out){ctx}")
@@ -233,8 +250,8 @@ class Phraser:
         if m == "range":
             r = fd.range or {}
             lo, hi = r.get("min", r.get("from")), r.get("max", r.get("to"))
-            lo = (lo or "").strip("#") or None
-            hi = (hi or "").strip("#") or None
+            lo = num_text((lo or "").strip("#")) or None
+            hi = num_text((hi or "").strip("#")) or None
             if lo and hi:
                 return f"{n} between {lo} and {hi}{ctx}"
             if lo:
@@ -247,7 +264,7 @@ class Phraser:
             r = fd.relative or {}
             return f"a moving date window on {n} ({r.get('period_type')} {r.get('first')} to {r.get('last')}){ctx}"
         if m == "action":
-            return None          # set by clicking another chart; shows everything until then
+            return None          # clicks are described from the actions list; leftovers have no effect          # leftover from a removed action / viz in tooltip: no effect on the dashboard
         if m == "set":
             return f"only members of the set {n}{ctx}"
         if m == "condition":
@@ -442,6 +459,43 @@ def explain_formula(formula: str, kind: str | None = None, fields: list[str] | N
     if kind == "constant":
         return f"A constant value: {value_text(f)}."
     return f"Calculation: {value_text(f)}."
+
+
+def clean_measure(v: str) -> str:
+    """'[federated.x].[sum:Sales:qk]' -> 'SUM(Sales)'; a caption is kept as it is."""
+    m = re.match(r"^\[[^\]]*\]\.\[(?:([a-z]+):)?([^\]:]+)(?::[a-z]+)?\]$", v.strip())
+    if not m:
+        return v
+    agg, fld = m.group(1), m.group(2)
+    words = {"sum": "SUM", "avg": "AVG", "cnt": "COUNT", "ctd": "COUNTD", "min": "MIN", "max": "MAX"}
+    return f"{words[agg]}({fld})" if agg in words else fld
+
+
+def num_text(v: str) -> str:
+    """'-0.2168640535982099' -> '-0.217'; dates and text unchanged."""
+    try:
+        x = float(v)
+    except ValueError:
+        return v
+    if x == int(x) and abs(x) < 1e15:
+        return f"{int(x):,}" if abs(x) >= 10000 else str(int(x))
+    return f"{x:.3g}" if abs(x) < 1000 else f"{x:,.0f}"
+
+
+def tidy(text: str) -> str:
+    """Grammar after templating: 'a area' -> 'an area', 'the the' -> 'the'."""
+    text = re.sub(r"\b(the) the\b", r"\1", text)
+    return re.sub(r"\b([Aa]) (?=[aeiouAEIOU])", lambda m: m.group(1) + "n ", text)
+
+
+TITLE_FIELD = re.compile(r"<\[[^\]]*\]\.\[(?:[a-z]+:)?([^\]:]+)(?::[a-z]+)?\]>")
+
+
+def clean_title(title: str | None, captions: dict[str, str] | None = None) -> str:
+    """Sheet titles can insert field values: '<[federated.x].[State]>' -> '<State>' (with its caption)."""
+    if not title:
+        return ""
+    return TITLE_FIELD.sub(lambda m: f"<{(captions or {}).get(m.group(1), m.group(1))}>", title).strip()
 
 
 def join(items: list[str], last: str = "and") -> str:

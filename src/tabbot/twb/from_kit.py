@@ -113,8 +113,15 @@ def _filter(fd: K.FilterDef) -> Filter:
     rng = fd.range or {}
     lo = rng.get("min") if "min" in rng else rng.get("from")
     hi = rng.get("max") if "max" in rng else rng.get("to")
+    note = None
+    if fd.mode == "action":
+        from tabbot.tparse.describe import describe_action_filter
+        note = describe_action_filter(fd).split(": ", 1)[-1]
+    elif fd.keeps_all_values:
+        note = "keeps all non-null values - no practical effect"
     return Filter(field=ref(fd.field), kind=fd.kind, mode=mode, members=members, member_count=len(members),
-                  min=lo, max=hi, raw_function=(fd.functions[0] if fd.functions else None))
+                  min=lo, max=hi, raw_function=(fd.functions[0] if fd.functions else None), note=note,
+                  action_status=fd.action_status, keeps_all_values=fd.keeps_all_values)
 
 
 SUPPORTED_FILTERS = {"include", "exclude", "all", "range"}

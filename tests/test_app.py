@@ -40,7 +40,7 @@ def test_nothing_extra_on_the_page(app):
     assert not app.get("plotly_chart") and not app.metric and not app.multiselect
     assert not app.get("button_group")          # the old page tabs (segmented control)
     text = _markdown(app)
-    for gone in ("Findings", "Exact definition", "cells cannot be added up", "Analysis of", "Worksheets"):
+    for gone in ("Findings", "Exact definition", "Analysis of", "Worksheets"):
         assert gone not in text, gone
 
 

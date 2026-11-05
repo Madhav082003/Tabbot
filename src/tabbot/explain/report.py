@@ -17,7 +17,7 @@ from tabbot.analysis import recipes as rc
 from tabbot.analysis.lints import run_lints
 from tabbot.explain import facts as F
 from tabbot.explain.glossary import TERMS, detect_subject, norm
-from tabbot.explain.phrases import Phraser, explain_formula, how_to_read, join, n_, pct, plural
+from tabbot.explain.phrases import Phraser, clean_title, explain_formula, how_to_read, join, n_, pct, plural
 from tabbot.explain.structure import DashboardGroup, Family, dashboard_groups, main_sheet, sheet_families
 from tabbot.views.display import fmt_dim
 
@@ -53,6 +53,8 @@ def _d(x: dt.date | None) -> str:
 
 
 def _record_word(entity: str | None, subject) -> str:
+    if not entity:
+        return "row"            # nothing is counted distinctly: one row of the data is one record
     n = norm(entity or "")
     for w in RECORD_WORDS:
         if w in n:
@@ -93,6 +95,7 @@ class Writer:
                 if nm:
                     dtypes.setdefault((d.name, nm), p.local_type or "")
         self.ph = Phraser(self.word, self.b.entity if self.b else None, dtypes)
+        self.captions = {f.name: f.caption for d in self.kit.datasources for f in d.fields if f.caption}
         self.families = sheet_families(self.kit)
         self.groups = dashboard_groups(self.kit, self.families)
         self.lints = run_lints(lw)
@@ -534,16 +537,17 @@ class Writer:
                                f"be ({pp['value']:,.0f} so far, about {pp['full_period_pace']:,.0f} at the same pace).")
                 else:
                     out.append(f"The last column ({pp['period']}) holds only {pp['days_elapsed']} day(s) of data.")
-        if ctx and ctx.category_sql and not res.time_dims():
+        additive = m.aggregation in ("sum", "count", "count_distinct")    # a ratio's "largest" is not a ranking
+        if ctx and ctx.category_sql and not res.time_dims() and additive:
             co = rc.concentration(ctx)
-            if co.ok and not co.table.empty:
+            if co.ok and not co.table.empty and float(co.table["value"].head(3).abs().sum()) > 0:
                 out.append(f"Largest {ctx.category_label} values: " + "; ".join(
                     f"{_val(r['member'])} {r['value']:,.0f}" for _, r in co.table.head(3).iterrows()) + ".")
         if dt_ and not dt_.get("cells_can_be_summed") and res.dims:
             who = f"one {self.word}" if self._counts_records(res) else "one value"
             out.append(f"The cells cannot be added up: they total {dt_['sum_of_cells']:,} because {who} can appear "
                        f"in several cells, while there are {dt_['distinct_total']:,} distinct.")
-        if res.status == "approximate":
+        if res.status == "approximate" and out:
             out.append("*(These numbers are approximate: " + "; ".join(res.reasons[:2]) + ".)*")
         return out
 
@@ -553,6 +557,64 @@ class Writer:
             if r.is_measure:
                 return self.ph.measure(r)
         return res.measures[0].label
+
+    def filter_lines(self, g: DashboardGroup, fam, main) -> list[str]:
+        """Filters shared by every sheet of the dashboard, then the ones only some sheets have (compared sheet by
+        sheet - a filter on one chart is never presented as the dashboard's)."""
+        if fam is not None:
+            sheets = [fam.example]
+        else:
+            sheets = [w for w in (self.kit.worksheet(n) for n in g.sheets) if w is not None] or [main]
+        per: dict[str, list[str]] = {}            # filter text -> sheets that have it
+        for w in sheets:
+            for fd in w.filters:
+                if fam is not None and fam.varying_field and fd.member_count == 1 and \
+                        (fd.field.caption or fd.field.field) == fam.varying_field:
+                    continue
+                t = self.filter_text(fd, w.datasources[0] if w.datasources else None)
+                if t and w.name not in per.setdefault(t, []):
+                    per[t].append(w.name)
+        common = [t for t, on in per.items() if len(on) == len(sheets)]
+        out = ["**Built-in filters:** " + "; ".join(common) + "."] if common else []
+        some: dict[str, list[str]] = {}
+        for t, on in per.items():
+            if len(on) < len(sheets):
+                names = [self.sheet_title(n) for n in on]
+                some.setdefault(join([f"*{x}*" for x in names]), []).append(t)
+        for who, ts in some.items():
+            out.append(f"**Only on {who}:** " + "; ".join(ts) + " - the other charts here are not filtered this way.")
+        clicks = self.click_lines(g)
+        if clicks:
+            out.append("**Clicking:** " + " ".join(c[:1].upper() + c[1:] for c in clicks))
+        return out
+
+    def click_lines(self, g: DashboardGroup) -> list[str]:
+        """What clicking does - only from the workbook's actions list (never from filter names)."""
+        names = {d.name for d in g.dashboards}
+        out = []
+        for a in self.kit.actions:
+            if a.source_dashboard not in names and a.params.get("target") not in names:
+                continue
+            src = f"*{self.sheet_title(a.source_worksheet)}*" if a.source_worksheet else "any chart"
+            excl = [self.sheet_title(x) for x in (a.params.get("exclude") or "").split(",") if x]
+            by = a.params.get("field-captions")
+            by_txt = f" by {by.replace(',', ', ')}" if by else ""
+            if a.kind == "filter":
+                others = "the other charts" + (f" (not *{join(excl)}*)" if excl and not a.source_worksheet else "")
+                out.append(f"selecting a mark in {src} filters {others} ('{a.caption or a.name}').")
+            elif a.kind == "highlight":
+                out.append(f"selecting a mark in {src} highlights matching marks{by_txt} without filtering "
+                           f"anything ('{a.caption or a.name}').")
+            elif a.kind == "url":
+                out.append(f"selecting a mark in {src} opens a web link ('{a.caption or a.name}').")
+            elif a.kind == "go-to-sheet":
+                out.append(f"selecting a mark in {src} opens another sheet ('{a.caption or a.name}').")
+        return out
+
+    def sheet_title(self, name: str) -> str:
+        w = self.kit.worksheet(name)
+        t = (w.title or "").strip() if w is not None else ""
+        return name if not t or w.title_is_placeholder else clean_title(t, self.captions)
 
     def dashboard_text(self, g: DashboardGroup) -> str:
         m = self.kit
@@ -579,24 +641,14 @@ class Writer:
             else:
                 lines.append(f"**What it shows:** {len(sheets)} charts:")
                 for w in sheets[:6]:
-                    t = (w.title or "").strip()
-                    lines.append(f"- *{w.name if not t or w.title_is_placeholder else t}*: {self.ph.what_it_shows(w)}.")
+                    lines.append(f"- *{self.sheet_title(w.name)}*: {self.ph.what_it_shows(w)}.")
                 if len(sheets) > 6:
                     lines.append(f"- … and {len(sheets) - 6} more.")
         if main is not None:
             read = how_to_read(main, self.ph)
             if read:
                 lines.append(f"**How to read it:** {read}")
-            flt = []
-            for fd in main.filters:
-                if fam is not None and fam.varying_field and fd.member_count == 1 and \
-                        (fd.field.caption or fd.field.field) == fam.varying_field:
-                    continue
-                t = self.filter_text(fd, main.datasources[0] if main.datasources else None)
-                if t:
-                    flt.append(t)
-            if flt:
-                lines.append("**Built-in filters:** " + "; ".join(flt) + ".")
+            lines += self.filter_lines(g, fam, main)
         qf = sorted({r.caption or r.field for d in g.dashboards for r in d.quick_filters})
         if qf:
             lines.append(f"**You can filter it by:** {join(qf)}.")
@@ -683,8 +735,10 @@ class Writer:
             dbs = sorted({d.strip() for f in fs for d in f.dashboards})
             where = f" *Affects: {join(dbs[:4])}{' and more' if len(dbs) > 4 else ''}.*" if dbs else ""
             if code == "L2":
-                msg = (f"{len(dbs)} dashboard name(s) promise percentages or shares, but their charts have no "
-                       "percent-of-total calculation: the labels are raw counts.")
+                what = (f"{len(dbs)} dashboard name(s)" if dbs else
+                        f"{len({s for f in fs for s in f.sheets})} sheet title(s)")
+                msg = (f"{what} promise percentages or shares, but the charts have no percent-of-total "
+                       "calculation: the labels are raw numbers.")
             elif code == "L12":
                 lst = join([f"{f.evidence.get('field')} ({f.evidence.get('excluded')})" for f in fs][:5])
                 msg = (f"{len(fs)} filters leave out long lists of values ({lst}). Any new value that appears in "

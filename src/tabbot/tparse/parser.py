@@ -71,9 +71,10 @@ def _bracket_name(v: str | None) -> str:
 
 def _parse_connection(el: Element, name: str | None = None, caption: str | None = None) -> Connection:
     a = dict(el.attrib)
-    known = {"class", "server", "dbname", "schema", "filename", "port", "username"}
+    known = {"class", "server", "dbname", "schema", "filename", "port", "username", "directory"}
     return Connection(name=name, caption=caption, cls=a.get("class"), server=a.get("server"),
                       dbname=a.get("dbname"), schema_name=a.get("schema"), filename=a.get("filename"),
+                      directory=a.get("directory"),
                       port=a.get("port"), username=a.get("username"),
                       other={k: v for k, v in a.items() if k not in known and "password" not in k.lower()})
 
@@ -147,7 +148,9 @@ def _parse_datasource(el: Element, model: WorkbookModel) -> DataSource:
                                            if r.get("type") == "table" and r.get("table")],
                              incremental=(first(ext, "connection/refresh") is not None and
                                           first(ext, "connection/refresh").get("increment-enabled") == "true"),
-                             filters=len(ext.findall(".//filter")))
+                             filters=len(ext.findall(".//filter")),
+                             dbname=(first(ext, "connection").get("dbname") if first(ext, "connection") is not None
+                                     else None))
         # the extract repeats the same fields under its own relation name: merge by local name
         by_local = {(p.local_name or p.remote_name): p for p in ds.physical_fields}
         for mr in ext.iter("metadata-record"):
@@ -337,7 +340,10 @@ def _parse_filter(el: Element, model: WorkbookModel) -> FilterDef | None:
         return fd
     fd.functions = list(dict.fromkeys(g.get("function", "") for g in el.iter("groupfilter")))
     fd.ui_enumeration = root.get("user:ui-enumeration")
-    fd.is_action_filter = bool(root.get("user:ui-action-filter")) or ref.field.startswith("Action (")
+    act_ref = next((g.get("user:ui-action-filter") for g in el.iter("groupfilter") if g.get("user:ui-action-filter")),
+                   None)
+    fd.action_ref = _bracket_name(act_ref) if act_ref else None
+    fd.is_action_filter = bool(act_ref) or ref.field.startswith("Action (")
     mode, extra = _filter_mode(root)
     if fd.is_action_filter:
         mode = "action"
@@ -530,9 +536,32 @@ def _parse_action(el: Element) -> Action:
         a.params = {p.get("name", ""): p.get("value", "") for p in cmd.findall("param")}
     lc = (a.command or "").lower()
     a.kind = next((k for key, k in COMMAND_KINDS if key in lc), "other")
-    if el.find("link") is not None:
+    link = el.find("link")
+    # filter actions also carry <link expression='tsl:...'> (their internal form): only a real link is a URL action
+    if link is not None and a.kind == "other" and not (link.get("expression") or "").startswith("tsl:"):
         a.kind = "url"
     return a
+
+
+def _link_action_filters(model: WorkbookModel) -> None:
+    """Tie each action filter to the action that drives it (user:ui-action-filter='[ActionN]').
+    A filter whose action was deleted - or that names no action - is a leftover and has no effect."""
+    by_name = {a.name: a for a in model.actions}
+    for ws in model.worksheets:
+        for fd in ws.filters:
+            if fd.mode == "include" and {m.lower() for m in fd.members if m != "%null%"} == {"true", "false"}:
+                fd.keeps_all_values = True       # a true/false field: both values kept = everything but empty
+            if not fd.is_action_filter:
+                continue
+            if fd.field.field.startswith("Tooltip ("):
+                fd.action_status = "tooltip"     # viz in tooltip: set by the sheet that shows this one in a tooltip
+            elif fd.action_ref is None:
+                fd.action_status = "unlinked"
+            elif fd.action_ref in by_name:
+                fd.action_status = "linked"
+                fd.action_caption = by_name[fd.action_ref].caption or fd.action_ref
+            else:
+                fd.action_status = "missing"
 
 
 # ====================================================================== resolution
@@ -756,6 +785,7 @@ def parse_workbook(source: str | Path | bytes, name: str | None = None) -> Workb
                 w.in_dashboards.append(db.name)
 
     model.actions = [_parse_action(a) for a in children(root, "actions/action")]
+    _link_action_filters(model)
     model.thumbnails = [Thumbnail(name=t.get("name", "").strip(), width=_int(t.get("width")),
                                   height=_int(t.get("height")), base64_bytes=len(t.text or ""))
                         for t in children(root, "thumbnails/thumbnail")]
@@ -765,6 +795,8 @@ def parse_workbook(source: str | Path | bytes, name: str | None = None) -> Workb
     for ws in model.worksheets:
         ws.chart_type = infer_chart_type(ws)
     model.size_report = _size_report(root, total, model)
+    from .datafiles import link_data_files
+    link_data_files(model, [n for n, _ in package.members] if package is not None and package.is_packaged else [])
     if package is not None and package.is_packaged:
         model.size_report["package_members"] = [{"name": n, "bytes": b} for n, b in package.members]
     for known_unparsed in ("shared-views", "external", "datasource-relationships", "mapsources"):

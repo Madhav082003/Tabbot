@@ -20,8 +20,12 @@ def findings(fixture_twbx, tmp_path_factory):
 
 
 def test_exact_set_of_findings(findings):
-    codes = sorted(f.code for f in findings["_all"])
+    codes = sorted(f.code for f in findings["_all"] if f.code != "L15")
     assert codes == ["L1", "L10", "L12", "L14", "L2", "L3", "L4", "L5", "L6"]  # one each, nothing extra
+    # L15 compares the sheets of each dashboard: three real differences in the fixture, all 'good to know'
+    l15 = [f for f in findings["_all"] if f.code == "L15"]
+    assert len(l15) == 3 and all(f.severity == "info" for f in l15)
+    assert {f.evidence["field"] for f in l15} == {"GENDER", "CATEGORY", "SUBCATEGORY"}
 
 
 def test_l1_counts_dates(findings, expected):
@@ -74,7 +78,7 @@ def test_cli_lint_and_analyze(fixture_twbx, capsys, monkeypatch, tmp_path):
     config.get_settings.cache_clear()
     assert main(["lint", str(fixture_twbx)]) == 0
     out = capsys.readouterr().out
-    assert "9 finding(s)" in out and "[ERROR L4]" in out
+    assert "12 finding(s)" in out and "[ERROR L4]" in out
     assert main(["analyze", str(fixture_twbx), "Category Heatmap"]) == 0
     out = capsys.readouterr().out
     assert "CHANNEL = Web" in out and "partial_period" in out
