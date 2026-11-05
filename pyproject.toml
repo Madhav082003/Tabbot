@@ -32,6 +32,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not llm'"   # live Claude tests never run by default
 markers = [
     "llm: needs an Anthropic API key (skipped otherwise)",
     "private: uses real workbooks in tests/fixtures/private",

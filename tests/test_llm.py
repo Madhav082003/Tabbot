@@ -164,10 +164,11 @@ def test_show_in_app_with_filter(lw):
 
 
 @pytest.mark.llm
-@pytest.mark.skipif(not os.environ.get("ANTHROPIC_API_KEY") and not (
-        __import__("pathlib").Path(__file__).resolve().parents[1] / ".env").exists(), reason="no API key")
+@pytest.mark.skipif(os.environ.get("TABBOT_LIVE_TEST") != "1", reason="live test: set TABBOT_LIVE_TEST=1 to run")
 def test_live_insights(lw, tmp_path, expected):
-    s = load_settings().model_copy(update={"workspace_dir": tmp_path})
+    # strict limits: one question, at most 6 calls and about $0.40
+    s = load_settings().model_copy(update={"workspace_dir": tmp_path, "max_tool_rounds": 6,
+                                           "max_usd_per_question": 0.40})
     if not s.anthropic_api_key:
         pytest.skip("no ANTHROPIC_API_KEY in .env")
     chat = ChatSession(lw, s)
