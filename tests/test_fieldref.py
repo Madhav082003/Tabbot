@@ -37,4 +37,4 @@ def test_labels():
     r = parse_ref("[ds].[ctd:CASEID:qk]")
     r.caption = "Case Id"
     assert r.label == "Distinct count of Case Id"
-    assert parse_ref("[ds].[qr:D:ok]").label == "QUARTER(D)"
+    assert parse_ref("[ds].[qr:D:ok]").label == "QUARTER(D) (Q1–Q4, years combined)"

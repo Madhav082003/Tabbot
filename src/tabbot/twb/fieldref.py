@@ -73,8 +73,17 @@ class FieldRef(BaseModel):
                 return f"{words[self.aggregation]} {name}"
             return f"{self.aggregation.upper()}({name})"
         if self.kind in ("date_part", "date_trunc"):
-            return f"{self.date_grain.upper()}({name})"
+            from tabbot.tparse.fieldref import date_label
+            return date_label(name, self.date_grain, trunc=self.kind == "date_trunc")
         return name
+
+    def label_in(self, refs: list[FieldRef]) -> str:
+        """Label, knowing the other fields on the view (a date part next to YEAR of the same field is not a
+        cycle over years)."""
+        if self.kind == "date_part" and any(r.field == self.field and r.derivation == "yr" for r in refs):
+            from tabbot.tparse.fieldref import date_label
+            return date_label(self.caption or self.field, self.date_grain, trunc=False, with_year=True)
+        return self.label
 
 
 def _unescape(s: str) -> str:

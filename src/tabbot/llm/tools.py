@@ -94,14 +94,17 @@ class QueryInput(BaseModel):
     measure_field: str | None = Field(default=None, description="Needed unless measure is count_distinct_entity.")
     filters: list[QueryFilter] = Field(default_factory=list, max_length=6)
     limit: int = Field(default=50, ge=1, le=200)
+    datasource: str | None = Field(default=None, description="Data source name from list_dashboards; default: "
+                                   "the one most sheets use.")
 
 
 TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
     ("list_dashboards", NoInput,
      "Compact overview of the open Tableau workbook: the data source (what one record is, how many, date range, "
      "fields grouped by kind), calculated fields with readable formulas, and every dashboard with its sheets - "
-     "repeated sheets that differ only by one filter value are grouped into a pattern. Call this first. Returns "
-     "structure only, no data values."),
+     "repeated sheets that differ only by one filter value are grouped into a pattern, the dashboard's "
+     "interactions (from the workbook's actions list) and which package file feeds each data source. Call this "
+     "first. Returns structure only, no data values."),
     ("describe_sheet", SheetInput,
      "The definition of one worksheet: rows, columns, marks (colour/size/label fields), filters, chart type, "
      "whether the redraw is exact or approximate (and why), and its chart checks (partial periods, cells that "
@@ -284,8 +287,9 @@ def _shape(ws: Worksheet) -> str:
 
 
 def _title(ws: Worksheet) -> str:
+    from tabbot.explain.phrases import clean_title
     t = (ws.title or "").strip()
-    return ws.name if not t or "<Sheet Name>" in t else t
+    return ws.name if not t or "<Sheet Name>" in t else clean_title(t)
 
 
 def _sheets_summary(sheets: list[Worksheet]) -> list[dict]:
@@ -313,6 +317,16 @@ def _fields_summary(prof, sens: set[str]) -> dict:
         g = "sensitive (values never shared)" if c.name in sens else label.get(c.kind, c.kind)
         groups.setdefault(g, []).append(f"{c.name} ({c.distinct:,})" if g == "categories" else c.name)
     return groups
+
+
+def _interactions(lw, dashboard: str) -> list[str]:
+    """What clicking does on a dashboard - only from the workbook's actions list, never from filter names."""
+    from tabbot.tparse.describe import describe_action
+    kit = lw.kit
+    if kit is None:
+        return []
+    acts = [a for a in kit.actions if a.source_dashboard == dashboard or a.params.get("target") == dashboard]
+    return [describe_action(a) for a in acts] or ["no actions: clicking a chart does not change the others"]
 
 
 def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
@@ -347,7 +361,9 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
         "data_sources": sources,
         "dashboards": [{"name": d.name, "quick_filters": [q.field.label for q in d.quick_filters],
                         "sheet_count": len(d.sheets),
-                        "sheets": _sheets_summary([m.worksheet(x) for x in d.sheets])} for d in m.dashboards],
+                        "sheets": _sheets_summary([m.worksheet(x) for x in d.sheets]),
+                        "interactions": _interactions(lw, d.name)} for d in m.dashboards],
+        "data_files": lw.data_files_shared,
         "sheets_not_on_any_dashboard": [w.name for w in m.worksheets if w.name not in on_dash],
         "worksheets_total": len(m.worksheets), "hidden_worksheets": sum(w.hidden for w in m.worksheets),
         "findings": [f"{f.severity}: {f.title}" for f in findings],
@@ -355,12 +371,21 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
     }
 
 
+def _shelf(r, ws) -> str:
+    """'Order Date by month (timeline) [tmn]' - the label plus Tableau's raw derivation."""
+    lab = r.label_in(list(ws.rows) + list(ws.cols))
+    return f"{lab} [{r.derivation}]" if r.derivation and r.derivation != "none" else lab
+
+
 def t_describe_sheet(ctx: ToolContext, inp: SheetInput) -> dict:
     ws = ctx.sheet(inp.sheet)
     res = ctx.rebuild(ws)
     filters = []
     for f in ws.filters:
-        item: dict[str, Any] = {"field": f.field.label, "mode": f.mode, "values": f.member_count}
+        item: dict[str, Any] = {"field": f.field.label, "derivation": f.field.derivation or None,
+                                "mode": "action" if f.action_status else f.mode, "values": f.member_count}
+        if f.note:
+            item["effect"] = f.note
         if f.members and f.member_count <= MAX_MEMBERS_SHOWN and \
                 not ctx.field_is_sensitive(f.field.datasource, f.field.field):
             item["members"] = f.members
@@ -376,7 +401,7 @@ def t_describe_sheet(ctx: ToolContext, inp: SheetInput) -> dict:
         "sheet": ws.name, "title": ws.title, "hidden": ws.hidden,
         "dashboards": [d.name for d in ctx.lw.model.dashboards if ws.name in d.sheets],
         "tableau_mark": ws.mark, "chart": res.chart,
-        "rows_shelf": [r.label for r in ws.rows], "columns_shelf": [r.label for r in ws.cols],
+        "rows_shelf": [_shelf(r, ws) for r in ws.rows], "columns_shelf": [_shelf(r, ws) for r in ws.cols],
         "marks": {k: [r.label for r in v] for k, v in ws.encodings.items()},
         "filters": filters,
         "redraw": res.status, "why_approximate": res.reasons,
@@ -473,11 +498,32 @@ def t_get_findings(ctx: ToolContext, inp: FindingsInput) -> dict:
                          for f in fs]}
 
 
+def _pick_datasource(lw, wanted: str | None) -> str:
+    """The data source to query: the one named, else the one most sheets use. Only data from a file that data
+    source is linked to is ever queried; when that file is missing, say which file it is."""
+    from tabbot.explain.facts import primary_datasource
+    if wanted:
+        d = next((d for d in lw.model.datasources if wanted in (d.name, d.caption)), None)
+        if d is None:
+            raise ToolError(f"unknown data source {wanted!r}; see list_dashboards")
+        name = d.name
+    else:
+        name = primary_datasource(lw)
+        if name is None:
+            raise ToolError("no data source has readable data")
+    if lw.table_for(name) is None:
+        label = lw.model.datasource(name).caption or name
+        why = [x for x in lw.data_files_shared if x.startswith(label + ":")]
+        raise ToolError(f"data source {label!r} has no readable data here" + (f" ({why[0]})" if why else ""))
+    return name
+
+
 def t_query_data(ctx: ToolContext, inp: QueryInput) -> dict:
     lw = ctx.lw
     if lw.store is None:
-        raise ToolError("this workbook has no extract data")
-    ds = next((d.name for d in lw.model.datasources if lw.profile_for(d.name) is not None), None)
+        raise ToolError("this workbook has no readable data in its package" +
+                        (": " + "; ".join(lw.data_files_shared) if lw.data_files_shared else ""))
+    ds = _pick_datasource(lw, inp.datasource)
     table, prof = lw.table_for(ds), lw.profile_for(ds)
     qctx = _Ctx(lw.model, ds, lw.store, table, prof)
     sens = ctx.sensitive_columns(ds)

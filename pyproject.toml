@@ -18,6 +18,8 @@ dependencies = [
     "anthropic",
     "python-dotenv",
     "pyyaml",
+    "xlrd",          # .xls data files inside packages
+    "openpyxl",      # .xlsx data files inside packages
 ]
 
 [project.optional-dependencies]
@@ -49,6 +51,7 @@ select = ["E", "F", "I", "B", "UP"]
 # vendored from the parser kit: long XML test snippets and one-off tools, kept as written
 "src/tabbot/tparse/*" = ["E501"]
 "tests/tparse/*" = ["E501"]
+"tests/test_review_superstore.py" = ["E501"]   # inline XML snippets
 "tools/*" = ["E501", "B007", "E731"]
 # written explanation: long sentence templates read better unbroken
 "src/tabbot/explain/*" = ["E501"]
