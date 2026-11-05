@@ -1,179 +1,188 @@
-# Tableau workbook format — working reference
+# Tableau workbook format — working reference (v2)
 
-What we know about `.twbx` / `.twb` / `.hyper`, learned from inspecting one real workbook (Tableau 2026.2,
-`version='18.1'`, 88 worksheets, 13 dashboards, one Excel-based extract) plus general Tableau knowledge.
+Replaces v1 of this file in the build kit. v1 was learned from one workbook; v2 is checked against 60 public
+workbooks (Tableau 8.2 to 2025.2) plus one private one. Counts like "(43 wb)" say in how many workbooks an item
+was seen; `docs/PATTERNS.md` has the full statistics.
 
-Every item is marked:
-- **[verified]** seen and checked in code on the real workbook;
-- **[assumed]** general Tableau knowledge, not yet checked here. The parser must handle these defensively and
-  record anything unexpected in `WorkbookModel.unsupported` instead of failing.
+- **[verified]** seen in the corpus and handled by `tabbot.twb.parser` with tests.
+- **[assumed]** not seen yet; the parser handles it defensively (records it in `model.unsupported`).
+
+**Correction to v1:** the "stray Æ" in titles is not a stray character. `Æ` followed by a newline, space or tab is
+how Tableau stores a line break in formatted text (≈500 runs in the corpus). Lint L11 must not flag it.
 
 ## 1. Packaging
 
-- `.twbx` is an ordinary zip. **[verified]** Members seen: `<Name>.twb` at the root and
-  `Data/<Name>.twb Files/federated.hyper`. Other workbooks may also hold images, `.tde` (old extract format),
-  Excel/CSV source files, or several `.hyper` files. **[assumed]**
-- `.twb` is UTF-8 XML. Root element `<workbook>` with attributes `version`, `source-build`, `source-platform`,
-  `original-version`, `xml:base` (for example a Tableau Cloud URL). **[verified]**
-- Root also carries fingerprint attributes (`_.fcp.WorkbookFingerprinting...author-id`, `machine-id`). Never
-  send these to the LLM. **[verified]**
+- `.twbx` = zip. Members seen: the workbook `.twb` at the root, `Data/.../*.hyper` (64 files in 20 wb; one package
+  has 21), `.tde` (old extracts, 3), `.tds` data-source copies (11), images (`.png` 31, `.jpg` 5), `.csv`/`.xls(x)`
+  source files, and `.bin`/`.key` geocoding files. **[verified]** Pick the shallowest `.twb` as the workbook.
+- Root `<workbook version source-build source-platform original-version xml:base>`. Version `18.1` covers all
+  builds from 2020.1 to 2025.2; older files use 8.2, 9.3, 10.0, 10.1. **[verified]**
+- Fingerprint attributes (`WorkbookFingerprinting...author-id`, `machine-id`) on the root: never send. **[verified]**
 
-## 2. Top-level sections
+## 2. Normalise first (`tabbot.twb.xmlutil`)
 
-| Element | Content | Notes |
+1. **Feature-flag prefixes** (46 wb): `_.fcp.<Feature>.<true|false>...<name>` on tags and attributes, possibly nested,
+   and sometimes both variants side by side. Strip prefixes; keep the `true` variant when both exist; a `false`
+   attribute only fills a gap. Examples: `ObjectModelEncapsulateLegacy` (relation / object-graph),
+   `ObjectModelTableType` (column), `SetMembershipControl` (zone `type` vs `type-v2`), `MarkAnimation`, `Layers`
+   (pane). **[verified]**
+2. **Namespaced attributes**: `{http://www.tableausoftware.com/xml/user}x` → `user:x` (`ui-marker`, `ui-enumeration`,
+   `ui-domain`, `ui-action-filter`, `ui-top-by-field`, `ui-builder`, `auto-column`, `unnamed`). **[verified]**
+3. Parse with `defusedxml` only.
+
+## 3. Top-level sections
+
+| Element | Content | Status |
 | --- | --- | --- |
-| `document-format-change-manifest` | feature flags | ignore **[verified]** |
-| `preferences`, `style`, `repository-location` | small | ignore **[verified]** |
-| `datasources` | data sources, fields, calculations, extract definition | **[verified]** |
-| `worksheets` | one `<worksheet>` per sheet | usually the largest section (874 KB of 1.77 MB here) **[verified]** |
-| `dashboards` | one `<dashboard>` per dashboard | **[verified]** |
-| `windows` | one `<window>` per sheet/dashboard, `hidden='true'` for hidden sheets | **[verified]** |
-| `thumbnails` | base64 PNG per visible sheet/dashboard | 192×192 here, 426 KB total; never send **[verified]** |
-| `actions` | dashboard actions | 0 here; parse names and types only **[assumed]** |
+| `datasources` | data sources, fields, calcs, extract definition | [verified] 59 wb |
+| `worksheets` | sheets | [verified] 54 wb |
+| `dashboards` | dashboards and stories | [verified] 43 wb |
+| `windows` | one per sheet/dashboard; `hidden='true'` | [verified] 54 wb |
+| `thumbnails` | base64 PNG per visible sheet, typically 192×192; median 52% of file bytes | [verified] 43 wb |
+| `actions` | dashboard actions | [verified] 32 wb |
+| `mapsources`, `shared-views`, `external`, `datasource-relationships`, `style`, `preferences`, `document-format-change-manifest`, `repository-location` | recorded as present, not interpreted | [verified present] |
 
-## 3. Data sources
-
-Verified nesting:
+## 4. Data sources
 
 ```
-datasource (name='federated.pv', caption='PV Cases (Argus Extract)')
-├── connection (class='federated')                                  [verified]
-│   ├── named-connections/named-connection(caption)/connection(class='excel-direct', filename=...)
-│   ├── relation(type='table', name=..., table=...)                 [verified]
-│   └── metadata-records/metadata-record(class='column')            [verified]
-│         remote-name, local-type, ... (one per physical field)
-├── column (caption, name='[Calculation_...]', datatype, role, type)
-│   └── calculation (class='tableau', formula='...')                [verified]
-├── extract (enabled='true', units='records', count='-1')           [verified]
-│   └── connection/relation + metadata-records  (the SAME fields again)  [verified]
-└── object-graph/objects/object/properties/relation/columns/column [verified, not used]
+datasource (name, caption, inline='true', [hasconnection='false'])
+├── connection (class='federated' | a direct class)                         [verified]
+│   ├── named-connections/named-connection(name, caption)/connection(class, filename|server|dbname...)
+│   ├── relation (type table|join|union|collection|pivot|text, name, table, connection, join)
+│   │   ├── clause/expression(op)/expression...          join condition      [verified 5 wb]
+│   │   ├── columns/column(name, datatype)                union/text columns [verified]
+│   │   └── relation ...                                  nested              [verified]
+│   ├── metadata-records/metadata-record(class='column'): remote-name, local-name, local-type, parent-name, aggregation
+│   └── refresh                                                                 [verified]
+├── column (name, caption, datatype, role, type, [aggregation], [hidden], [param-domain-type], [semantic-role])
+│   ├── calculation(class='tableau', formula)            calculated field   [verified 45 wb]
+│   ├── calculation(class='bin', formula, size, size-parameter, peg)        [verified 15 wb]
+│   ├── calculation(class='categorical-bin', column, new-bin)/bin(value)/value   group [verified 5 wb]
+│   ├── aliases/alias(key, value), desc                                    [verified]
+│   └── range(min, max, granularity) | members/member(value)    parameters  [verified]
+├── column-instance (name, column, derivation, type, pivot) [+ table-calc]  [verified]
+├── group (name, caption, user:ui-builder)/groupfilter...     sets          [verified 34 wb]
+├── drill-paths/drill-path/field, folder/folder-item                        [verified 8 / 2 wb]
+├── extract (enabled)/connection/relation + metadata-records (same fields again) + refresh   [verified 38 wb]
+└── object-graph/objects/object(id, caption)/properties/relation           [verified 22 wb]
+    └── relationships/relationship/expression + first-end-point/second-end-point(object-id)  [verified 12 wb]
 ```
+
+Connection classes: federated, hyper, textscan, excel-direct, sqlserver, dataengine (.tde), textclean, mysql,
+google-sheets, postgres, sqlproxy (published data source, no local data). **[verified]** Others (snowflake,
+bigquery, oracle, redshift…) **[assumed]**: treat like any class string.
 
 Facts:
-- Physical fields appear twice (Excel connection and extract connection): de-duplicate by `remote-name`. **[verified]**
-- Calculated fields are `<column>` elements with a `<calculation>` child. Internal names look like
-  `Calculation_0322741033488384`, but a duplicated calc can be named `Female Cases (copy)_0322741149810692`
-  while its caption is `Male Cases` — always map by the `name` attribute, show the `caption`. **[verified]**
-- Formulas reference fields as `[FIELD]` or by internal calc name `[Calculation_…]`. **[verified]**
-- Parameters live in a datasource named `Parameters`; their `<column>` has `param-domain-type`. **[assumed]**
-- `connection class` values: `excel-direct` **[verified]**; `sqlproxy` = published data source on Tableau
-  Server/Cloud (no local data); `hyper`, `textscan`, database classes **[assumed]**.
-- Connection attributes can contain local paths with user names and client names (`filename=C:/Users/...`). Redact. **[verified]**
+- Parameters live in a data source named `Parameters`; each is a `<column param-domain-type>` with `value`. **[verified]**
+- A calc's internal name is `Calculation_<digits>` or `<Caption> (copy)_<digits>`; always map by `name`. **[verified]**
+- Ad-hoc calculations typed onto a shelf are `<column>`s inside that worksheet's (or dashboard's)
+  `datasource-dependencies`, with `user:unnamed='<sheet>'`. **[verified 10 wb]**
+- `[__tableau_internal_object_id__].[Table_<HEX>]` columns = row count of a logical table. **[verified]**
+- Connections can expose local paths and user names (`filename='C:/Users/...'`). Redact. **[verified]**
 
-## 4. Field references
+## 5. Field references
 
-Shelves, encodings and filters reference fields as:
+Grammar (see `tabbot.twb.fieldref`):
 
 ```
-[<datasource>].[<derivation>:<field internal name>:<type key>]
-[federated.pv].[ctd:CASEID:qk]
-[federated.pv].[none:SOC:nk]
-[federated.pv].[tqr:Calculation_0322741033488384:qk]
-[federated.pv].[ctd:CASEID:vtsum:qk]        # 4 parts                               [verified]
+ref      := '[' datasource ']' '.' '[' inner ']'
+          | '[' datasource ']' '.' '[__tableau_internal_object_id__]' '.' '[' inner ']'
+inner    := ':' special                                     ':Measure Names'
+          | bare                                            'Multiple Values', 'Action (Region)'
+          | [tablecalc ':'] derivation ':' field [':' modifier]* ':' typekey [':' instance]
 ```
 
-Parse with a regex over the whole shelf string, e.g. `\[([^\]]+)\]\.\[([^\]]+)\]`, then split the second group
-on `:`; first part = derivation, last part = type key, middle = field (may itself contain colons? treat
-everything between first and last as field + extras, and check the field against the field index).
+- `field` may contain `:`; `]` inside names is written `]]`. **[verified]**
+- `tablecalc` ∈ pcto, pcdf, diff, rank, cum, fVal (seen); mavg, ytd… **[assumed]**.
+- `modifier` = `vt*` ("total using"), e.g. `vtsum`. **[verified]**
+- `typekey` ∈ nk, ok, qk; `instance` = digits. **[verified]**
+- Derivation table: `docs/PATTERNS.md` §3 (decoded from `<column-instance derivation>`). **[verified]**
+- Prefer the sheet's `<column-instance name column derivation type>` when it exists: it is Tableau's own decode. **[verified]**
+- Filter member values escape `%` and `\` with `\` (`'[ds].[usr:\% Diff:qk]'`); `%null%` is the null member. **[verified]**
 
-**Derivations**
+Shelves: `(`, `)`, `/` nest, `*` cross, `+` separates measures on multiple/dual axes. **[verified]**
 
-| Prefix | Meaning | Status |
-| --- | --- | --- |
-| `none` | field as-is (dimension) | [verified] |
-| `ctd` | COUNT DISTINCT | [verified] |
-| `yr`, `qr`, `mn` | date part: year, quarter, month (discrete headers) | [verified] |
-| `tqr` | date truncated to quarter (continuous axis) | [verified] |
-| `vtsum` (as an extra part) | believed to be "total using Sum" | [verified present, meaning assumed] |
-| `sum`, `avg`, `cnt`, `min`, `max`, `med`, `attr` | aggregations | [assumed] |
-| `usr` | user calculation that already aggregates | [assumed] |
-| `tyr`, `tmn`, `twk`, `tdy`, `wk`, `dy`, `hr`, `mi`, `sc` | other date truncations / parts | [assumed] |
-| `pcto`, `cum`, `diff`, `rank` … | quick table calcs (percent of total, running total, …) | [assumed] — also look for `<table-calc>` elements |
-
-**Type keys:** `nk` nominal (discrete category), `ok` ordinal (discrete ordered, e.g. date parts), `qk`
-quantitative (continuous measure or axis). **[verified]**
-
-**Shelf operators:** `/` nests (HLT then PT inside it), `*` crosses (every SOC × every quarter); parentheses group.
-For aggregation both mean "group by both". **[verified]** Other separators (e.g. `+` between several measures)
-**[assumed]** — keep the raw text and parse defensively.
-
-## 5. Worksheets
+## 6. Worksheets
 
 ```
 worksheet (name)
-├── layout-options/title/formatted-text/run (text; may be the placeholder "<Sheet Name>")   [verified]
+├── layout-options/title/formatted-text/run   ('Æ'+whitespace = line break; '<Sheet Name>' placeholder) [verified]
 └── table
     ├── view
-    │   ├── datasource-dependencies (fields used)                                           [verified]
-    │   ├── filter (class='categorical'|'quantitative'|..., column=<field ref>)             [verified: categorical]
-    │   │   └── groupfilter (function, member, level, ui-enumeration, ui-marker) — nested
-    │   ├── manual-sort / shelf-sort-v2 / computed-sort / natural-sort                      [verified: first two]
-    │   └── slices
-    ├── panes/pane/mark(class='Pie'|'Line'|'Square'|'Automatic'|...)                         [verified]
-    │   └── encodings/(color|size|text|lod|tooltip|shape|...)(column=<field ref>)           [verified: color,size,text,lod]
-    ├── rows  (text: shelf expression)                                                       [verified]
-    └── cols  (text: shelf expression)                                                       [verified]
+    │   ├── datasources/datasource(name)
+    │   ├── datasource-dependencies(datasource)/column | column-instance [+ table-calc(type, ordering-type)/order]
+    │   ├── filter (class categorical | quantitative | relative-date; context; filter-group)
+    │   ├── manual-sort | computed-sort | natural-sort | shelf-sorts/shelf-sort-v2 | sort(class)
+    │   ├── mapsources, slices, aggregation
+    ├── panes/pane(id)
+    │   ├── mark(class)
+    │   ├── encodings/(color|size|text|lod|tooltip|shape|geometry|path|wedge-size|...)(column)
+    │   ├── customized-label, customized-tooltip, style, reference-line(formula, scope, value-column)
+    ├── rows, cols  (shelf text)
+    ├── pages, annotations/annotation
 ```
 
-**Mark classes → chart:** `Pie` pie · `Line` line · `Square` with colour + text = heatmap / highlight table ·
-`Automatic` with only text = text table **[verified]** · `Bar`, `Circle`, `Shape`, `Area`, `Map`, `Text`
-**[assumed]**.
+Filters ([verified] unless marked):
 
-**Filters (`groupfilter`):**
+| XML | Meaning |
+| --- | --- |
+| `groupfilter function='member' member='"X"'` | keep X |
+| `union` of members | keep listed members |
+| `level-members` (ui-enumeration all) | all values (a filter card that does not restrict) |
+| `except` (level-members + members) | exclude listed members |
+| `except` (level-members + `empty-level`) | exclude null/empty |
+| `end count end='top'|'bottom'` > `order expression direction` > level-members | top/bottom N by expression |
+| `range from to level` | range of a discrete ordinal (e.g. quarters 1–4) |
+| `crossjoin` with `user:ui-action-filter` on column `[Action (…)]` | set by a dashboard action |
+| `reorder-dimensionality` inside except | multi-field exclusion (`[Exclusions (…)]`) |
+| `filter expression` | condition filter (1 wb) |
+| `class='quantitative'` + `<min>`/`<max>` + `included-values` (in-range, non-null, all) | numeric/date range |
+| `class='relative-date'` first-period, last-period, period-anchor, period-type-v2 | relative date |
+| `class='categorical'` with no groupfilter on a set field | keep members of the set |
+| `context='true'` | context filter |
+| wildcard / top-N by formula / conditions on measures | **[assumed]** → recorded as unsupported |
 
-| Pattern | Meaning | Status |
-| --- | --- | --- |
-| `function='member' member='"X"'` | keep exactly X | [verified] |
-| `function='union'` containing `member` children | keep the listed members (`ui-enumeration='inclusive'`) | [verified] |
-| `function='except'` containing a `level-members` and a union of members | keep all except the listed ones | [verified] |
-| `function='level-members'` alone (`ui-enumeration='all'`) | keep everything | [verified] |
-| member value `'%null%'` | the null member | [verified] |
-| `function='range'`, quantitative `<min>`/`<max>` | numeric/date range | [assumed] |
-| `function='filter'` with an expression, `order` / top-N | condition or top-N filters | [assumed] → unsupported in v1 |
+Mark classes: Automatic, Pie, Bar, Circle, Square, Line, Area, Multipolygon, Text, Shape **[verified]**; Gantt,
+Polygon, Density **[assumed]**. Chart-type inference rules: `tabbot.twb.describe.infer_chart_type` (e.g. Pie + `+`
+on a shelf = donut; no shelves + size = treemap/packed bubbles; no shelves + text of measures = KPI).
 
-Member values are stored with double quotes (`'"Cardiac disorders"'`); strip them. Member lists can be huge
-(554 HLTs on one sheet) and can contain free text such as reporter verbatims — treat as sensitive by default.
-
-**Table calcs:** `<table-calc>` elements (0 in the reference workbook). Report their presence; v1 does not rebuild them.
-
-## 6. Dashboards and windows
+## 7. Dashboards, stories, actions, windows
 
 ```
-dashboard (name)
-├── size (sizing-mode='automatic' | minwidth/maxwidth/minheight/maxheight)   [verified]
-├── zones/zone/zone/...  (nested layout)                                      [verified]
-│   zone name='<worksheet>' (no type-v2)  → a sheet on the dashboard
-│   zone type-v2='filter' param='<field ref>' mode='checkdropdown'|...       → quick filter
-│   zone type-v2='color'  → colour legend · 'title' · 'layout-basic' · 'layout-flow'      [verified]
-│   other type-v2 values ('text', 'bitmap', 'web', 'empty', 'paramctrl', …)  [assumed]
-└── devicelayouts/devicelayout/...  a second (phone) copy of the zones        [verified]
+dashboard (name, [type='storyboard'])
+├── layout-options/title, size(sizing-mode | min/max width/height)
+├── datasource-dependencies (dashboard-scoped calcs)
+├── zones/zone*   (nested)
+│   zone name='<sheet>'                          sheet
+│   zone type-v2 (or type in old files)          layout-basic, layout-flow, filter(param=<field ref>, mode),
+│                                                paramctrl(param='[Parameters].[P]'), color, size, text, title,
+│                                                bitmap, empty, dashboard-object, flipboard (story)
+│   zone/formatted-text                          text content
+│   zone/flipboard/story-points/story-point      story points
+└── devicelayouts/devicelayout(name)/zones/...   a full phone/tablet copy: de-duplicate
 ```
 
-- Because of the phone layout, every sheet appears twice in a naive zone walk: de-duplicate. **[verified]**
-- `windows/window(class='worksheet'|'dashboard', name, hidden='true')`. In the reference workbook every worksheet
-  except one was hidden, so on publishing only the dashboards and that one sheet become views. **[verified hidden
-  flags; publishing behaviour assumed]**
+Actions: `action(name, caption)/activation(type on-select|on-hover)`, `source(type sheet, dashboard, worksheet)/exclude-sheet`,
+`command(command)/param(name, value)`. Commands: `tsc:tsl-filter` (filter), `tsc:brush` (highlight); URL actions use
+`<link>`. Parameter and set actions **[assumed]**.
 
-## 7. The extract (`.hyper`)
+Windows: `window(class worksheet|dashboard, name, hidden)`. Hidden sheets appear only inside dashboards. **[verified]**
 
-- Open with `tableauhyperapi`: `HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, parameters={"log_dir": ...})`,
-  `Connection(endpoint, path)`, `catalog.get_schema_names()`, `get_table_names(schema)`,
-  `get_table_definition(table)`. **[verified]**
-- Reference workbook: one table `"Extract"."Extract"`, 128,522 rows, 56 columns, almost all `TEXT`. **[verified]**
-- Dates may be stored as text (`30-SEP-2021`) and turned into dates by a calc (`DATE([INITIAL_RECEIVED_DATE])`).
-  Detect formats; do not assume date types. **[verified]**
-- Rows are not one per entity: 36 rows per case on average, none fully duplicated. Count distinct entity ids;
-  never count rows. **[verified]**
-- Multi-table extracts use other schema/table names; map via `<extract><connection><relation>`. **[assumed]**
-- Extract filters would appear under `<extract>`; none in the reference workbook. **[verified absence]**
+## 8. Extracts (`.hyper`)
 
-## 8. Known pitfalls
+- Open with `tableauhyperapi` (telemetry off). Schemas seen: `Extract` and `public`. **[verified]**
+- Single-table extracts: `"Extract"."Extract"`. Multi-table extracts: one table per logical table, named
+  `<source>_<32 HEX>` where the HEX matches the object-graph object id. **[verified 12 wb]**
+- Column types seen: TEXT, BIG_INT, SMALL_INT, DOUBLE, DATE, TIMESTAMP. **[verified]**
+- Dates can be stored as TEXT and converted by a calc (`DATE([x])`). Detect formats; do not assume. **[verified]**
+- Rows are not necessarily one per entity (PV workbook: 36 per case): count distinct ids. **[verified]**
 
-- `root.find('worksheets') or []` triggers a DeprecationWarning (element truthiness); use `is not None`.
-- The worksheet name, its title and its filter can disagree (a sheet named after one SOC filtering another).
-- A "%" in a dashboard name does not mean the chart shows percentages: check for a percent table calc.
-- A calc can look right and still ignore a unit column (age in days treated as years).
-- A filter can be copied onto charts where it does not belong (a gender filter on age-group pies).
-- `COUNT([dim])` over an extract with repeated rows inflates silently.
+## 9. Known pitfalls
+
+- Element truthiness: use `is not None`, never `el or []`.
+- Names can contain `:`, `]`, `(`, `$`, `%`, `/` — never split on them blindly.
+- Members, aliases and manual sorts can hold free text from source data: treat as sensitive.
+- The sheet name, title and filter can disagree; a "%" title does not imply a percent calc.
+- A calc can ignore a unit column; a filter can be copied onto charts where it does not belong.
+- Fields can be referenced after they were removed from the data source.
 - The last period of a time axis is often partial.
-- XML size is dominated by filter member lists and manual-sort lists, not by chart definitions.

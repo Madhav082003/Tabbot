@@ -1,0 +1,33 @@
+# Public GitHub repositories that contain Tableau workbooks (.twb / .twbx).
+# Tableau Public itself could not be reached from the build environment, so the corpus is built from GitHub.
+# Each workbook keeps its original repository and licence; this file lists sources only, it ships no workbooks.
+#
+# domain: the dataset family the repo is mostly about. fetch_corpus.py also guesses per file from its name.
+repos:
+  # Tableau's own test and sample assets: many Tableau versions (8.2 to recent), edge cases
+  - {repo: tableau/document-api-python, domain: tableau-samples}
+  - {repo: tableau/server-client-python, domain: tableau-samples}
+  # Healthcare / clinical
+  - {repo: Sarthak-Nigam/Healthcare-Dashboard, domain: health}
+  - {repo: akansharajput280799/nhs-uk-healthcare-dashboard-for-stakeholders-and-citizens, domain: health}
+  - {repo: karlyndiary/hospital-patient-records-analysis, domain: health}
+  - {repo: ninadpatil09/hospital_emergency_room_analysis, domain: health}
+  - {repo: SatvikPraveen/Tableau-Dashboards-Showcase, domain: health}
+  - {repo: shubhamgoyal575/tableau-visualization-dashboard, domain: mixed}
+  - {repo: kiranmayi5/tableau-projects, domain: mixed}
+  - {repo: chandandas27/Covid-19-Dashboard, domain: health}
+  - {repo: anujan-3/Tableau-Project, domain: health}
+  - {repo: lopeselio/COVID-19-dashboard-Tableau, domain: mixed}
+  - {repo: Stevebankz/Covid-19-Viz-with-Tableau, domain: health}
+  - {repo: Sanchariii/Insights-Unmasked--Tableau-in-the-Time-of-COVID-19, domain: health}
+  # Sales / retail
+  - {repo: Gift-Ojeabulu/Megastore-Sales-Dashboard, domain: sales}
+  - {repo: allanotieno254/global-superstore-performance-dashboard-using-tableau, domain: sales}
+  - {repo: dina-hosny/super-store-analysis-using-tableau, domain: sales}
+  - {repo: lovenui/simple-superstore-tableau-analysis, domain: sales}
+  - {repo: shadantech/Basic-Tableau-Projects, domain: sales}
+  - {repo: MadhurDwivedi/Sales_Performance_Analytics_Tableau, domain: sales}
+  - {repo: Palakpatel31/Tableau_Visualization, domain: sales}
+  - {repo: Julian-Elliott/online-retail-transaction-dashboard, domain: sales}
+  - {repo: vinit714/Tableau-Dashboards, domain: mixed}
+  - {repo: AllanOtieno254/Data-Analytics-with-Tableau, domain: mixed}
