@@ -189,6 +189,9 @@ def cmd_inspect(file: Path, hyper: list[Path], keep: bool = False) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):   # Windows terminals default to cp1252 and choke on symbols like ≈ →
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     if args.command == "version":
         from tabbot import __version__

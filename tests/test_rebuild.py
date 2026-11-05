@@ -6,7 +6,6 @@ import pytest
 from tabbot.config import load_settings
 from tabbot.loader import load_workbook
 from tabbot.twb.fieldref import parse_ref
-from tabbot.ui.charts import figure_for
 from tabbot.views.rebuild import field_values, rebuild_worksheet
 
 
@@ -103,12 +102,6 @@ def test_bar_and_text_table(lw, raw):
     assert r.chart == "bar"
     assert dict(zip(r.data["d0"], r.data["m0"], strict=True)) == raw.groupby("OUTCOME")["RECORD_ID"].nunique().to_dict()
     assert rb(lw, "Region Table").chart == "table"
-
-
-def test_figures_build_for_every_sheet(lw):
-    for ws in lw.model.worksheets:
-        fig, table, _ = figure_for(rb(lw, ws.name))
-        assert (fig is not None) != (table is not None and not table.empty), ws.name
 
 
 def test_field_values(lw):

@@ -49,10 +49,18 @@ def cost_usd(model: str | None, usage: dict) -> float:
                   + usage.get("cache_creation_input_tokens", 0) * p["cache_write"]) / 1_000_000, 6)
 
 
-def estimate_request_usd(model: str, request_chars: int, max_tokens: int) -> float:
-    """Pessimistic cost of one request before it is sent: whole prompt uncached + full max_tokens output."""
+def estimate_request_usd(model: str, request_chars: int, max_tokens: int, cached_chars: int = 0) -> float:
+    """Upper estimate of one request before it is sent.
+
+    The part already sent in the previous call of this conversation (`cached_chars`) is read from the prompt cache;
+    the rest is priced as a cache write (1.25x input). Output is priced at the full `max_tokens` - the most the API
+    can return - so a question never passes its limit. ~3.5 characters per token (rough, on the high side).
+    """
     p = price_for(model)
-    return round((request_chars / 3.5 * p["input"] + max_tokens * p["output"]) / 1_000_000, 6)
+    cached = min(cached_chars, request_chars)
+    tokens_in_cached, tokens_in_new = cached / 3.5, (request_chars - cached) / 3.5
+    return round((tokens_in_cached * p["cache_read"] + tokens_in_new * p["cache_write"]
+                  + max_tokens * p["output"]) / 1_000_000, 6)
 
 
 @dataclass
@@ -117,12 +125,12 @@ class UsageLog:
 
 
 def check_before_send(log: UsageLog, limits: Limits, *, model: str, request_chars: int, max_tokens: int,
-                      question_usd: float, question_rounds: int) -> str | None:
+                      question_usd: float, question_rounds: int, cached_chars: int = 0) -> str | None:
     """Return a reason to block the request, or None if it may be sent."""
     if question_rounds >= limits.max_rounds_per_question:
         return (f"this question already used {question_rounds} API calls (limit MAX_TOOL_ROUNDS="
                 f"{limits.max_rounds_per_question})")
-    nxt = estimate_request_usd(model, request_chars, max_tokens)
+    nxt = estimate_request_usd(model, request_chars, max_tokens, cached_chars)
     if question_usd + nxt > limits.max_usd_per_question:
         return (f"this question has cost about ${question_usd:.3f}; the next call could cost up to ${nxt:.3f}, "
                 f"which would pass the per-question limit of ${limits.max_usd_per_question:.2f} "

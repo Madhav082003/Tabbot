@@ -36,7 +36,7 @@ class Settings(BaseModel):
     claude_effort: str = "medium"           # low | medium | high | xhigh | max
     use_fallback: bool = True               # server-side refusal fallback
     max_tool_rounds: int = 8                # API calls per question
-    max_output_tokens: int = 8000           # per API call
+    max_output_tokens: int = 4000           # per API call
     max_usd_per_question: float = 0.50      # estimated, all rounds of one question
     max_usd_per_day: float = 5.00           # estimated, all calls today on this machine
     max_calls_per_day: int = 200
@@ -69,7 +69,7 @@ def load_settings(env_file: Path | None = None, privacy_file: Path | None = None
         claude_effort=os.getenv("CLAUDE_EFFORT") or "medium",
         use_fallback=_bool(os.getenv("CLAUDE_FALLBACK"), True),
         max_tool_rounds=int(os.getenv("MAX_TOOL_ROUNDS") or 8),
-        max_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS") or 8000),
+        max_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS") or 4000),
         max_usd_per_question=float(os.getenv("LLM_MAX_USD_PER_QUESTION") or 0.50),
         max_usd_per_day=float(os.getenv("LLM_MAX_USD_PER_DAY") or 5.00),
         max_calls_per_day=int(os.getenv("LLM_MAX_CALLS_PER_DAY") or 200),

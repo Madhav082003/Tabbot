@@ -1,4 +1,4 @@
-"""The Streamlit app runs headless on every page of the demo workbook without errors."""
+"""The simplified Streamlit app: start page, workbook description, chat. No charts, no dashboard tabs."""
 
 from pathlib import Path
 
@@ -25,58 +25,23 @@ def _markdown(at) -> str:
     return " ".join(m.value for m in at.markdown)
 
 
-def test_overview_loads(app, expected):
-    assert not app.exception
-    assert app.session_state["page"].endswith("Overview")
-    assert expected["data"]["entity"] in _markdown(app)
-
-
-def test_every_page_renders(app, expected):
-    pages = list(expected["workbook"]["dashboards"]) + ["📄 Outcome Bars"]
-    for p in pages:
-        app.session_state["page"] = p
-        app.run()
-        assert not app.exception, (p, [e.value for e in app.exception])
-        assert "Exact definition" in _markdown(app), p
-
-
-def test_quick_filter_changes_view(app):
-    app.session_state["page"] = "Volume Trend"
-    app.run()
-    ms = [m for m in app.multiselect if m.label == "CHANNEL"]
-    assert ms, "quick filter control missing"
-    ms[0].set_value(["Web"]).run()
-    assert not app.exception
-    assert app.session_state["qf"]["Volume Trend"] == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
-
-
-def test_findings_page_and_analysis_panel(app):
-    app.session_state["page"] = "🔎 Findings"
-    app.run()
+def test_workbook_page(app, expected):
     assert not app.exception
     text = _markdown(app)
-    assert "Sheet name doesn't match what it shows" in text and "Counts dates, not records" in text
-
-    app.session_state["page"] = "Category by Quarter"
-    app.run()
-    assert not app.exception
-    text = _markdown(app)
-    assert "CHANNEL = Web" in text          # analysis panel key facts
-    assert "incomplete" in text              # partial-period check in the checks bar
-
-
-def test_chat_panel_without_key_and_claude_navigation(app):
-    assert not app.exception
-    text = _markdown(app) + " ".join(i.value for i in app.info)
+    assert "Fixture Records" in text and f"{expected['data']['entities']:,} records" in text
+    assert "02 Jan 2021 to 20 May 2026" in text
+    for d in expected["workbook"]["dashboards"]:
+        assert d in text
     assert "Ask Claude" in text
-    # Claude's show_in_app result is applied on the next run, before widgets exist
-    app.session_state["pending_nav"] = ("Volume Trend", {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]})
-    app.run()
-    assert not app.exception
-    assert app.session_state["page"] == "Volume Trend"
-    assert app.session_state["qf"]["Volume Trend"] == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
-    ms = [m for m in app.multiselect if m.label == "CHANNEL"]
-    assert ms and ms[0].value == ["Web"]
+
+
+def test_nothing_extra_on_the_page(app):
+    """Feedback: no charts, no dashboard/sheet tabs, no findings banners, no metric tiles, no filters."""
+    assert not app.get("plotly_chart") and not app.metric and not app.multiselect
+    assert not app.get("button_group")          # the old page tabs (segmented control)
+    text = _markdown(app)
+    for gone in ("Findings", "Exact definition", "cells cannot be added up", "Analysis of", "Worksheets"):
+        assert gone not in text, gone
 
 
 def test_chat_dry_run_round_trip(fixture_twbx, monkeypatch, tmp_path):
@@ -96,7 +61,7 @@ def test_chat_dry_run_round_trip(fixture_twbx, monkeypatch, tmp_path):
     config.get_settings.cache_clear()
 
 
-def test_open_new_workbook_deletes_previous_copy(app, tmp_path):
+def test_open_new_workbook_deletes_previous_copy(app):
     first = app.session_state["lw"].workspace.root
     assert first.exists()
     app.button(key="demo").click().run()

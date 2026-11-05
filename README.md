@@ -1,7 +1,8 @@
 # Tableau Insights Bot (demo)
 
-Open any Tableau workbook (`.twbx`) on your laptop, see its dashboards redrawn from its own data in a
-Tableau-style viewer, and (from step S5) ask Claude about them. Data stays on your machine.
+Open any Tableau workbook (`.twbx`) on your laptop and ask Claude to explain it: what it is for, what each
+dashboard shows, what stands out in the data and what is wrong in how it is built. The workbook and its data are
+read on your machine; Claude only sees structure and summary numbers.
 
 Plan and status: `docs/WORK_PLAN.md`. Rules for Claude Code: `CLAUDE.md`.
 
@@ -12,7 +13,7 @@ cd C:\tabbot
 .venv\Scripts\streamlit run src\tabbot\ui\app.py
 ```
 
-Opens at http://127.0.0.1:8501 (local only). Use **Open workbook** to load a `.twbx`, or **Try the demo workbook**.
+Opens at http://127.0.0.1:8501 (local only). Upload a `.twbx`, or **Try the demo workbook**, then ask in the chat.
 
 ## Chat with Claude
 

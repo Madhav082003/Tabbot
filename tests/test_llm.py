@@ -53,7 +53,7 @@ SCRIPT = [
     response([{"type": "text", "text": "Let me look."},
               tool_use(1, "list_dashboards", {}),
               tool_use(2, "run_analysis", {"sheet": "Category Heatmap", "recipe": "standard"})], "tool_use"),
-    response([tool_use(3, "show_in_app", {"page": "Category by Quarter"}),
+    response([tool_use(3, "describe_sheet", {"sheet": "Category by Quarter"}),   # a dashboard name
               tool_use(4, "get_chart_data", {"sheet": "No Such Sheet"})], "tool_use"),
     response([{"type": "text", "text": "**Data**: Category C grew 248 → 639 (R1)."}], "end_turn"),
 ]
@@ -66,9 +66,9 @@ def test_tool_loop(lw, tmp_path):
     turn = chat.ask("Key insights?", app_context="Open page: Overview")
 
     assert turn.text.startswith("**Data**") and turn.stop_reason == "end_turn" and turn.rounds == 3
-    assert [t.name for t in turn.tool_calls] == ["list_dashboards", "run_analysis", "show_in_app", "get_chart_data"]
+    assert [t.name for t in turn.tool_calls] == ["list_dashboards", "run_analysis", "describe_sheet",
+                                                 "get_chart_data"]
     assert [t.is_error for t in turn.tool_calls] == [False, False, False, True]
-    assert [(a.page, a.quick_filters) for a in turn.actions] == [("Category by Quarter", {})]
     assert turn.usage["input_tokens"] == 300 and turn.usage["cache_read_input_tokens"] == 150
 
     roles = [m["role"] for m in chat.messages]
@@ -78,7 +78,8 @@ def test_tool_loop(lw, tmp_path):
     # all tool results of a turn in ONE user message, matching ids, errors flagged
     r1, r2 = chat.messages[2]["content"], chat.messages[4]["content"]
     assert [b["tool_use_id"] for b in r1] == ["tu_1", "tu_2"] and all(b["type"] == "tool_result" for b in r1)
-    assert r2[1]["is_error"] is True and "no worksheet" in r2[1]["content"]
+    assert r2[1]["is_error"] is True and "no worksheet or dashboard" in r2[1]["content"]
+    assert '"sheet": "Category Heatmap"' in r2[0]["content"]   # dashboard resolved to its sheet
     # assistant turns appended exactly as returned (append-only history)
     assert chat.messages[1]["content"] == SCRIPT[0]["content"]
 
@@ -124,7 +125,8 @@ def test_errors_and_refusal(lw, tmp_path):
 
 def test_tool_definitions_are_valid():
     defs = tool_definitions()
-    assert len({d["name"] for d in defs}) == len(defs) == 7
+    assert len({d["name"] for d in defs}) == len(defs) == 6
+    assert "show_in_app" not in {d["name"] for d in defs}
     for d in defs:
         assert d["input_schema"]["type"] == "object" and len(d["description"].split(". ")) >= 2
 
@@ -154,13 +156,32 @@ def test_no_sensitive_values_leak(lw):
     assert all(len(o) <= ctx.max_chars + 20 for o, _ in outputs.values())
 
 
-def test_show_in_app_with_filter(lw):
+def test_overview_is_compact_and_groups_patterns(lw):
     ctx = ToolContext(lw=lw)
-    out, err = dispatch(ctx, "show_in_app", {"page": "Volume Trend", "quick_filters": {"CHANNEL": ["Web"]}})
-    assert not err
-    assert ctx.actions[-1].quick_filters == {"[federated.fx01].[none:CHANNEL:nk]": ["Web"]}
-    _, err = dispatch(ctx, "show_in_app", {"page": "Volume Trend", "quick_filters": {"REGION": ["North"]}})
-    assert err
+    out, err = dispatch(ctx, "list_dashboards", {})
+    d = json.loads(out)
+    assert not err and len(out) < 6000 and "truncated" not in out
+    ds = d["data_sources"][0]
+    assert ds["record"]["field"] == "RECORD_ID" and "sensitive (values never shared)" in ds["fields"]
+    assert any(c.get("unused") for c in ds["calculated_fields"])
+    detail = next(x for x in d["dashboards"] if x["name"] == "Category Detail")
+    # Category A / Category B share one shape (line, one-value CATEGORY filter): shown once each, not grouped (<3)
+    assert {s.get("sheet") for s in detail["sheets"]} >= {"Category A", "Category B"}
+
+
+def test_repeated_sheets_become_one_pattern():
+    from tabbot.llm.tools import _sheets_summary
+    from tabbot.twb.fieldref import parse_ref
+    from tabbot.twb.model import Filter, Worksheet
+
+    def pie(cat):
+        return Worksheet(name=f"{cat} pie", title=cat, mark="Pie",
+                         encodings={"color": [parse_ref("[d].[none:GENDER:nk]")],
+                                    "size": [parse_ref("[d].[ctd:CASEID:qk]")]},
+                         filters=[Filter(field=parse_ref("[d].[none:SOC:nk]"), kind="categorical", mode="include",
+                                         members=[cat], member_count=1)])
+    out = _sheets_summary([pie(c) for c in ("Cardiac", "Eye", "Skin", "Vascular")])
+    assert len(out) == 1 and out[0]["repeated_sheets"] == 4 and out[0]["one_per"] == "SOC"
 
 
 @pytest.mark.llm

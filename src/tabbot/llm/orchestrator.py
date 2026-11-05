@@ -81,6 +81,7 @@ class ChatSession:
                              max_calls_per_day=settings.max_calls_per_day,
                              max_rounds_per_question=settings.max_tool_rounds)
         self._client = client
+        self._last_request_chars = 0
 
     @property
     def client(self) -> MessagesClient:
@@ -108,13 +109,14 @@ class ChatSession:
         qid = uuid.uuid4().hex[:8]
         seen: Counter[str] = Counter()
         rnd = 0
+        cached_chars = self._last_request_chars   # prefix of the conversation already in the prompt cache
 
         while True:
             req = self._request()
             req_chars = len(json.dumps(req, default=str))
             reason = check_before_send(self.usage, self.limits, model=req["model"], request_chars=req_chars,
                                        max_tokens=req["max_tokens"], question_usd=turn.est_usd,
-                                       question_rounds=rnd)
+                                       question_rounds=rnd, cached_chars=cached_chars)
             if reason:
                 self._log("blocked", qid, rnd + 1, reason=reason)
                 turn.blocked = reason
@@ -144,6 +146,7 @@ class ChatSession:
                     self.messages.pop()
                 return turn
 
+            cached_chars = self._last_request_chars = req_chars
             blocks = [_block_dict(b) for b in (_get(resp, "content") or [])]
             self.messages.append({"role": "assistant", "content": blocks})   # append-only, as returned
             stop = _get(resp, "stop_reason")
