@@ -50,3 +50,5 @@ select = ["E", "F", "I", "B", "UP"]
 "src/tabbot/tparse/*" = ["E501"]
 "tests/tparse/*" = ["E501"]
 "tools/*" = ["E501", "B007", "E731"]
+# written explanation: long sentence templates read better unbroken
+"src/tabbot/explain/*" = ["E501"]

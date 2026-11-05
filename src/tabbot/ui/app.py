@@ -9,6 +9,7 @@ Engine logic lives in tabbot.* ; this file only lays things out. Session state k
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -22,6 +23,8 @@ from tabbot.llm.orchestrator import ChatSession
 from tabbot.llm.usage import UsageLog
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.workspace import purge_workspaces
+
+log = logging.getLogger(__name__)
 
 CSS = """
 <style>
@@ -122,25 +125,35 @@ def _date_range(lw: LoadedWorkbook, prof) -> str | None:
     return f"{lo:%d %b %Y} to {hi:%d %b %Y} (by {col.name})"
 
 
+def _report(lw: LoadedWorkbook):
+    """The written explanation, built once per opened workbook (all local, no Claude call)."""
+    key = f"report::{lw.source_name}::{id(lw)}"
+    if key not in st.session_state:
+        from tabbot.explain.report import explain_workbook
+        try:
+            st.session_state[key] = explain_workbook(lw)
+        except Exception as e:  # noqa: BLE001 - never break the page over the explanation
+            log.exception("explanation failed")
+            st.session_state[key] = e
+    return st.session_state[key]
+
+
 def _render_workbook(lw: LoadedWorkbook) -> None:
-    m = lw.model
     st.markdown(f"<div class='tb-title'>{lw.source_name}</div>", unsafe_allow_html=True)
-    for ds in m.datasources:
-        prof = lw.profile_for(ds.name)
-        line = f"**Data:** {ds.caption or ds.name}"
-        if prof is not None and prof.entity is not None:
-            line += f" — {prof.entity.distinct:,} records ({prof.entity.field})"
-            rng = _date_range(lw, prof)
-            if rng:
-                line += f", {rng}"
-        elif not ds.has_extract:
-            line += " — no data extract in this file (structure only)"
-        st.markdown(line)
-    if m.dashboards:
-        st.markdown("**Dashboards in this workbook**")
-        st.markdown("\n".join(f"- {d.name}" for d in m.dashboards))
-    st.info("A full written explanation of the workbook will appear here. Until then, ask Claude on the right - "
-            "for example *“Explain this workbook”*.")
+    with st.spinner("Reading the workbook and writing the explanation…"):
+        rep = _report(lw)
+    if isinstance(rep, Exception):
+        st.warning(f"The written explanation could not be built ({type(rep).__name__}). You can still ask Claude "
+                   "on the right.")
+        return
+    st.caption("Written on this computer from the workbook and its data - no AI call was made for this text.")
+    for sec in rep.sections:
+        body = sec.body.replace("$", "\\$")
+        if sec.key in ("brief", "about"):
+            st.markdown(f"#### {sec.title}\n\n{body}")
+        else:
+            with st.expander(sec.title, expanded=sec.key in ("insights",)):
+                st.markdown(body)
 
 
 def _render_start_page() -> None:
@@ -242,7 +255,9 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                         st.caption(m["meta"])
         pending = None
         if not st.session_state.chat_log and ready:
-            for i, sug in enumerate(SUGGESTIONS):
+            rep = _report(lw)
+            sugs = [SUGGESTIONS[0]] + (rep.questions[:3] if not isinstance(rep, Exception) else SUGGESTIONS[1:])
+            for i, sug in enumerate(sugs):
                 if st.button(sug, key=f"sug{i}", width="stretch"):
                     pending = sug
         q = st.chat_input("Ask about this workbook…", key="chat_in", disabled=not ready)
