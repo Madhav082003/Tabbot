@@ -9,6 +9,7 @@ sheet's date (or the first per-entity date column), the category is the sheet's 
 from __future__ import annotations
 
 import datetime as dt
+import numbers
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -88,6 +89,8 @@ def context_for(res: RebuildResult, store: Store, profile: TableProfile | None,
                         if c.date_format else f"CAST({qi(c.name)} AS TIMESTAMP)")
             date_label = c.name
             notes.append(f"the view has no time axis; time comes from {c.name}")
+    if date_sql and grain in ("month", "quarter"):
+        grain = _effective_grain(store, res.view, date_sql, grain)
     cats = [d for d in res.dims if not d.date_sql]
     if category:
         cats = [d for d in cats if d.label == category] or cats
@@ -101,6 +104,24 @@ def context_for(res: RebuildResult, store: Store, profile: TableProfile | None,
         category_sql=cat.sql if cat else None, category_label=cat.label if cat else None,
         entity_sql=qi(ent.field) if ent else None, entity_label=ent.field if ent else None,
         profile=profile, notes=notes)
+
+
+def _effective_grain(store: Store, view: str, date_sql: str, grain: str) -> str:
+    """A date that is already truncated (e.g. a DATETRUNC('quarter') calc shown by month) has a coarser real grain:
+    if every value falls on a quarter start (or on January), use quarter (or year)."""
+    try:
+        months = {int(r[0]) for r in store.con.execute(
+            f"SELECT DISTINCT month({date_sql}) FROM {view} WHERE {date_sql} IS NOT NULL LIMIT 13").fetchall()}
+        days = store.scalar(f"SELECT MAX(day({date_sql})) FROM {view}")
+    except Exception:  # noqa: BLE001 - keep the shelf grain if the probe fails
+        return grain
+    if not months or days != 1:
+        return grain
+    if months == {1}:
+        return "year"
+    if grain == "month" and months <= {1, 4, 7, 10}:
+        return "quarter"
+    return grain
 
 
 # --------------------------------------------------------------------------------------------- periods
@@ -144,10 +165,12 @@ def series(ctx: AnalysisContext, extra: list[str] | None = None, extra_params: l
 
 
 def data_end(ctx: AnalysisContext) -> dt.date | None:
+    """Where the DATA SET ends for this date field - deliberately ignoring the view's filters: a view filtered to
+    rare events (e.g. deaths) has its last event early, but its last period is only incomplete if the data
+    itself stops before the period ends."""
     if ctx.date_sql is None:
         return None
-    v = ctx.store.scalar(f"SELECT CAST(MAX({ctx.date_sql}) AS DATE) FROM {ctx.view}{ctx.clause()}", ctx.params)
-    return v
+    return ctx.store.scalar(f"SELECT CAST(MAX({ctx.date_sql}) AS DATE) FROM {ctx.view}")
 
 
 def partial_period(ctx: AnalysisContext, s: pd.DataFrame | None = None) -> dict | None:
@@ -385,7 +408,12 @@ def concentration(ctx: AnalysisContext) -> AnalysisResult:
         return r
     t = ctx.store.df(f"SELECT CAST({ctx.category_sql} AS VARCHAR) AS member, {ctx.measure_sql} AS value "
                      f"FROM {ctx.view}{ctx.clause()} GROUP BY 1 ORDER BY 2 DESC", ctx.params)
-    total = float(ctx.store.scalar(f"SELECT {ctx.measure_sql} FROM {ctx.view}{ctx.clause()}", ctx.params) or 0)
+    raw = ctx.store.scalar(f"SELECT {ctx.measure_sql} FROM {ctx.view}{ctx.clause()}", ctx.params)
+    not_number = raw is not None and not isinstance(raw, numbers.Number)
+    if not_number or (len(t) and not pd.api.types.is_numeric_dtype(t["value"])):
+        r.ok, r.notes = False, ["the measure is not a number (e.g. a MIN/MAX of a date)"]
+        return r
+    total = float(raw or 0)
     t["share_of_total"] = (t["value"] / total).round(3) if total else None
     threshold = min(0.01 * total, 60)
     sparse = t[t["value"] <= threshold]

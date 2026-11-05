@@ -1,0 +1,854 @@
+{
+ "seconds": 1.01,
+ "totals": {
+  "workbooks": 60,
+  "worksheets": 438,
+  "dashboards": 72,
+  "datasources": 126,
+  "refs": 2461,
+  "unresolved": 8,
+  "calcs": 414,
+  "filters": 680
+ },
+ "resolution_rate": 0.9967,
+ "chart_types": {
+  "bar chart": 88,
+  "KPI / single number": 57,
+  "text list / label card": 37,
+  "text table (multiple measures)": 36,
+  "bar chart with multiple/dual axes": 36,
+  "map": 30,
+  "treemap or packed bubbles": 17,
+  "donut chart (dual-axis pie)": 17,
+  "line chart": 16,
+  "heatmap (highlight table)": 16,
+  "pie chart": 16,
+  "text table": 14,
+  "table or layout sheet": 10,
+  "dot plot": 10,
+  "scatter plot": 9,
+  "empty or layout sheet": 9,
+  "area chart": 6,
+  "area chart with multiple/dual axes": 6,
+  "line chart with multiple/dual axes": 6,
+  "scatter plot with multiple/dual axes": 1,
+  "dot plot with multiple/dual axes": 1
+ },
+ "filter_modes": {
+  "action": 193,
+  "all": 185,
+  "include": 120,
+  "range": 91,
+  "exclude": 45,
+  "top": 29,
+  "set": 11,
+  "exclude-null": 2,
+  "relative": 2,
+  "bottom": 2
+ },
+ "calculation_kinds": {
+  "row_level": 210,
+  "aggregate": 87,
+  "constant": 67,
+  "table_calc": 31,
+  "lod": 19
+ },
+ "action_kinds": {
+  "filter": 70,
+  "highlight": 25,
+  "url": 15
+ },
+ "workbooks": [
+  {
+   "workbook": "w001",
+   "version": "10.0",
+   "build": "0.0.0 (0000.16.0510.1300)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w002",
+   "version": "18.1",
+   "build": "2021.1.2 (20211.21.0511.0935)",
+   "worksheets": 2,
+   "dashboards": 1,
+   "refs": 5,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w003",
+   "version": "9.3",
+   "build": "9.3.1+ (9300.16.0509.0910)",
+   "worksheets": 1,
+   "dashboards": 0,
+   "refs": 2,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w004",
+   "version": "18.1",
+   "build": "0.0.0 (0000.0.0.0)",
+   "worksheets": 22,
+   "dashboards": 6,
+   "refs": 216,
+   "unresolved": [],
+   "unsupported": [
+    "section <datasource-relationships> present (not interpreted)",
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 6 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w005",
+   "version": "10.1",
+   "build": "10.1.1+ (10100.16.1130.2100)",
+   "worksheets": 1,
+   "dashboards": 0,
+   "refs": 2,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w006",
+   "version": "10.0",
+   "build": "0.0.0 (0000.16.0510.1300)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w007",
+   "version": "10.0",
+   "build": "0.0.0 (0000.16.0510.1300)",
+   "worksheets": 1,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w008",
+   "version": "8.2",
+   "build": "9.3.1 (9300.16.0510.0100)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w009",
+   "version": "9.3",
+   "build": "9.3.1 (9300.16.0510.0100)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w010",
+   "version": "9.3",
+   "build": "9.3.3 (9300.16.0603.2240)",
+   "worksheets": 2,
+   "dashboards": 0,
+   "refs": 3,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w011",
+   "version": "9.3",
+   "build": "9.3.3 (9300.16.0603.2240)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w012",
+   "version": "9.3",
+   "build": "9.3.3 (9300.16.0603.2240)",
+   "worksheets": 2,
+   "dashboards": 0,
+   "refs": 4,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w013",
+   "version": "18.1",
+   "build": "2021.1.2 (20211.21.0511.0935)",
+   "worksheets": 2,
+   "dashboards": 1,
+   "refs": 5,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w014",
+   "version": "10.1",
+   "build": "0.0.0 (0000.16.0928.1300)",
+   "worksheets": 0,
+   "dashboards": 0,
+   "refs": 0,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w015",
+   "version": "18.1",
+   "build": "2021.2.1 (20212.21.0712.0907)",
+   "worksheets": 1,
+   "dashboards": 0,
+   "refs": 2,
+   "unresolved": [],
+   "unsupported": [
+    "section <external> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w016",
+   "version": "10.0",
+   "build": "10.0.0 (10000.16.0710.2230)",
+   "worksheets": 7,
+   "dashboards": 1,
+   "refs": 50,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w017",
+   "version": "10.0",
+   "build": "10.0.0 (10000.16.0710.2230)",
+   "worksheets": 7,
+   "dashboards": 1,
+   "refs": 50,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w018",
+   "version": "18.1",
+   "build": "2021.3.3 (20213.21.1018.0949)",
+   "worksheets": 3,
+   "dashboards": 0,
+   "refs": 9,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w019",
+   "version": "18.1",
+   "build": "2024.2.2 (20242.24.0807.0327)",
+   "worksheets": 19,
+   "dashboards": 1,
+   "refs": 94,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w020",
+   "version": "18.1",
+   "build": "2024.2.0 (20242.24.0621.1023)",
+   "worksheets": 39,
+   "dashboards": 4,
+   "refs": 216,
+   "unresolved": [
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:Attended first appointment:qk]"
+   ],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w021",
+   "version": "18.1",
+   "build": "2023.2.9 (20232.24.0513.1501)",
+   "worksheets": 39,
+   "dashboards": 4,
+   "refs": 216,
+   "unresolved": [
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:All Attendances:qk]",
+    "[federated.1mkwddt1ixnt511fr9wq41ufo0g8].[sum:Attended first appointment:qk]"
+   ],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w022",
+   "version": "18.1",
+   "build": "2024.2.3 (20242.24.0910.0334)",
+   "worksheets": 15,
+   "dashboards": 2,
+   "refs": 111,
+   "unresolved": [],
+   "unsupported": [
+    "section <external> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w023",
+   "version": "18.1",
+   "build": "2023.2.0 (20232.23.0611.2007)",
+   "worksheets": 10,
+   "dashboards": 1,
+   "refs": 48,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w024",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 3,
+   "dashboards": 1,
+   "refs": 23,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w025",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 7,
+   "dashboards": 2,
+   "refs": 52,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w026",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 5,
+   "dashboards": 1,
+   "refs": 31,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w027",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 1,
+   "refs": 19,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w028",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 1,
+   "refs": 16,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w029",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 12,
+   "dashboards": 3,
+   "refs": 58,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w030",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 1,
+   "refs": 23,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w031",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 6,
+   "dashboards": 3,
+   "refs": 26,
+   "unresolved": [],
+   "unsupported": [
+    "section <external> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w032",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 8,
+   "dashboards": 1,
+   "refs": 22,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w033",
+   "version": "18.1",
+   "build": "2021.2.1 (20212.21.0712.0907)",
+   "worksheets": 8,
+   "dashboards": 2,
+   "refs": 55,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w034",
+   "version": "18.1",
+   "build": "2023.3.11 (20233.24.1011.1413)",
+   "worksheets": 7,
+   "dashboards": 1,
+   "refs": 57,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)",
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 4 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w035",
+   "version": "18.1",
+   "build": "2023.3.1 (20233.23.1227.1336)",
+   "worksheets": 11,
+   "dashboards": 1,
+   "refs": 46,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w036",
+   "version": "18.1",
+   "build": "2023.3.11 (20233.24.1011.1413)",
+   "worksheets": 8,
+   "dashboards": 1,
+   "refs": 32,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w037",
+   "version": "18.1",
+   "build": "2020.2.0 (20202.20.0415.1946)",
+   "worksheets": 10,
+   "dashboards": 2,
+   "refs": 25,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w038",
+   "version": "18.1",
+   "build": "2020.2.0 (20202.20.0415.1946)",
+   "worksheets": 10,
+   "dashboards": 2,
+   "refs": 25,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w039",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 1,
+   "refs": 18,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w040",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 0,
+   "refs": 18,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w041",
+   "version": "18.1",
+   "build": "2020.1.2 (20201.20.0326.1623)",
+   "worksheets": 9,
+   "dashboards": 1,
+   "refs": 25,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)",
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w042",
+   "version": "18.1",
+   "build": "2020.1.2 (20201.20.0326.1623)",
+   "worksheets": 7,
+   "dashboards": 1,
+   "refs": 31,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w043",
+   "version": "18.1",
+   "build": "2022.4.1 (20224.23.0209.1653)",
+   "worksheets": 4,
+   "dashboards": 1,
+   "refs": 18,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 8 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w044",
+   "version": "18.1",
+   "build": "2023.2.2 (20232.23.0909.1159)",
+   "worksheets": 6,
+   "dashboards": 1,
+   "refs": 28,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w045",
+   "version": "18.1",
+   "build": "2020.3.3 (20203.20.1110.1623)",
+   "worksheets": 5,
+   "dashboards": 1,
+   "refs": 27,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w046",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 3,
+   "dashboards": 1,
+   "refs": 18,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w047",
+   "version": "18.1",
+   "build": "2022.4.0 (20224.22.1117.1841)",
+   "worksheets": 10,
+   "dashboards": 3,
+   "refs": 71,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w048",
+   "version": "18.1",
+   "build": "2023.2.0 (20232.23.0611.2007)",
+   "worksheets": 18,
+   "dashboards": 3,
+   "refs": 71,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w049",
+   "version": "18.1",
+   "build": "2025.1.0 (20251.25.0313.2002)",
+   "worksheets": 9,
+   "dashboards": 1,
+   "refs": 42,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)",
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w050",
+   "version": "18.1",
+   "build": "2025.2.4 (20252.25.1003.1601)",
+   "worksheets": 2,
+   "dashboards": 0,
+   "refs": 5,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w051",
+   "version": "18.1",
+   "build": "2023.2.0 (20232.23.0611.2007)",
+   "worksheets": 15,
+   "dashboards": 2,
+   "refs": 250,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)",
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w052",
+   "version": "18.1",
+   "build": "2021.4.3 (20214.22.0108.1039)",
+   "worksheets": 5,
+   "dashboards": 1,
+   "refs": 22,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 1 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w053",
+   "version": "18.1",
+   "build": "2025.2.0 (20252.25.0514.2217)",
+   "worksheets": 21,
+   "dashboards": 4,
+   "refs": 61,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w054",
+   "version": "18.1",
+   "build": "2024.1.0 (20241.24.0208.0337)",
+   "worksheets": 6,
+   "dashboards": 1,
+   "refs": 43,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w055",
+   "version": "18.1",
+   "build": "2024.1.0 (20241.24.0208.0337)",
+   "worksheets": 11,
+   "dashboards": 2,
+   "refs": 57,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": [
+    "dropped 2 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w056",
+   "version": "18.1",
+   "build": "2024.1.0 (20241.24.0208.0337)",
+   "worksheets": 9,
+   "dashboards": 1,
+   "refs": 63,
+   "unresolved": [],
+   "unsupported": [
+    "section <shared-views> present (not interpreted)"
+   ],
+   "warnings": [
+    "dropped 4 feature-flag 'false' variants in favour of 'true'"
+   ]
+  },
+  {
+   "workbook": "w057",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 3,
+   "dashboards": 1,
+   "refs": 12,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w058",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 4,
+   "dashboards": 0,
+   "refs": 18,
+   "unresolved": [],
+   "unsupported": [
+    "section <mapsources> present (not interpreted)"
+   ],
+   "warnings": []
+  },
+  {
+   "workbook": "w059",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 1,
+   "dashboards": 0,
+   "refs": 12,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  },
+  {
+   "workbook": "w060",
+   "version": "18.1",
+   "build": "2024.3.0 (20243.24.1010.1014)",
+   "worksheets": 2,
+   "dashboards": 1,
+   "refs": 8,
+   "unresolved": [],
+   "unsupported": [],
+   "warnings": []
+  }
+ ]
+}

@@ -10,7 +10,7 @@ from tabbot.data.hyper_reader import TableInfo, export_to_parquet
 from tabbot.data.profile import TableProfile, detect_entity, entity_consistency, profile_table
 from tabbot.data.store import Store
 from tabbot.twb.model import WorkbookModel
-from tabbot.twb.parser import parse_workbook
+from tabbot.twb.parser import parse_both
 from tabbot.workspace import Package, Workspace, delete_workspace, new_workspace, open_upload
 
 
@@ -20,6 +20,7 @@ class LoadedWorkbook:
     workspace: Workspace
     package: Package
     model: WorkbookModel
+    kit: object = None                    # the parser kit's rich model (tabbot.tparse.model.WorkbookModel)
     tables: list[TableInfo] = field(default_factory=list)
     store: Store | None = None
     profiles: dict[str, TableProfile] = field(default_factory=dict)   # by table name
@@ -57,8 +58,8 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
     lw: LoadedWorkbook | None = None
     try:
         pkg = open_upload(path, ws, extra_extracts, settings.max_unzipped_mb)
-        model = parse_workbook(pkg.workbook, thumbnails_dir=ws.thumbnails)
-        lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model)
+        model, kit = parse_both(pkg.workbook)
+        lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model, kit=kit)
         if pkg.unsupported_extracts:
             lw.notes.append(f"{len(pkg.unsupported_extracts)} old-format .tde extract(s) cannot be read")
         if not pkg.extracts:

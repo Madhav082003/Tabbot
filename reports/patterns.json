@@ -1,0 +1,8428 @@
+{
+ "workbooks": 60,
+ "errors": {},
+ "domains": {
+  "tableau-samples": 17,
+  "sales": 14,
+  "health": 22,
+  "other": 7
+ },
+ "per_workbook_counts": {
+  "w001": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 1337,
+   "domain": "tableau-samples"
+  },
+  "w002": {
+   "worksheets": 2,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 3,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 115283,
+   "domain": "tableau-samples"
+  },
+  "w003": {
+   "worksheets": 1,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 58400,
+   "domain": "sales"
+  },
+  "w004": {
+   "worksheets": 22,
+   "dashboards": 6,
+   "datasources": 5,
+   "hidden_windows": 18,
+   "thumbnails": 10,
+   "table_calc_elements": 10,
+   "actions": 10,
+   "parameters_datasource": true,
+   "total_bytes": 770467,
+   "domain": "tableau-samples"
+  },
+  "w005": {
+   "worksheets": 1,
+   "dashboards": 0,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": true,
+   "total_bytes": 24618,
+   "domain": "tableau-samples"
+  },
+  "w006": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 1337,
+   "domain": "tableau-samples"
+  },
+  "w007": {
+   "worksheets": 1,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 15371,
+   "domain": "tableau-samples"
+  },
+  "w008": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 507,
+   "domain": "tableau-samples"
+  },
+  "w009": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 507,
+   "domain": "tableau-samples"
+  },
+  "w010": {
+   "worksheets": 2,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 7104,
+   "domain": "tableau-samples"
+  },
+  "w011": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 0,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 192,
+   "domain": "tableau-samples"
+  },
+  "w012": {
+   "worksheets": 2,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 8158,
+   "domain": "tableau-samples"
+  },
+  "w013": {
+   "worksheets": 2,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 3,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 114728,
+   "domain": "tableau-samples"
+  },
+  "w014": {
+   "worksheets": 0,
+   "dashboards": 0,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 2030,
+   "domain": "tableau-samples"
+  },
+  "w015": {
+   "worksheets": 1,
+   "dashboards": 0,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": true,
+   "total_bytes": 232422,
+   "domain": "tableau-samples"
+  },
+  "w016": {
+   "worksheets": 7,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 2,
+   "thumbnails": 6,
+   "table_calc_elements": 16,
+   "actions": 6,
+   "parameters_datasource": false,
+   "total_bytes": 247124,
+   "domain": "tableau-samples"
+  },
+  "w017": {
+   "worksheets": 7,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 2,
+   "thumbnails": 6,
+   "table_calc_elements": 16,
+   "actions": 6,
+   "parameters_datasource": false,
+   "total_bytes": 247124,
+   "domain": "tableau-samples"
+  },
+  "w018": {
+   "worksheets": 3,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 3,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 40104,
+   "domain": "tableau-samples"
+  },
+  "w019": {
+   "worksheets": 19,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 20,
+   "table_calc_elements": 5,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 317707,
+   "domain": "health"
+  },
+  "w020": {
+   "worksheets": 39,
+   "dashboards": 4,
+   "datasources": 22,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 33,
+   "actions": 4,
+   "parameters_datasource": true,
+   "total_bytes": 701962,
+   "domain": "health"
+  },
+  "w021": {
+   "worksheets": 39,
+   "dashboards": 4,
+   "datasources": 22,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 33,
+   "actions": 4,
+   "parameters_datasource": true,
+   "total_bytes": 701236,
+   "domain": "health"
+  },
+  "w022": {
+   "worksheets": 15,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 2,
+   "table_calc_elements": 1,
+   "actions": 3,
+   "parameters_datasource": false,
+   "total_bytes": 462959,
+   "domain": "health"
+  },
+  "w023": {
+   "worksheets": 10,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 11,
+   "table_calc_elements": 1,
+   "actions": 8,
+   "parameters_datasource": false,
+   "total_bytes": 292858,
+   "domain": "health"
+  },
+  "w024": {
+   "worksheets": 3,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 9,
+   "table_calc_elements": 2,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 530234,
+   "domain": "health"
+  },
+  "w025": {
+   "worksheets": 7,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 9,
+   "table_calc_elements": 6,
+   "actions": 2,
+   "parameters_datasource": false,
+   "total_bytes": 610160,
+   "domain": "health"
+  },
+  "w026": {
+   "worksheets": 5,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 6,
+   "table_calc_elements": 6,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 321903,
+   "domain": "health"
+  },
+  "w027": {
+   "worksheets": 4,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 15,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 1177142,
+   "domain": "health"
+  },
+  "w028": {
+   "worksheets": 4,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 5,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 655386,
+   "domain": "health"
+  },
+  "w029": {
+   "worksheets": 12,
+   "dashboards": 3,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 15,
+   "table_calc_elements": 0,
+   "actions": 3,
+   "parameters_datasource": false,
+   "total_bytes": 1264846,
+   "domain": "health"
+  },
+  "w030": {
+   "worksheets": 4,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 5,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 351147,
+   "domain": "health"
+  },
+  "w031": {
+   "worksheets": 6,
+   "dashboards": 3,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 9,
+   "table_calc_elements": 4,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 275466,
+   "domain": "health"
+  },
+  "w032": {
+   "worksheets": 8,
+   "dashboards": 1,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 9,
+   "table_calc_elements": 1,
+   "actions": 0,
+   "parameters_datasource": true,
+   "total_bytes": 178202,
+   "domain": "sales"
+  },
+  "w033": {
+   "worksheets": 8,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 10,
+   "table_calc_elements": 1,
+   "actions": 8,
+   "parameters_datasource": false,
+   "total_bytes": 429055,
+   "domain": "health"
+  },
+  "w034": {
+   "worksheets": 7,
+   "dashboards": 1,
+   "datasources": 3,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 9,
+   "actions": 5,
+   "parameters_datasource": true,
+   "total_bytes": 287344,
+   "domain": "health"
+  },
+  "w035": {
+   "worksheets": 11,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 2,
+   "table_calc_elements": 0,
+   "actions": 6,
+   "parameters_datasource": false,
+   "total_bytes": 257908,
+   "domain": "other"
+  },
+  "w036": {
+   "worksheets": 8,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 9,
+   "table_calc_elements": 0,
+   "actions": 8,
+   "parameters_datasource": false,
+   "total_bytes": 393205,
+   "domain": "other"
+  },
+  "w037": {
+   "worksheets": 10,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 3,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 151008,
+   "domain": "health"
+  },
+  "w038": {
+   "worksheets": 10,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 129802,
+   "domain": "health"
+  },
+  "w039": {
+   "worksheets": 4,
+   "dashboards": 1,
+   "datasources": 4,
+   "hidden_windows": 0,
+   "thumbnails": 5,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 196805,
+   "domain": "health"
+  },
+  "w040": {
+   "worksheets": 4,
+   "dashboards": 0,
+   "datasources": 4,
+   "hidden_windows": 0,
+   "thumbnails": 4,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 168646,
+   "domain": "health"
+  },
+  "w041": {
+   "worksheets": 9,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 10,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 190388,
+   "domain": "health"
+  },
+  "w042": {
+   "worksheets": 7,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 8,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 301022,
+   "domain": "other"
+  },
+  "w043": {
+   "worksheets": 4,
+   "dashboards": 1,
+   "datasources": 4,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 245830,
+   "domain": "health"
+  },
+  "w044": {
+   "worksheets": 6,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 84979,
+   "domain": "health"
+  },
+  "w045": {
+   "worksheets": 5,
+   "dashboards": 1,
+   "datasources": 2,
+   "hidden_windows": 3,
+   "thumbnails": 0,
+   "table_calc_elements": 8,
+   "actions": 0,
+   "parameters_datasource": true,
+   "total_bytes": 117455,
+   "domain": "sales"
+  },
+  "w046": {
+   "worksheets": 3,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 4,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": false,
+   "total_bytes": 183028,
+   "domain": "sales"
+  },
+  "w047": {
+   "worksheets": 10,
+   "dashboards": 3,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 12,
+   "table_calc_elements": 0,
+   "actions": 1,
+   "parameters_datasource": true,
+   "total_bytes": 359349,
+   "domain": "sales"
+  },
+  "w048": {
+   "worksheets": 18,
+   "dashboards": 3,
+   "datasources": 1,
+   "hidden_windows": 18,
+   "thumbnails": 3,
+   "table_calc_elements": 5,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 337953,
+   "domain": "sales"
+  },
+  "w049": {
+   "worksheets": 9,
+   "dashboards": 1,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 10,
+   "table_calc_elements": 18,
+   "actions": 7,
+   "parameters_datasource": true,
+   "total_bytes": 237637,
+   "domain": "sales"
+  },
+  "w050": {
+   "worksheets": 2,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 2,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 95586,
+   "domain": "sales"
+  },
+  "w051": {
+   "worksheets": 15,
+   "dashboards": 2,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 46,
+   "actions": 4,
+   "parameters_datasource": true,
+   "total_bytes": 475073,
+   "domain": "sales"
+  },
+  "w052": {
+   "worksheets": 5,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 6,
+   "table_calc_elements": 1,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 202278,
+   "domain": "sales"
+  },
+  "w053": {
+   "worksheets": 21,
+   "dashboards": 4,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 10,
+   "table_calc_elements": 15,
+   "actions": 2,
+   "parameters_datasource": false,
+   "total_bytes": 1312960,
+   "domain": "sales"
+  },
+  "w054": {
+   "worksheets": 6,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 4,
+   "actions": 4,
+   "parameters_datasource": false,
+   "total_bytes": 95723,
+   "domain": "sales"
+  },
+  "w055": {
+   "worksheets": 11,
+   "dashboards": 2,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 2,
+   "actions": 3,
+   "parameters_datasource": false,
+   "total_bytes": 168934,
+   "domain": "other"
+  },
+  "w056": {
+   "worksheets": 9,
+   "dashboards": 1,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 0,
+   "table_calc_elements": 3,
+   "actions": 6,
+   "parameters_datasource": true,
+   "total_bytes": 172128,
+   "domain": "other"
+  },
+  "w057": {
+   "worksheets": 3,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 4,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 70641,
+   "domain": "other"
+  },
+  "w058": {
+   "worksheets": 4,
+   "dashboards": 0,
+   "datasources": 2,
+   "hidden_windows": 0,
+   "thumbnails": 4,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 142650,
+   "domain": "other"
+  },
+  "w059": {
+   "worksheets": 1,
+   "dashboards": 0,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 1,
+   "table_calc_elements": 3,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 50935,
+   "domain": "sales"
+  },
+  "w060": {
+   "worksheets": 2,
+   "dashboards": 1,
+   "datasources": 1,
+   "hidden_windows": 0,
+   "thumbnails": 3,
+   "table_calc_elements": 0,
+   "actions": 0,
+   "parameters_datasource": false,
+   "total_bytes": 118117,
+   "domain": "sales"
+  }
+ },
+ "element_paths": {
+  "workbook": [
+   60,
+   60
+  ],
+  "workbook/datasources/datasource": [
+   126,
+   59
+  ],
+  "workbook/datasources/datasource/connection": [
+   114,
+   59
+  ],
+  "workbook/datasources": [
+   59,
+   59
+  ],
+  "workbook/windows/window/cards/edge/strip/card": [
+   3011,
+   54
+  ],
+  "workbook/windows/window/cards/edge/strip": [
+   1913,
+   54
+  ],
+  "workbook/datasources/datasource/column": [
+   1236,
+   54
+  ],
+  "workbook/windows/window/cards/edge": [
+   1086,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane": [
+   583,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/view": [
+   583,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/view/breakdown": [
+   583,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/mark": [
+   583,
+   54
+  ],
+  "workbook/windows/window": [
+   510,
+   54
+  ],
+  "workbook/worksheets/worksheet": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/view": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/view/datasources": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/view/aggregation": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/style": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/panes": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/rows": [
+   438,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/cols": [
+   438,
+   54
+  ],
+  "workbook/windows/window/cards": [
+   438,
+   54
+  ],
+  "workbook/datasources/datasource/connection/named-connections/named-connection": [
+   124,
+   54
+  ],
+  "workbook/datasources/datasource/connection/named-connections/named-connection/connection": [
+   124,
+   54
+  ],
+  "workbook/datasources/datasource/semantic-values/semantic-value": [
+   110,
+   54
+  ],
+  "workbook/datasources/datasource/connection/named-connections": [
+   108,
+   54
+  ],
+  "workbook/datasources/datasource/layout": [
+   108,
+   54
+  ],
+  "workbook/datasources/datasource/semantic-values": [
+   108,
+   54
+  ],
+  "workbook/preferences": [
+   54,
+   54
+  ],
+  "workbook/worksheets": [
+   54,
+   54
+  ],
+  "workbook/windows": [
+   54,
+   54
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column": [
+   2215,
+   53
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column-instance": [
+   1764,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/remote-name": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/remote-type": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/remote-alias": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/aggregation": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/contains-null": [
+   1246,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/parent-name": [
+   1245,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/ordinal": [
+   1110,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/local-name": [
+   1109,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/local-type": [
+   1109,
+   53
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies": [
+   482,
+   53
+  ],
+  "workbook/worksheets/worksheet/table/view/datasources/datasource": [
+   481,
+   53
+  ],
+  "workbook/preferences/preference": [
+   111,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records": [
+   107,
+   53
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/attributes/attribute": [
+   1793,
+   52
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/attributes": [
+   944,
+   52
+  ],
+  "workbook/datasources/datasource/aliases": [
+   117,
+   52
+  ],
+  "workbook/windows/window/viewpoint/highlight/color-one-way/field": [
+   1148,
+   50
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/collation": [
+   539,
+   50
+  ],
+  "workbook/windows/window/viewpoint": [
+   393,
+   50
+  ],
+  "workbook/windows/window/viewpoint/highlight": [
+   352,
+   50
+  ],
+  "workbook/windows/window/viewpoint/highlight/color-one-way": [
+   349,
+   50
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings": [
+   459,
+   48
+  ],
+  "workbook/windows/window/simple-id": [
+   487,
+   47
+  ],
+  "workbook/worksheets/worksheet/simple-id": [
+   417,
+   47
+  ],
+  "workbook/document-format-change-manifest": [
+   47,
+   47
+  ],
+  "workbook/document-format-change-manifest/SheetIdentifierTracking": [
+   47,
+   47
+  ],
+  "workbook/document-format-change-manifest/WindowsPersistSimpleIdentifiers": [
+   47,
+   47
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/style/style-rule/format": [
+   2140,
+   46
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/style/style-rule": [
+   730,
+   46
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/style": [
+   469,
+   46
+  ],
+  "workbook/datasources/datasource/column/calculation": [
+   435,
+   46
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/text": [
+   419,
+   46
+  ],
+  "workbook/worksheets/worksheet/table/view/slices/column": [
+   836,
+   45
+  ],
+  "workbook/worksheets/worksheet/table/view/filter": [
+   680,
+   45
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/groupfilter": [
+   580,
+   45
+  ],
+  "workbook/worksheets/worksheet/table/view/slices": [
+   316,
+   45
+  ],
+  "workbook/dashboards/dashboard/zones/zone": [
+   383,
+   43
+  ],
+  "workbook/windows/window/viewpoints/viewpoint": [
+   380,
+   43
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/color": [
+   269,
+   43
+  ],
+  "workbook/thumbnails/thumbnail": [
+   262,
+   43
+  ],
+  "workbook/dashboards/dashboard": [
+   72,
+   43
+  ],
+  "workbook/dashboards/dashboard/style": [
+   72,
+   43
+  ],
+  "workbook/dashboards/dashboard/zones": [
+   72,
+   43
+  ],
+  "workbook/windows/window/viewpoints": [
+   72,
+   43
+  ],
+  "workbook/windows/window/active": [
+   72,
+   43
+  ],
+  "workbook/dashboards": [
+   43,
+   43
+  ],
+  "workbook/thumbnails": [
+   43,
+   43
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/format": [
+   5031,
+   42
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule": [
+   2007,
+   42
+  ],
+  "workbook/dashboards/dashboard/zones/zone*": [
+   799,
+   41
+  ],
+  "workbook/dashboards/dashboard/size": [
+   70,
+   41
+  ],
+  "workbook/dashboards/dashboard/simple-id": [
+   70,
+   41
+  ],
+  "workbook/dashboards/dashboard/zones/zone/zone-style/format": [
+   630,
+   40
+  ],
+  "workbook/worksheets/worksheet/layout-options/title/formatted-text/run": [
+   425,
+   40
+  ],
+  "workbook/datasources/datasource/column-instance": [
+   406,
+   40
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/zoom": [
+   322,
+   40
+  ],
+  "workbook/worksheets/worksheet/layout-options": [
+   293,
+   40
+  ],
+  "workbook/worksheets/worksheet/layout-options/title": [
+   293,
+   40
+  ],
+  "workbook/worksheets/worksheet/layout-options/title/formatted-text": [
+   293,
+   40
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/encoding": [
+   252,
+   40
+  ],
+  "workbook/dashboards/dashboard/zones/zone/zone-style": [
+   167,
+   40
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/calculation": [
+   679,
+   39
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map": [
+   7228,
+   38
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map/bucket": [
+   7197,
+   38
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/zone-style/format": [
+   2332,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/remote-name": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/remote-type": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/local-name": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/parent-name": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/remote-alias": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/ordinal": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/local-type": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/aggregation": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/contains-null": [
+   831,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/family": [
+   830,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/approx-count": [
+   828,
+   38
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/zone-style": [
+   559,
+   38
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding": [
+   132,
+   38
+  ],
+  "workbook/datasources/datasource/extract": [
+   89,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection": [
+   89,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records": [
+   89,
+   38
+  ],
+  "workbook/datasources/datasource/style": [
+   59,
+   38
+  ],
+  "workbook/datasources/datasource/style/style-rule": [
+   59,
+   38
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/collation": [
+   402,
+   37
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/groupfilter*": [
+   4610,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/zone-style/format": [
+   3439,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*": [
+   756,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/zone-style": [
+   684,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts": [
+   61,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout": [
+   61,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones": [
+   61,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone": [
+   61,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/size": [
+   60,
+   36
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone/zone-style/format": [
+   234,
+   35
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone/zone-style": [
+   58,
+   35
+  ],
+  "workbook/document-format-change-manifest/AutoCreateAndUpdateDSDPhoneLayouts": [
+   35,
+   35
+  ],
+  "workbook/datasources/datasource/group": [
+   129,
+   34
+  ],
+  "workbook/datasources/datasource/group/groupfilter": [
+   129,
+   34
+  ],
+  "workbook/document-format-change-manifest/SetMembershipControl": [
+   33,
+   33
+  ],
+  "workbook/datasources/datasource/group/groupfilter*": [
+   248,
+   32
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/lod": [
+   117,
+   32
+  ],
+  "workbook/datasources/datasource/connection/relation": [
+   80,
+   32
+  ],
+  "workbook/repository-location": [
+   32,
+   32
+  ],
+  "workbook/actions": [
+   32,
+   32
+  ],
+  "workbook/actions/action/command/param": [
+   231,
+   30
+  ],
+  "workbook/actions/action": [
+   110,
+   30
+  ],
+  "workbook/actions/action/activation": [
+   110,
+   30
+  ],
+  "workbook/actions/action/source": [
+   110,
+   30
+  ],
+  "workbook/actions/action/command": [
+   110,
+   30
+  ],
+  "workbook/worksheets/worksheet/table/view/mapsources": [
+   42,
+   30
+  ],
+  "workbook/worksheets/worksheet/table/view/mapsources/mapsource": [
+   42,
+   30
+  ],
+  "workbook/mapsources": [
+   30,
+   30
+  ],
+  "workbook/mapsources/mapsource": [
+   30,
+   30
+  ],
+  "workbook/document-format-change-manifest/_.fcp.VConnDownstreamExtractsWithWarnings.true...VConnDownstreamExtractsWithWarnings": [
+   30,
+   30
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column": [
+   130,
+   28
+  ],
+  "workbook/dashboards/dashboard/datasources/datasource": [
+   64,
+   28
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies": [
+   64,
+   28
+  ],
+  "workbook/dashboards/dashboard/datasources": [
+   47,
+   28
+  ],
+  "workbook/document-format-change-manifest/MapboxVectorStylesAndLayers": [
+   28,
+   28
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/width": [
+   205,
+   27
+  ],
+  "workbook/windows/window/viewpoint/zoom": [
+   203,
+   27
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column-instance": [
+   116,
+   27
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/mark-sizing": [
+   111,
+   26
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-label/formatted-text/run": [
+   511,
+   25
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-label": [
+   131,
+   25
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-label/formatted-text": [
+   131,
+   25
+  ],
+  "workbook/document-format-change-manifest/_.fcp.MarkAnimation.true...MarkAnimation": [
+   25,
+   25
+  ],
+  "workbook/document-format-change-manifest/SortTagCleanup": [
+   25,
+   25
+  ],
+  "workbook/document-format-change-manifest/ZoneBackgroundTransparency": [
+   25,
+   25
+  ],
+  "workbook/datasources/datasource/extract/connection/relation": [
+   71,
+   24
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties": [
+   62,
+   23
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation": [
+   62,
+   23
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/highlight": [
+   45,
+   23
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelTableType.true...column": [
+   40,
+   23
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object": [
+   40,
+   23
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation": [
+   30,
+   23
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation": [
+   30,
+   23
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph": [
+   30,
+   23
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects": [
+   30,
+   23
+  ],
+  "workbook/document-format-change-manifest/_.fcp.ObjectModelEncapsulateLegacy.true...ObjectModelEncapsulateLegacy": [
+   23,
+   23
+  ],
+  "workbook/document-format-change-manifest/_.fcp.ObjectModelTableType.true...ObjectModelTableType": [
+   23,
+   23
+  ],
+  "workbook/document-format-change-manifest/_.fcp.SchemaViewerObjectModel.true...SchemaViewerObjectModel": [
+   23,
+   23
+  ],
+  "workbook/document-format-change-manifest/WorksheetBackgroundTransparency": [
+   23,
+   23
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/object-id": [
+   550,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties": [
+   189,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation": [
+   189,
+   22
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/layout-cache": [
+   134,
+   22
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/layout-cache": [
+   126,
+   22
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column-instance/table-calc": [
+   115,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object": [
+   95,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph": [
+   69,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph/objects": [
+   69,
+   22
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/size": [
+   42,
+   22
+  ],
+  "workbook/document-format-change-manifest/AnimationOnByDefault": [
+   22,
+   22
+  ],
+  "workbook/document-format-change-manifest/MarkAnimation": [
+   22,
+   22
+  ],
+  "workbook/document-format-change-manifest/ObjectModelEncapsulateLegacy": [
+   22,
+   22
+  ],
+  "workbook/document-format-change-manifest/ObjectModelTableType": [
+   22,
+   22
+  ],
+  "workbook/document-format-change-manifest/SchemaViewerObjectModel": [
+   22,
+   22
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation/columns/column": [
+   538,
+   21
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/_.fcp.ObjectModelEncapsulateLegacy.true...object-id": [
+   440,
+   21
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/scale": [
+   155,
+   21
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/precision": [
+   128,
+   21
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation/columns": [
+   92,
+   21
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/geometry": [
+   23,
+   21
+  ],
+  "workbook/document-format-change-manifest/ObjectModelExtractV2": [
+   21,
+   21
+  ],
+  "workbook/worksheets/worksheet/table/view/manual-sort/dictionary/bucket": [
+   479,
+   20
+  ],
+  "workbook/worksheets/worksheet/table/view/manual-sort": [
+   46,
+   20
+  ],
+  "workbook/worksheets/worksheet/table/view/manual-sort/dictionary": [
+   46,
+   20
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/object-id": [
+   420,
+   19
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/columns/column": [
+   384,
+   19
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/columns/column": [
+   325,
+   19
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/formatted-text/run": [
+   192,
+   19
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/formatted-text": [
+   94,
+   19
+  ],
+  "workbook/datasources/datasource/extract/connection/refresh": [
+   63,
+   19
+  ],
+  "workbook/datasources/datasource/extract/connection/refresh/refresh-event": [
+   63,
+   19
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/columns": [
+   38,
+   19
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/columns": [
+   26,
+   19
+  ],
+  "workbook/datasources/datasource/column-instance/table-calc": [
+   47,
+   18
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/calculation": [
+   33,
+   18
+  ],
+  "workbook/document-format-change-manifest/AccessibleZoneTabOrder": [
+   18,
+   18
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-tooltip/formatted-text/run": [
+   1034,
+   17
+  ],
+  "workbook/datasources/datasource/connection/relation/columns/column": [
+   338,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-tooltip": [
+   116,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/customized-tooltip/formatted-text": [
+   116,
+   17
+  ],
+  "workbook/datasources/datasource/connection/relation/columns": [
+   58,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/format/formatted-text": [
+   37,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/format/formatted-text/run": [
+   36,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/view/shelf-sorts": [
+   33,
+   17
+  ],
+  "workbook/worksheets/worksheet/table/view/shelf-sorts/shelf-sort-v2": [
+   33,
+   17
+  ],
+  "workbook/document-format-change-manifest/_.fcp.AnimationOnByDefault.true...AnimationOnByDefault": [
+   17,
+   17
+  ],
+  "workbook/document-format-change-manifest/IntuitiveSorting": [
+   17,
+   17
+  ],
+  "workbook/document-format-change-manifest/IntuitiveSorting_SP2": [
+   17,
+   17
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/columns/column": [
+   245,
+   16
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/columns": [
+   22,
+   16
+  ],
+  "workbook/_.fcp.AnimationOnByDefault.false...style": [
+   16,
+   16
+  ],
+  "workbook/_.fcp.AnimationOnByDefault.false...style/_.fcp.AnimationOnByDefault.false..._.fcp.MarkAnimation.true...style-rule": [
+   16,
+   16
+  ],
+  "workbook/_.fcp.AnimationOnByDefault.false...style/_.fcp.AnimationOnByDefault.false..._.fcp.MarkAnimation.true...style-rule/_.fcp.AnimationOnByDefault.false...format": [
+   16,
+   16
+  ],
+  "workbook/worksheets/worksheet/repository-location": [
+   190,
+   15
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/highlight/bucket-selection": [
+   20,
+   15
+  ],
+  "workbook/datasources/datasource/connection/cols/map": [
+   372,
+   14
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/formatted-text/run": [
+   115,
+   14
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/formatted-text": [
+   55,
+   14
+  ],
+  "workbook/dashboards/dashboard/style/style-rule/format": [
+   50,
+   14
+  ],
+  "workbook/dashboards/dashboard/style/style-rule": [
+   30,
+   14
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/highlight/color-one-way/field": [
+   26,
+   14
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/highlight/color-one-way": [
+   25,
+   14
+  ],
+  "workbook/dashboards/dashboard/repository-location": [
+   25,
+   14
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation": [
+   18,
+   14
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation": [
+   18,
+   14
+  ],
+  "workbook/datasources/datasource/connection/cols": [
+   14,
+   14
+  ],
+  "workbook/document-format-change-manifest/_.fcp.AccessibleZoneTabOrder.true...AccessibleZoneTabOrder": [
+   14,
+   14
+  ],
+  "workbook/document-format-change-manifest/_.fcp.ObjectModelExtractV2.true...ObjectModelExtractV2": [
+   14,
+   14
+  ],
+  "workbook/datasources/datasource/column/calculation/table-calc": [
+   40,
+   13
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/min": [
+   31,
+   13
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/wedge-size": [
+   25,
+   13
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/tooltip": [
+   197,
+   12
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/calculation/table-calc": [
+   45,
+   12
+  ],
+  "workbook/windows/window/viewpoint/default-map-tool-selection": [
+   19,
+   12
+  ],
+  "workbook/datasources/datasource/extract/connection/cols/map": [
+   293,
+   11
+  ],
+  "workbook/actions/datasource-dependencies/column": [
+   33,
+   11
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/max": [
+   33,
+   11
+  ],
+  "workbook/actions/action/link": [
+   15,
+   11
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection": [
+   14,
+   11
+  ],
+  "workbook/actions/datasources": [
+   11,
+   11
+  ],
+  "workbook/actions/datasources/datasource": [
+   11,
+   11
+  ],
+  "workbook/actions/datasource-dependencies": [
+   11,
+   11
+  ],
+  "workbook/datasources/datasource/extract/connection/cols": [
+   11,
+   11
+  ],
+  "workbook/datasources/datasource/field-sort-info": [
+   11,
+   11
+  ],
+  "workbook/datasources/datasource/connection/relation*": [
+   46,
+   10
+  ],
+  "workbook/worksheets/worksheet/table/view/computed-sort": [
+   21,
+   10
+  ],
+  "workbook/datasources/datasource/connection/relation*/columns/column": [
+   252,
+   9
+  ],
+  "workbook/datasources/datasource/field-sort-info/field-sort-custom-order": [
+   129,
+   9
+  ],
+  "workbook/dashboards/dashboard/zones/zone/formatted-text/run": [
+   90,
+   9
+  ],
+  "workbook/datasources/datasource/column/aliases/alias": [
+   50,
+   9
+  ],
+  "workbook/dashboards/dashboard/zones/zone/formatted-text": [
+   50,
+   9
+  ],
+  "workbook/datasources/datasource/connection/relation*/columns": [
+   44,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/columns/field": [
+   27,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple/value": [
+   27,
+   9
+  ],
+  "workbook/datasources/datasource/column/aliases": [
+   21,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/x-fields": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/y-fields": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/columns": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple": [
+   12,
+   9
+  ],
+  "workbook/windows/window/viewpoint/selection-collection": [
+   9,
+   9
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/aliases/alias": [
+   239,
+   8
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/_.fcp.ObjectModelEncapsulateLegacy.true...object-id": [
+   132,
+   8
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/aliases": [
+   83,
+   8
+  ],
+  "workbook/datasources/datasource/date-options": [
+   54,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships/relationship/expression*": [
+   52,
+   8
+  ],
+  "workbook/datasources/datasource/extract/connection/relation*": [
+   36,
+   8
+  ],
+  "workbook/datasources/datasource/drill-paths/drill-path/field": [
+   35,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships/relationship": [
+   26,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships/relationship/expression": [
+   26,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships/relationship/first-end-point": [
+   26,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships/relationship/second-end-point": [
+   26,
+   8
+  ],
+  "workbook/worksheets/worksheet/table/show-full-range": [
+   20,
+   8
+  ],
+  "workbook/worksheets/worksheet/table/show-full-range/column": [
+   20,
+   8
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/reference-line": [
+   18,
+   8
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column": [
+   16,
+   8
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/calculation": [
+   15,
+   8
+  ],
+  "workbook/datasources/datasource/drill-paths/drill-path": [
+   11,
+   8
+  ],
+  "workbook/datasources/datasource/datasource-dependencies": [
+   10,
+   8
+  ],
+  "workbook/datasources/datasource/object-graph/relationships": [
+   10,
+   8
+  ],
+  "workbook/datasources/datasource/drill-paths": [
+   8,
+   8
+  ],
+  "workbook/datasources/datasource/column/members/member": [
+   220,
+   7
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/encoding/color-palette/color": [
+   211,
+   7
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/encoding/color-palette": [
+   17,
+   7
+  ],
+  "workbook/actions/datasource-dependencies/column/calculation": [
+   11,
+   7
+  ],
+  "workbook/datasources/datasource/column/members": [
+   10,
+   7
+  ],
+  "workbook/datasources/datasource/default-sorts": [
+   7,
+   7
+  ],
+  "workbook/document-format-change-manifest/BasicButtonObject": [
+   7,
+   7
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation/columns/column": [
+   157,
+   6
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies/column": [
+   19,
+   6
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies/column-instance": [
+   19,
+   6
+  ],
+  "workbook/shared-views/shared-view/filter": [
+   18,
+   6
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation": [
+   17,
+   6
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation/columns": [
+   16,
+   6
+  ],
+  "workbook/datasources/datasource/column/range": [
+   15,
+   6
+  ],
+  "workbook/actions/datasource-dependencies/column-instance": [
+   8,
+   6
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/floating-toolbar-visibility": [
+   8,
+   6
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies": [
+   8,
+   6
+  ],
+  "workbook/shared-views/shared-view": [
+   7,
+   6
+  ],
+  "workbook/shared-views/shared-view/datasources": [
+   7,
+   6
+  ],
+  "workbook/shared-views/shared-view/datasources/datasource": [
+   7,
+   6
+  ],
+  "workbook/document-format-change-manifest/_.fcp.SetMembershipControl.true...SetMembershipControl": [
+   6,
+   6
+  ],
+  "workbook/style-theme": [
+   6,
+   6
+  ],
+  "workbook/shared-views": [
+   6,
+   6
+  ],
+  "workbook/datasources/datasource/column/calculation/bin/value": [
+   1998,
+   5
+  ],
+  "workbook/datasources/datasource/column/calculation/bin": [
+   212,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/formatted-text/run": [
+   107,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/semantic-values/semantic-value": [
+   66,
+   5
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button": [
+   47,
+   5
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state": [
+   47,
+   5
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/approx-count": [
+   38,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/semantic-values": [
+   38,
+   5
+  ],
+  "workbook/datasources/datasource/column/semantic-values/semantic-value": [
+   30,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation": [
+   29,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/formatted-text": [
+   29,
+   5
+  ],
+  "workbook/shared-views/shared-view/filter/groupfilter": [
+   16,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/annotations": [
+   13,
+   5
+  ],
+  "workbook/dashboards/dashboard/layout-options/title/formatted-text/run": [
+   12,
+   5
+  ],
+  "workbook/datasources/datasource/column/semantic-values": [
+   11,
+   5
+  ],
+  "workbook/datasources/datasource/default-sorts/manual-sort/dictionary/bucket": [
+   10,
+   5
+  ],
+  "workbook/dashboards/dashboard/layout-options": [
+   10,
+   5
+  ],
+  "workbook/dashboards/dashboard/layout-options/title": [
+   10,
+   5
+  ],
+  "workbook/dashboards/dashboard/layout-options/title/formatted-text": [
+   10,
+   5
+  ],
+  "workbook/style": [
+   5,
+   5
+  ],
+  "workbook/datasources/datasource/default-sorts/manual-sort": [
+   5,
+   5
+  ],
+  "workbook/datasources/datasource/default-sorts/manual-sort/dictionary": [
+   5,
+   5
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/node-selection": [
+   5,
+   5
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/node-selection/oriented-node-reference": [
+   5,
+   5
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference": [
+   5,
+   5
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference/axis": [
+   5,
+   5
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/node-selection/oriented-node-reference/page-reference": [
+   5,
+   5
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/columns/field": [
+   86,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple/value": [
+   86,
+   4
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/padded-semantics": [
+   48,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/pane-descriptor/x-fields/field": [
+   42,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/desc/formatted-text/run": [
+   38,
+   4
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state/image-path": [
+   36,
+   4
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/button-visual-state": [
+   34,
+   4
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/family": [
+   33,
+   4
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button": [
+   31,
+   4
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/members/member": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/pane-descriptor": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/pane-descriptor/x-fields": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/pane-descriptor/y-fields": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/pane-descriptor/y-fields/field": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple-descriptor/columns": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/point/visual-coordinate/tuple-reference/tuple": [
+   28,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/body": [
+   28,
+   4
+  ],
+  "workbook/datasources/datasource/connection/refresh": [
+   27,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/desc": [
+   24,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/desc/formatted-text": [
+   24,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/range": [
+   23,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships/relationship/expression*": [
+   20,
+   4
+  ],
+  "workbook/datasources/datasource/column/desc/formatted-text/run": [
+   12,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships/relationship": [
+   10,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships/relationship/expression": [
+   10,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships/relationship/first-end-point": [
+   10,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships/relationship/second-end-point": [
+   10,
+   4
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/range": [
+   9,
+   4
+  ],
+  "workbook/datasources/datasource/column/desc": [
+   8,
+   4
+  ],
+  "workbook/datasources/datasource/column/desc/formatted-text": [
+   8,
+   4
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/members": [
+   8,
+   4
+  ],
+  "workbook/datasources/datasource/connection/relation/clause/expression*": [
+   8,
+   4
+  ],
+  "workbook/windows/window/viewpoint/floating-toolbar-visibility": [
+   8,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/columns/field": [
+   7,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple/value": [
+   7,
+   4
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/range": [
+   6,
+   4
+  ],
+  "workbook/style/_.fcp.MarkAnimation.true...style-rule/format": [
+   5,
+   4
+  ],
+  "workbook/style/_.fcp.MarkAnimation.true...style-rule": [
+   4,
+   4
+  ],
+  "workbook/document-format-change-manifest/ZoneFriendlyName": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/relationships": [
+   4,
+   4
+  ],
+  "workbook/worksheets/worksheet/table/forecast-specification": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/connection/named-connections/named-connection/connection/calculations": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/connection/named-connections/named-connection/connection/calculations/calculation": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/connection/relation/clause": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/connection/relation/clause/expression": [
+   4,
+   4
+  ],
+  "workbook/document-format-change-manifest/CollapsiblePane": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/x-fields": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/y-fields": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/columns": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/default-map-tool-selection": [
+   4,
+   4
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/x-fields/field": [
+   4,
+   4
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/statistics/statistic": [
+   83,
+   3
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map/multibucket/bucket": [
+   62,
+   3
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/statistics": [
+   31,
+   3
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map/multibucket": [
+   31,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation*/columns/column": [
+   30,
+   3
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/button-visual-state/image-path": [
+   27,
+   3
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state": [
+   23,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/view/sort": [
+   21,
+   3
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button": [
+   21,
+   3
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/aliases/alias": [
+   18,
+   3
+  ],
+  "workbook/external/shapes/shape": [
+   10,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation*": [
+   8,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation*/columns": [
+   8,
+   3
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/layout-options": [
+   6,
+   3
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/layout-options/title": [
+   6,
+   3
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/layout-options/title/formatted-text": [
+   6,
+   3
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/layout-options/title/formatted-text/run": [
+   6,
+   3
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/aliases": [
+   6,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation/clause/expression*": [
+   6,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/trendline": [
+   4,
+   3
+  ],
+  "workbook/external": [
+   3,
+   3
+  ],
+  "workbook/external/shapes": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/pages": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/pages/column": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/page-trail-options": [
+   3,
+   3
+  ],
+  "workbook/windows/window/viewpoint/current-page": [
+   3,
+   3
+  ],
+  "workbook/windows/window/viewpoint/current-page/multibucket": [
+   3,
+   3
+  ],
+  "workbook/windows/window/viewpoint/current-page/multibucket/bucket": [
+   3,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation/clause": [
+   3,
+   3
+  ],
+  "workbook/datasources/datasource/object-graph/objects/object/properties/relation/clause/expression": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/path": [
+   3,
+   3
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/toggle-action": [
+   3,
+   3
+  ],
+  "workbook/windows/window/viewpoint/highlight/bucket-selection": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/label-data": [
+   3,
+   3
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/y-fields/field": [
+   3,
+   3
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/calculation/bin/value": [
+   337,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column/calculation/bin": [
+   81,
+   2
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*/columns/column": [
+   43,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/sort/dictionary/bucket": [
+   42,
+   2
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map-pri": [
+   24,
+   2
+  ],
+  "workbook/datasources/datasource/style/style-rule/encoding/map-pri/bucket": [
+   24,
+   2
+  ],
+  "workbook/datasources/datasource/folder/folder-item": [
+   22,
+   2
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation/columns/column": [
+   20,
+   2
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/semantic-values/semantic-value": [
+   18,
+   2
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state/image-path": [
+   17,
+   2
+  ],
+  "workbook/datasources/datasource/default-sorts/sort/dictionary/bucket": [
+   12,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/target": [
+   12,
+   2
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state/caption": [
+   11,
+   2
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state/button-caption-font-style": [
+   11,
+   2
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state/format": [
+   11,
+   2
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/_.fcp.DashboardExportButton.true...export-button-action": [
+   10,
+   2
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/_.fcp.DashboardExportButton.true...export-button-action": [
+   10,
+   2
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state/tooltip-text": [
+   9,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column-instance/table-calc/order": [
+   8,
+   2
+  ],
+  "workbook/datasources/datasource/folder": [
+   6,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/sort/dictionary": [
+   6,
+   2
+  ],
+  "workbook/windows/window/device-preview": [
+   5,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/style/_.fcp.IndividualControlFormatting.true...style-rule/_.fcp.IndividualControlFormatting.true...format": [
+   5,
+   2
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*": [
+   5,
+   2
+  ],
+  "workbook/dashboards/dashboard/devicelayouts/devicelayout/zones/zone*/button/button-visual-state/tooltip-text": [
+   5,
+   2
+  ],
+  "workbook/actions/edit-group-action/params/param": [
+   4,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/_.fcp.ObjectModelTableType.false...column": [
+   4,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/_.fcp.ObjectModelTableType.true...column": [
+   4,
+   2
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*/columns": [
+   4,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/style/_.fcp.IndividualControlFormatting.true...style-rule": [
+   3,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column-instance/table-calc/address": [
+   3,
+   2
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/column-instance/table-calc/address/value": [
+   3,
+   2
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation": [
+   3,
+   2
+  ],
+  "workbook/document-format-change-manifest/GroupAction": [
+   2,
+   2
+  ],
+  "workbook/document-format-change-manifest/_.fcp.GroupActionAddRemove.true...GroupActionAddRemove": [
+   2,
+   2
+  ],
+  "workbook/actions/edit-group-action": [
+   2,
+   2
+  ],
+  "workbook/actions/edit-group-action/activation": [
+   2,
+   2
+  ],
+  "workbook/actions/edit-group-action/source": [
+   2,
+   2
+  ],
+  "workbook/actions/edit-group-action/_.fcp.GroupActionAddRemove.true...add-or-remove-marks": [
+   2,
+   2
+  ],
+  "workbook/actions/edit-group-action/params": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/default-sorts/sort": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/default-sorts/sort/dictionary": [
+   2,
+   2
+  ],
+  "workbook/document-format-change-manifest/_.fcp.IndividualControlFormatting.true...IndividualControlFormatting": [
+   2,
+   2
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/semantic-values": [
+   2,
+   2
+  ],
+  "workbook/document-format-change-manifest/BasicButtonObjectTextSupport": [
+   2,
+   2
+  ],
+  "workbook/document-format-change-manifest/_.fcp.DashboardExportButton.true...DashboardExportButton": [
+   2,
+   2
+  ],
+  "workbook/document-format-change-manifest/ZoneVisibilityControl": [
+   2,
+   2
+  ],
+  "workbook/actions/datasource-dependencies/column/calculation/table-calc": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference/fields": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference/fields/field": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference/multibucket": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/node-reference/multibucket/bucket": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/selection-collection/node-selection/oriented-node-reference/page-reference": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/columns": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/columns/column": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/columns": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/columns/column": [
+   2,
+   2
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation/columns": [
+   2,
+   2
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/x-fields/field": [
+   2,
+   2
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/calculation/bin/value": [
+   57,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/statistics/statistic": [
+   35,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation*/columns/column": [
+   23,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation*/columns/column": [
+   23,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/attributes/attribute": [
+   21,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/style/style-rule/encoding/map": [
+   20,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/style/style-rule/encoding/map/bucket": [
+   20,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/tag/value": [
+   17,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/groups/group/field": [
+   17,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/tag/value": [
+   17,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/groups/group/field": [
+   17,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/tag/value": [
+   17,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/groups/group/field": [
+   17,
+   1
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/calculation/bin": [
+   14,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-dependencies/column-instance": [
+   12,
+   1
+  ],
+  "workbook/datasources/datasource/filter": [
+   9,
+   1
+  ],
+  "workbook/datasources/datasource/filter/max": [
+   9,
+   1
+  ],
+  "workbook/style/style-rule/format": [
+   9,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/customized-tooltip/formatted-text/run": [
+   8,
+   1
+  ],
+  "workbook/datasources/datasource/filter/min": [
+   8,
+   1
+  ],
+  "workbook/shared-views/shared-view/filter/target": [
+   7,
+   1
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/aliases/alias": [
+   7,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-dependencies/column": [
+   6,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-relationship/column-mapping/map": [
+   6,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/style/style-rule/format": [
+   6,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state/caption": [
+   6,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state/button-caption-font-style": [
+   6,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/button-visual-state/format": [
+   6,
+   1
+  ],
+  "workbook/actions/action/source/exclude-sheet": [
+   5,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/tooltip-style": [
+   5,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation": [
+   5,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/button-visual-state/caption": [
+   5,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/button-visual-state/button-caption-font-style": [
+   5,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone/button/button-visual-state/format": [
+   5,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/style/_.fcp.MarkAnimation.true...style-rule/format": [
+   4,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/reference-line/reference-line-value": [
+   4,
+   1
+  ],
+  "workbook/windows/window/device-preview/device": [
+   4,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/statistics": [
+   4,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/attributes": [
+   4,
+   1
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies/column/calculation": [
+   4,
+   1
+  ],
+  "workbook/datasources/datasource/connection/metadata-records/metadata-record/hidden": [
+   4,
+   1
+  ],
+  "workbook/style/style-rule": [
+   4,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/columns/field": [
+   4,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple/value": [
+   4,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/style/_.fcp.MarkAnimation.true...style-rule": [
+   3,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/subtotals/column": [
+   3,
+   1
+  ],
+  "workbook/windows/window/viewpoint/geo-search-visibility": [
+   3,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/dropline": [
+   3,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/style/style-rule/_.fcp.IndividualControlFormatting.true...format": [
+   3,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/flipboard/story-points/story-point": [
+   3,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/encodings/lod": [
+   3,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-dependencies": [
+   2,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/params/param": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/view": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/view/breakdown": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/mark": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/encodings": [
+   2,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/node-execution-subgraphs/pair": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation*/columns": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation*/columns": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*/clause/expression*": [
+   2,
+   1
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/aliases": [
+   2,
+   1
+  ],
+  "workbook/shared-views/shared-view/filter/groupfilter*": [
+   2,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/button/toggle-action": [
+   2,
+   1
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies/column/aliases/alias": [
+   2,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/groupfilter*/order/hierarchy": [
+   2,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.LocalDataTyped.true...LocalDataTyped": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/VizInTooltipHideWorksheet": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.LocalDataTyped.true...local-data-typed": [
+   1,
+   1
+  ],
+  "workbook/datasource-relationships": [
+   1,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-relationship": [
+   1,
+   1
+  ],
+  "workbook/datasource-relationships/datasource-relationship/column-mapping": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/layout-options/caption": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/layout-options/caption/formatted-text": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/layout-options/caption/formatted-text/run": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/subtotals": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/geo-search-visibility": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/calculations": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/calculations/calculation": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/calculations": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/calculations/calculation": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/scale": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/metadata-records/metadata-record/width": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/repository-location": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/encodings/shape": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/CascadingFilters": [
+   1,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/flipboard": [
+   1,
+   1
+  ],
+  "workbook/dashboards/dashboard/zones/zone*/flipboard/story-points": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/column-instance/table-calc/address": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/column-instance/table-calc/address/value": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/x-coord": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/x-coord/node-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/x-coord/node-reference/axis": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/y-coord": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/y-coord/node-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/y-coord/node-reference/axis": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/page-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/page-reference/fields": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/page-reference/fields/field": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/page-reference/multibucket": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/top-left/visual-coordinate/page-reference/multibucket/bucket": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/x-coord": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/x-coord/node-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/x-coord/node-reference/axis": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/y-coord": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/y-coord/node-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/y-coord/node-reference/axis": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/page-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/page-reference/fields": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/page-reference/fields/field": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/page-reference/multibucket": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/bottom-right/visual-coordinate/page-reference/multibucket/bucket": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/annotations/annotation/text": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/current-page": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/current-page/multibucket": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoints/viewpoint/current-page/multibucket/bucket": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.DatagraphCoreV1.true...DatagraphCoreV1": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...DatagraphNodeDashboardZoneVisibilityV1": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.DatagraphNodeSingleValueFieldV1.true...DatagraphNodeSingleValueFieldV1": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.Layers.true...Layers": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/ParameterAction": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.ParameterActionClearSelection.true...ParameterActionClearSelection": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/activation": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/source": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/agg-type": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/_.fcp.ParameterActionClearSelection.true...clear-option": [
+   1,
+   1
+  ],
+  "workbook/actions/edit-parameter-action/params": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/mark-sizing": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/encodings/color": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/encodings/size": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/encodings/geometry": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/customized-tooltip": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/customized-tooltip/formatted-text": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/style": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/_.fcp.Layers.true...pane/style/style-rule": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/properties": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/properties/default-execution-subgraph-guid": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/node-execution-subgraphs": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/nodes": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/nodes/_.fcp.DatagraphNodeSingleValueFieldV1.true...single-value-field-node": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/nodes/_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...dashboard-zone-visibility-node": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/edges": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/edges/edge": [
+   1,
+   1
+  ],
+  "workbook/_.fcp.DatagraphCoreV1.true...datagraph/graph/pin-values": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.PatternedLineMarks.true...PatternedLineMarks": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/panes/pane/style/style-rule/_.fcp.PatternedLineMarks.true...format": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoint/map-scale-visibility": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/relation/columns": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/extract/connection/relation/columns/column": [
+   1,
+   1
+  ],
+  "workbook/shared-views/shared-view/filter/min": [
+   1,
+   1
+  ],
+  "workbook/shared-views/shared-view/filter/max": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/DashboardMttwImageObject": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/_.fcp.SingleValuePerNestSorting.true...SingleValuePerNestSorting": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/relation/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/relation/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/desc": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/desc/formatted-text": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/datasource-dependencies/column/desc/formatted-text/run": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*/clause": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation*/clause/expression": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/_.fcp.SingleValuePerNestSorting.true...single-value-per-nest-shelf-sorts": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/_.fcp.SingleValuePerNestSorting.true...single-value-per-nest-shelf-sorts/single-value-per-nest-shelf-sort": [
+   1,
+   1
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/desc": [
+   1,
+   1
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/desc/formatted-text": [
+   1,
+   1
+  ],
+  "workbook/dashboards/dashboard/datasource-dependencies/column/desc/formatted-text/run": [
+   1,
+   1
+  ],
+  "workbook/windows/window/viewpoint/selection-collection/tuple-selection/tuple-reference/tuple-descriptor/pane-descriptor/y-fields/field": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/pane-descriptor": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/pane-descriptor/x-fields": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/pane-descriptor/y-fields": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/pane-descriptor/y-fields/field": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple-descriptor/columns": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/mark-labels/mark-label/tuple-reference/tuple": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/ISO8601PeriodTypes": [
+   1,
+   1
+  ],
+  "workbook/document-format-change-manifest/SavingAnalyticObjects": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/tag": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/groups": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.false...relation/groups/group": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/tag": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/groups": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/connection/_.fcp.ObjectModelEncapsulateLegacy.true...relation/groups/group": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/name": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/name/field": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/analysis-fields": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/analysis-fields/field": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/filter-fields": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/lod-fields": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/number-of-desired-clusters": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/analytic-model-specifications/is-dissagregate": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/analytic-model/result-fields": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/tag": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/groups": [
+   1,
+   1
+  ],
+  "workbook/datasources/datasource/_.fcp.ObjectModelEncapsulateLegacy.true...object-graph/objects/object/properties/relation/groups/group": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/style": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/style/style-rule": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/datasource-dependencies/style/style-rule/encoding": [
+   1,
+   1
+  ],
+  "workbook/shared-views/shared-view/datasource-dependencies/column/aliases": [
+   1,
+   1
+  ],
+  "workbook/worksheets/worksheet/table/view/filter/groupfilter*/order": [
+   1,
+   1
+  ]
+ },
+ "attributes": {
+  "workbook|source-build": [
+   60,
+   60
+  ],
+  "workbook|version": [
+   60,
+   60
+  ],
+  "datasource|name": [
+   689,
+   59
+  ],
+  "connection|class": [
+   327,
+   59
+  ],
+  "datasource|inline": [
+   126,
+   59
+  ],
+  "datasource|version": [
+   126,
+   59
+  ],
+  "workbook|source-platform": [
+   59,
+   59
+  ],
+  "datasource|caption": [
+   610,
+   55
+  ],
+  "relation|type": [
+   526,
+   55
+  ],
+  "relation|name": [
+   495,
+   55
+  ],
+  "relation|table": [
+   490,
+   55
+  ],
+  "column|datatype": [
+   6038,
+   54
+  ],
+  "column|name": [
+   6038,
+   54
+  ],
+  "column|role": [
+   3655,
+   54
+  ],
+  "column|type": [
+   3655,
+   54
+  ],
+  "card|type": [
+   3011,
+   54
+  ],
+  "metadata-record|class": [
+   2077,
+   54
+  ],
+  "strip|size": [
+   1913,
+   54
+  ],
+  "edge|name": [
+   1086,
+   54
+  ],
+  "breakdown|value": [
+   585,
+   54
+  ],
+  "mark|class": [
+   585,
+   54
+  ],
+  "window|class": [
+   510,
+   54
+  ],
+  "window|name": [
+   510,
+   54
+  ],
+  "worksheet|name": [
+   438,
+   54
+  ],
+  "aggregation|value": [
+   438,
+   54
+  ],
+  "semantic-value|key": [
+   224,
+   54
+  ],
+  "semantic-value|value": [
+   224,
+   54
+  ],
+  "named-connection|caption": [
+   124,
+   54
+  ],
+  "named-connection|name": [
+   124,
+   54
+  ],
+  "layout|dim-ordering": [
+   108,
+   54
+  ],
+  "layout|measure-ordering": [
+   108,
+   54
+  ],
+  "layout|show-structure": [
+   108,
+   54
+  ],
+  "windows|source-height": [
+   54,
+   54
+  ],
+  "column-instance|column": [
+   2325,
+   53
+  ],
+  "column-instance|derivation": [
+   2325,
+   53
+  ],
+  "column-instance|name": [
+   2325,
+   53
+  ],
+  "column-instance|pivot": [
+   2325,
+   53
+  ],
+  "column-instance|type": [
+   2325,
+   53
+  ],
+  "datasource-dependencies|datasource": [
+   577,
+   53
+  ],
+  "preference|name": [
+   111,
+   53
+  ],
+  "preference|value": [
+   111,
+   53
+  ],
+  "window|maximized": [
+   53,
+   53
+  ],
+  "attribute|datatype": [
+   1814,
+   52
+  ],
+  "attribute|name": [
+   1814,
+   52
+  ],
+  "relation|connection": [
+   268,
+   52
+  ],
+  "aliases|enabled": [
+   117,
+   52
+  ],
+  "connection|dbname": [
+   108,
+   52
+  ],
+  "collation|flag": [
+   941,
+   51
+  ],
+  "collation|name": [
+   941,
+   51
+  ],
+  "column|caption": [
+   2147,
+   50
+  ],
+  "format|attr": [
+   13902,
+   48
+  ],
+  "format|value": [
+   13902,
+   48
+  ],
+  "groupfilter|function": [
+   5585,
+   48
+  ],
+  "groupfilter|level": [
+   5196,
+   48
+  ],
+  "style-rule|element": [
+   2832,
+   48
+  ],
+  "simple-id|uuid": [
+   974,
+   47
+  ],
+  "pane|selection-relaxation-option": [
+   560,
+   47
+  ],
+  "calculation|class": [
+   1177,
+   46
+  ],
+  "calculation|formula": [
+   1171,
+   46
+  ],
+  "text|column": [
+   419,
+   46
+  ],
+  "filter|class": [
+   707,
+   45
+  ],
+  "filter|column": [
+   707,
+   45
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-marker": [
+   641,
+   45
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-enumeration": [
+   550,
+   45
+  ],
+  "properties|context": [
+   251,
+   45
+  ],
+  "object|caption": [
+   135,
+   45
+  ],
+  "object|id": [
+   135,
+   45
+  ],
+  "connection|server": [
+   59,
+   45
+  ],
+  "workbook|original-version": [
+   45,
+   45
+  ],
+  "column|ordinal": [
+   2334,
+   44
+  ],
+  "encoding|attr": [
+   385,
+   44
+  ],
+  "encoding|field": [
+   385,
+   44
+  ],
+  "encoding|type": [
+   385,
+   44
+  ],
+  "card|param": [
+   381,
+   44
+  ],
+  "columns|header": [
+   309,
+   44
+  ],
+  "connection|username": [
+   56,
+   44
+  ],
+  "groupfilter|member": [
+   4448,
+   43
+  ],
+  "zone|h": [
+   1999,
+   43
+  ],
+  "zone|id": [
+   1999,
+   43
+  ],
+  "zone|w": [
+   1999,
+   43
+  ],
+  "zone|x": [
+   1999,
+   43
+  ],
+  "zone|y": [
+   1999,
+   43
+  ],
+  "zone|name": [
+   1050,
+   43
+  ],
+  "viewpoint|name": [
+   380,
+   43
+  ],
+  "color|column": [
+   270,
+   43
+  ],
+  "thumbnail|height": [
+   262,
+   43
+  ],
+  "thumbnail|name": [
+   262,
+   43
+  ],
+  "thumbnail|width": [
+   262,
+   43
+  ],
+  "dashboard|name": [
+   72,
+   43
+  ],
+  "active|id": [
+   72,
+   43
+  ],
+  "connection|schema": [
+   93,
+   42
+  ],
+  "connection|tablename": [
+   93,
+   42
+  ],
+  "zone|param": [
+   741,
+   41
+  ],
+  "card|pane-specification-id": [
+   169,
+   41
+  ],
+  "size|minheight": [
+   112,
+   41
+  ],
+  "size|maxheight": [
+   106,
+   41
+  ],
+  "zoom|type": [
+   525,
+   40
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-domain": [
+   145,
+   39
+  ],
+  "size|sizing-mode": [
+   108,
+   39
+  ],
+  "map|to": [
+   7248,
+   38
+  ],
+  "zone|fixed-size": [
+   570,
+   38
+  ],
+  "zone|is-fixed": [
+   549,
+   38
+  ],
+  "column|semantic-role": [
+   360,
+   38
+  ],
+  "extract|count": [
+   89,
+   38
+  ],
+  "extract|enabled": [
+   89,
+   38
+  ],
+  "extract|units": [
+   89,
+   38
+  ],
+  "connection|update-time": [
+   89,
+   38
+  ],
+  "connection|author-locale": [
+   89,
+   38
+  ],
+  "connection|default-settings": [
+   89,
+   38
+  ],
+  "format|field": [
+   856,
+   37
+  ],
+  "run|bold": [
+   900,
+   36
+  ],
+  "encoding|field-type": [
+   167,
+   36
+  ],
+  "connection|sslmode": [
+   67,
+   36
+  ],
+  "devicelayout|name": [
+   61,
+   36
+  ],
+  "connection|filename": [
+   47,
+   36
+  ],
+  "devicelayout|auto-generated": [
+   57,
+   35
+  ],
+  "run|fontcolor": [
+   1197,
+   34
+  ],
+  "encoding|class": [
+   135,
+   34
+  ],
+  "encoding|scope": [
+   135,
+   34
+  ],
+  "group|name": [
+   132,
+   34
+  ],
+  "group|name-style": [
+   129,
+   34
+  ],
+  "connection|access_mode": [
+   65,
+   34
+  ],
+  "zone|type-v2": [
+   1026,
+   33
+  ],
+  "run|fontsize": [
+   892,
+   33
+  ],
+  "repository-location|id": [
+   248,
+   33
+  ],
+  "repository-location|path": [
+   248,
+   33
+  ],
+  "repository-location|revision": [
+   248,
+   33
+  ],
+  "param|name": [
+   237,
+   32
+  ],
+  "param|value": [
+   237,
+   32
+  ],
+  "lod|column": [
+   120,
+   32
+  ],
+  "source|type": [
+   113,
+   32
+  ],
+  "encoding|palette": [
+   110,
+   32
+  ],
+  "format|scope": [
+   1571,
+   31
+  ],
+  "activation|type": [
+   112,
+   31
+  ],
+  "source|worksheet": [
+   96,
+   31
+  ],
+  "connection|authentication": [
+   75,
+   31
+  ],
+  "group|caption": [
+   113,
+   30
+  ],
+  "action|caption": [
+   110,
+   30
+  ],
+  "action|name": [
+   110,
+   30
+  ],
+  "command|command": [
+   110,
+   30
+  ],
+  "source|dashboard": [
+   103,
+   30
+  ],
+  "connection|workgroup-auth-mode": [
+   88,
+   30
+  ],
+  "extract|_.fcp.VConnDownstreamExtractsWithWarnings.true...user-specific": [
+   78,
+   30
+  ],
+  "mapsource|name": [
+   72,
+   30
+  ],
+  "connection|password": [
+   40,
+   30
+  ],
+  "workbook|{http://www.w3.org/XML/1998/namespace}base": [
+   30,
+   30
+  ],
+  "run|fontname": [
+   650,
+   29
+  ],
+  "activation|auto-clear": [
+   108,
+   29
+  ],
+  "zone|pane-specification-id": [
+   108,
+   29
+  ],
+  "format|class": [
+   261,
+   28
+  ],
+  "group|hidden": [
+   115,
+   28
+  ],
+  "group|{http://www.tableausoftware.com/xml/user}auto-column": [
+   115,
+   28
+  ],
+  "size|minwidth": [
+   52,
+   28
+  ],
+  "size|maxwidth": [
+   46,
+   27
+  ],
+  "run|fontalignment": [
+   548,
+   26
+  ],
+  "columns|gridOrigin": [
+   231,
+   26
+  ],
+  "pane|id": [
+   190,
+   26
+  ],
+  "mark-sizing|mark-sizing-setting": [
+   112,
+   26
+  ],
+  "connection|cleaning": [
+   85,
+   26
+  ],
+  "connection|compat": [
+   85,
+   26
+  ],
+  "connection|dataRefreshTime": [
+   85,
+   26
+  ],
+  "connection|interpretationMode": [
+   85,
+   26
+  ],
+  "connection|validate": [
+   85,
+   26
+  ],
+  "table-calc|ordering-type": [
+   249,
+   25
+  ],
+  "zone|mode": [
+   207,
+   25
+  ],
+  "column|aggregation": [
+   177,
+   25
+  ],
+  "card|mode": [
+   158,
+   24
+  ],
+  "connection|directory": [
+   31,
+   24
+  ],
+  "columns|character-set": [
+   84,
+   23
+  ],
+  "columns|locale": [
+   84,
+   23
+  ],
+  "columns|separator": [
+   84,
+   23
+  ],
+  "encoding|min": [
+   59,
+   23
+  ],
+  "encoding|max": [
+   56,
+   23
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.false...relation|type": [
+   48,
+   23
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.true...relation|type": [
+   48,
+   23
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.false...relation|name": [
+   47,
+   23
+  ],
+  "encoding|range-type": [
+   47,
+   23
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.false...relation|table": [
+   46,
+   23
+  ],
+  "_.fcp.ObjectModelTableType.true...column|caption": [
+   44,
+   23
+  ],
+  "_.fcp.ObjectModelTableType.true...column|datatype": [
+   44,
+   23
+  ],
+  "_.fcp.ObjectModelTableType.true...column|name": [
+   44,
+   23
+  ],
+  "_.fcp.ObjectModelTableType.true...column|role": [
+   44,
+   23
+  ],
+  "_.fcp.ObjectModelTableType.true...column|type": [
+   44,
+   23
+  ],
+  "layout|_.fcp.SchemaViewerObjectModel.false...dim-percentage": [
+   30,
+   23
+  ],
+  "layout|_.fcp.SchemaViewerObjectModel.false...measure-percentage": [
+   30,
+   23
+  ],
+  "format|id": [
+   741,
+   22
+  ],
+  "column|default-format": [
+   368,
+   22
+  ],
+  "layout-cache|type-h": [
+   260,
+   22
+  ],
+  "layout-cache|type-w": [
+   260,
+   22
+  ],
+  "columns|outcome": [
+   221,
+   22
+  ],
+  "zone|show-title": [
+   185,
+   22
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}op": [
+   45,
+   22
+  ],
+  "size|column": [
+   43,
+   22
+  ],
+  "format|data-class": [
+   215,
+   21
+  ],
+  "zone|forceUpdate": [
+   148,
+   21
+  ],
+  "filter|included-values": [
+   98,
+   21
+  ],
+  "extract|object-id": [
+   68,
+   21
+  ],
+  "manual-sort|column": [
+   51,
+   21
+  ],
+  "manual-sort|direction": [
+   51,
+   21
+  ],
+  "encoding|projection": [
+   42,
+   21
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.false...relation|connection": [
+   28,
+   21
+  ],
+  "geometry|column": [
+   24,
+   21
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.true...relation|name": [
+   42,
+   20
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.true...relation|table": [
+   41,
+   20
+  ],
+  "table-calc|type": [
+   83,
+   19
+  ],
+  "refresh-event|add-from-file-path": [
+   63,
+   19
+  ],
+  "refresh-event|increment-value": [
+   63,
+   19
+  ],
+  "refresh-event|refresh-type": [
+   63,
+   19
+  ],
+  "refresh-event|rows-inserted": [
+   63,
+   19
+  ],
+  "refresh-event|timestamp-start": [
+   63,
+   19
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-action-filter": [
+   175,
+   18
+  ],
+  "dashboard|enable-sort-zone-taborder": [
+   32,
+   18
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.true...relation|connection": [
+   24,
+   18
+  ],
+  "pane|y-axis-name": [
+   109,
+   17
+  ],
+  "zone|is-scaled": [
+   68,
+   17
+  ],
+  "shelf-sort-v2|dimension-to-sort": [
+   33,
+   17
+  ],
+  "shelf-sort-v2|direction": [
+   33,
+   17
+  ],
+  "shelf-sort-v2|is-on-innermost-dimension": [
+   33,
+   17
+  ],
+  "shelf-sort-v2|measure-to-sort-by": [
+   33,
+   17
+  ],
+  "shelf-sort-v2|shelf": [
+   33,
+   17
+  ],
+  "filter|filter-group": [
+   203,
+   16
+  ],
+  "zone|values": [
+   119,
+   16
+  ],
+  "groupfilter|expression": [
+   44,
+   16
+  ],
+  "groupfilter|count": [
+   43,
+   16
+  ],
+  "groupfilter|end": [
+   43,
+   16
+  ],
+  "groupfilter|units": [
+   43,
+   16
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-top-by-field": [
+   43,
+   16
+  ],
+  "groupfilter|direction": [
+   43,
+   16
+  ],
+  "_.fcp.AnimationOnByDefault.false..._.fcp.MarkAnimation.true...style-rule|element": [
+   16,
+   16
+  ],
+  "_.fcp.AnimationOnByDefault.false...format|attr": [
+   16,
+   16
+  ],
+  "_.fcp.AnimationOnByDefault.false...format|value": [
+   16,
+   16
+  ],
+  "column|hidden": [
+   226,
+   15
+  ],
+  "expression|op": [
+   147,
+   15
+  ],
+  "encoding|fold": [
+   54,
+   15
+  ],
+  "calculation|decimals": [
+   47,
+   15
+  ],
+  "calculation|peg": [
+   47,
+   15
+  ],
+  "encoding|max-size": [
+   32,
+   15
+  ],
+  "encoding|min-size": [
+   32,
+   15
+  ],
+  "highlight|field": [
+   23,
+   15
+  ],
+  "default-map-tool-selection|tool": [
+   23,
+   15
+  ],
+  "map|key": [
+   671,
+   14
+  ],
+  "map|value": [
+   671,
+   14
+  ],
+  "layout-cache|minwidth": [
+   100,
+   14
+  ],
+  "calculation|size": [
+   38,
+   14
+  ],
+  "dashboard|_.fcp.AccessibleZoneTabOrder.true...enable-sort-zone-taborder": [
+   20,
+   14
+  ],
+  "extract|_.fcp.ObjectModelExtractV2.true...object-id": [
+   18,
+   14
+  ],
+  "repository-location|derived-from": [
+   191,
+   13
+  ],
+  "layout-cache|minheight": [
+   82,
+   13
+  ],
+  "wedge-size|column": [
+   25,
+   13
+  ],
+  "windows|saved-dpi-scale-factor": [
+   13,
+   13
+  ],
+  "tooltip|column": [
+   197,
+   12
+  ],
+  "column|param-domain-type": [
+   120,
+   12
+  ],
+  "column|value": [
+   120,
+   12
+  ],
+  "first-end-point|object-id": [
+   36,
+   12
+  ],
+  "second-end-point|object-id": [
+   36,
+   12
+  ],
+  "layout-cache|fixed-size-h": [
+   32,
+   12
+  ],
+  "column|{http://www.tableausoftware.com/xml/user}auto-column": [
+   19,
+   12
+  ],
+  "datasource|hasconnection": [
+   12,
+   12
+  ],
+  "table-calc|ordering-field": [
+   30,
+   11
+  ],
+  "link|caption": [
+   15,
+   11
+  ],
+  "link|delimiter": [
+   15,
+   11
+  ],
+  "link|escape": [
+   15,
+   11
+  ],
+  "link|expression": [
+   15,
+   11
+  ],
+  "link|include-null": [
+   15,
+   11
+  ],
+  "link|multi-select": [
+   15,
+   11
+  ],
+  "link|url-escape": [
+   15,
+   11
+  ],
+  "connection|odbc-native-protocol": [
+   14,
+   11
+  ],
+  "field-sort-info|field-sort-order-type": [
+   11,
+   11
+  ],
+  "alias|key": [
+   316,
+   10
+  ],
+  "alias|value": [
+   316,
+   10
+  ],
+  "column|datatype-customized": [
+   57,
+   10
+  ],
+  "column|{http://www.tableausoftware.com/xml/user}unnamed": [
+   46,
+   10
+  ],
+  "layout-cache|cell-count-w": [
+   43,
+   10
+  ],
+  "encoding|num-steps": [
+   24,
+   10
+  ],
+  "computed-sort|column": [
+   21,
+   10
+  ],
+  "computed-sort|direction": [
+   21,
+   10
+  ],
+  "computed-sort|using": [
+   21,
+   10
+  ],
+  "calculation|column": [
+   18,
+   10
+  ],
+  "field-sort-custom-order|field": [
+   129,
+   9
+  ],
+  "group|{http://www.tableausoftware.com/xml/user}ui-builder": [
+   14,
+   9
+  ],
+  "connection|one-time-sql": [
+   9,
+   9
+  ],
+  "layout|dim-percentage": [
+   9,
+   9
+  ],
+  "layout|measure-percentage": [
+   9,
+   9
+  ],
+  "date-options|start-of-week": [
+   54,
+   8
+  ],
+  "pane|x-axis-name": [
+   36,
+   8
+  ],
+  "encoding|major-origin": [
+   34,
+   8
+  ],
+  "encoding|major-spacing": [
+   34,
+   8
+  ],
+  "connection|updated-database": [
+   28,
+   8
+  ],
+  "card|show-null-ctrls": [
+   19,
+   8
+  ],
+  "reference-line|axis-column": [
+   18,
+   8
+  ],
+  "reference-line|enable-instant-analytics": [
+   18,
+   8
+  ],
+  "reference-line|formula": [
+   18,
+   8
+  ],
+  "reference-line|id": [
+   18,
+   8
+  ],
+  "reference-line|label-type": [
+   18,
+   8
+  ],
+  "reference-line|scope": [
+   18,
+   8
+  ],
+  "reference-line|value-column": [
+   18,
+   8
+  ],
+  "reference-line|z-order": [
+   18,
+   8
+  ],
+  "reference-line|probability": [
+   16,
+   8
+  ],
+  "encoding|reverse": [
+   13,
+   8
+  ],
+  "drill-path|name": [
+   11,
+   8
+  ],
+  "member|value": [
+   248,
+   7
+  ],
+  "button|action": [
+   99,
+   7
+  ],
+  "layout-cache|cell-count-h": [
+   72,
+   7
+  ],
+  "encoding|synchronized": [
+   28,
+   7
+  ],
+  "zone|layout-strategy-id": [
+   25,
+   7
+  ],
+  "layout-cache|fixed-size-w": [
+   20,
+   7
+  ],
+  "color-palette|custom": [
+   17,
+   7
+  ],
+  "color-palette|name": [
+   17,
+   7
+  ],
+  "color-palette|type": [
+   17,
+   7
+  ],
+  "floating-toolbar-visibility|value": [
+   16,
+   7
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-manual-selection": [
+   10,
+   7
+  ],
+  "node-selection|select-tuples": [
+   7,
+   7
+  ],
+  "oriented-node-reference|orientation": [
+   7,
+   7
+  ],
+  "zone|_.fcp.SetMembershipControl.false...type": [
+   212,
+   6
+  ],
+  "zone|_.fcp.SetMembershipControl.true...type-v2": [
+   212,
+   6
+  ],
+  "range|granularity": [
+   53,
+   6
+  ],
+  "range|min": [
+   53,
+   6
+  ],
+  "range|max": [
+   38,
+   6
+  ],
+  "column|date-parse-format": [
+   27,
+   6
+  ],
+  "layout-cache|non-cell-size-h": [
+   26,
+   6
+  ],
+  "pane|y-index": [
+   22,
+   6
+  ],
+  "card|show-domain": [
+   17,
+   6
+  ],
+  "encoding|center": [
+   9,
+   6
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-manual-selection-all-when-empty": [
+   9,
+   6
+  ],
+  "shared-view|name": [
+   7,
+   6
+  ],
+  "style-theme|name": [
+   6,
+   6
+  ],
+  "bin|default-name": [
+   307,
+   5
+  ],
+  "bin|value": [
+   307,
+   5
+  ],
+  "semantic-values|semantic-role": [
+   51,
+   5
+  ],
+  "window|hidden": [
+   43,
+   5
+  ],
+  "visual-coordinate|class": [
+   30,
+   5
+  ],
+  "annotation|class": [
+   29,
+   5
+  ],
+  "annotation|id": [
+   29,
+   5
+  ],
+  "table-calc|rank-options": [
+   23,
+   5
+  ],
+  "column-instance|forecast-column-base": [
+   13,
+   5
+  ],
+  "column-instance|forecast-column-type": [
+   13,
+   5
+  ],
+  "clause|type": [
+   13,
+   5
+  ],
+  "calculation|new-bin": [
+   12,
+   5
+  ],
+  "relation|join": [
+   11,
+   5
+  ],
+  "connection|port": [
+   6,
+   5
+  ],
+  "statistic|aggregation": [
+   118,
+   4
+  ],
+  "statistic|datatype": [
+   118,
+   4
+  ],
+  "zone|friendly-name": [
+   62,
+   4
+  ],
+  "refresh|increment-key": [
+   54,
+   4
+  ],
+  "refresh|incremental-updates": [
+   54,
+   4
+  ],
+  "zone|type": [
+   42,
+   4
+  ],
+  "annotation|mark-position": [
+   28,
+   4
+  ],
+  "annotation|pullback": [
+   28,
+   4
+  ],
+  "annotation|text-width": [
+   28,
+   4
+  ],
+  "body|x": [
+   28,
+   4
+  ],
+  "body|y": [
+   28,
+   4
+  ],
+  "table-calc|field": [
+   25,
+   4
+  ],
+  "layout-cache|non-cell-size-w": [
+   14,
+   4
+  ],
+  "card|size": [
+   11,
+   4
+  ],
+  "zone|show-null-ctrls": [
+   10,
+   4
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-exclude": [
+   8,
+   4
+  ],
+  "_.fcp.MarkAnimation.true...style-rule|element": [
+   7,
+   4
+  ],
+  "reference-line|label": [
+   6,
+   4
+  ],
+  "filter|kind": [
+   6,
+   4
+  ],
+  "layout|_.fcp.SchemaViewerObjectModel.true...common-percentage": [
+   5,
+   4
+  ],
+  "layout|_.fcp.SchemaViewerObjectModel.true...user-set-layout-v2": [
+   5,
+   4
+  ],
+  "layout|parameter-percentage": [
+   5,
+   4
+  ],
+  "reference-line|symmetric": [
+   5,
+   4
+  ],
+  "encoding|domain-expand": [
+   5,
+   4
+  ],
+  "size|preset-index": [
+   5,
+   4
+  ],
+  "forecast-specification|auto-forecast-agg": [
+   4,
+   4
+  ],
+  "forecast-specification|band-confidence-level": [
+   4,
+   4
+  ],
+  "forecast-specification|enabled": [
+   4,
+   4
+  ],
+  "forecast-specification|fill-type": [
+   4,
+   4
+  ],
+  "forecast-specification|ignore-last": [
+   4,
+   4
+  ],
+  "forecast-specification|model-type": [
+   4,
+   4
+  ],
+  "forecast-specification|range-type": [
+   4,
+   4
+  ],
+  "forecast-specification|show-prediction-bands": [
+   4,
+   4
+  ],
+  "rows|total": [
+   4,
+   4
+  ],
+  "connection|csvFile": [
+   4,
+   4
+  ],
+  "calculation|scope-isolation": [
+   29,
+   3
+  ],
+  "column|alias": [
+   28,
+   3
+  ],
+  "member|alias": [
+   25,
+   3
+  ],
+  "sort|class": [
+   23,
+   3
+  ],
+  "sort|column": [
+   23,
+   3
+  ],
+  "sort|direction": [
+   23,
+   3
+  ],
+  "encoding|major-show": [
+   22,
+   3
+  ],
+  "target|field": [
+   19,
+   3
+  ],
+  "sort|using": [
+   15,
+   3
+  ],
+  "zone|custom-title": [
+   13,
+   3
+  ],
+  "shape|name": [
+   10,
+   3
+  ],
+  "zone|show-domain": [
+   8,
+   3
+  ],
+  "zone|leg-item-layout": [
+   5,
+   3
+  ],
+  "columns|lost": [
+   5,
+   3
+  ],
+  "columns|processed": [
+   5,
+   3
+  ],
+  "groupfilter|from": [
+   4,
+   3
+  ],
+  "groupfilter|to": [
+   4,
+   3
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-manual-selection-is-empty": [
+   4,
+   3
+  ],
+  "table-calc|diff-options": [
+   4,
+   3
+  ],
+  "trendline|enable-confidence-bands": [
+   4,
+   3
+  ],
+  "trendline|enable-instant-analytics": [
+   4,
+   3
+  ],
+  "trendline|enabled": [
+   4,
+   3
+  ],
+  "trendline|exclude-color": [
+   4,
+   3
+  ],
+  "trendline|exclude-intercept": [
+   4,
+   3
+  ],
+  "trendline|fit": [
+   4,
+   3
+  ],
+  "connection|source-charset": [
+   3,
+   3
+  ],
+  "encoding|major-units": [
+   3,
+   3
+  ],
+  "cols|total": [
+   3,
+   3
+  ],
+  "page-trail-options|enabled": [
+   3,
+   3
+  ],
+  "page-trail-options|line-stroke-width": [
+   3,
+   3
+  ],
+  "page-trail-options|lines": [
+   3,
+   3
+  ],
+  "page-trail-options|mark-type": [
+   3,
+   3
+  ],
+  "reference-line|boxplot-mark-exclusion": [
+   3,
+   3
+  ],
+  "reference-line|boxplot-whisker-type": [
+   3,
+   3
+  ],
+  "layout|show-hidden-fields": [
+   3,
+   3
+  ],
+  "path|column": [
+   3,
+   3
+  ],
+  "connection|REDIRECT_URI": [
+   3,
+   3
+  ],
+  "connection|SCOPE": [
+   3,
+   3
+  ],
+  "connection|googleSheetId": [
+   3,
+   3
+  ],
+  "connection|mimeType": [
+   3,
+   3
+  ],
+  "connection|server-oauth": [
+   3,
+   3
+  ],
+  "label-data|column": [
+   3,
+   3
+  ],
+  "zone|hidden-by-user": [
+   51,
+   2
+  ],
+  "zone|is-centered": [
+   32,
+   2
+  ],
+  "map-pri|to": [
+   24,
+   2
+  ],
+  "column|aggregate-role-from": [
+   23,
+   2
+  ],
+  "folder-item|name": [
+   22,
+   2
+  ],
+  "folder-item|type": [
+   22,
+   2
+  ],
+  "button|button-type": [
+   22,
+   2
+  ],
+  "button-caption-font-style|fontcolor": [
+   22,
+   2
+  ],
+  "button-caption-font-style|fontname": [
+   22,
+   2
+  ],
+  "button-caption-font-style|fontsize": [
+   22,
+   2
+  ],
+  "window|tab-color": [
+   22,
+   2
+  ],
+  "button|_.fcp.DashboardExportButton.true...button-click-action-metadata": [
+   20,
+   2
+  ],
+  "zone|show-all": [
+   14,
+   2
+  ],
+  "calculation|size-parameter": [
+   9,
+   2
+  ],
+  "mark-sizing|custom-mark-size-in-axis-units": [
+   9,
+   2
+  ],
+  "mark-sizing|mark-alignment": [
+   9,
+   2
+  ],
+  "mark-sizing|use-custom-mark-size": [
+   9,
+   2
+  ],
+  "_.fcp.IndividualControlFormatting.true...format|attr": [
+   8,
+   2
+  ],
+  "_.fcp.IndividualControlFormatting.true...format|field": [
+   8,
+   2
+  ],
+  "_.fcp.IndividualControlFormatting.true...format|value": [
+   8,
+   2
+  ],
+  "order|field": [
+   8,
+   2
+  ],
+  "folder|name": [
+   6,
+   2
+  ],
+  "folder|role": [
+   6,
+   2
+  ],
+  "card|show-all": [
+   6,
+   2
+  ],
+  "_.fcp.IndividualControlFormatting.true...format|id": [
+   6,
+   2
+  ],
+  "run|italic": [
+   5,
+   2
+  ],
+  "_.fcp.ObjectModelTableType.false...column|caption": [
+   4,
+   2
+  ],
+  "_.fcp.ObjectModelTableType.false...column|datatype": [
+   4,
+   2
+  ],
+  "_.fcp.ObjectModelTableType.false...column|name": [
+   4,
+   2
+  ],
+  "_.fcp.ObjectModelTableType.false...column|role": [
+   4,
+   2
+  ],
+  "_.fcp.ObjectModelTableType.false...column|type": [
+   4,
+   2
+  ],
+  "geo-search-visibility|value": [
+   4,
+   2
+  ],
+  "column|{http://www.tableausoftware.com/xml/user}SplitFieldIndex": [
+   4,
+   2
+  ],
+  "column|{http://www.tableausoftware.com/xml/user}SplitFieldOrigin": [
+   4,
+   2
+  ],
+  "relation|all": [
+   4,
+   2
+  ],
+  "worksheet|lock-quick-filters": [
+   4,
+   2
+  ],
+  "card|values": [
+   4,
+   2
+  ],
+  "_.fcp.IndividualControlFormatting.true...style-rule|element": [
+   3,
+   2
+  ],
+  "button|active-visual-state-index": [
+   3,
+   2
+  ],
+  "edit-group-action|caption": [
+   2,
+   2
+  ],
+  "edit-group-action|name": [
+   2,
+   2
+  ],
+  "_.fcp.GroupActionAddRemove.true...add-or-remove-marks|value": [
+   2,
+   2
+  ],
+  "page-trail-options|end": [
+   2,
+   2
+  ],
+  "page-trail-options|line-color": [
+   2,
+   2
+  ],
+  "page-trail-options|mark-color": [
+   2,
+   2
+  ],
+  "page-trail-options|start": [
+   2,
+   2
+  ],
+  "layout|show-aliased-fields": [
+   2,
+   2
+  ],
+  "actions|brushing-enabled": [
+   2,
+   2
+  ],
+  "workbook|locale": [
+   2,
+   2
+  ],
+  "encoding|symmetric": [
+   2,
+   2
+  ],
+  "layout|group-percentage": [
+   2,
+   2
+  ],
+  "field|name": [
+   53,
+   1
+  ],
+  "value|name": [
+   51,
+   1
+  ],
+  "zone|url": [
+   12,
+   1
+  ],
+  "run|underline": [
+   10,
+   1
+  ],
+  "calculation|default": [
+   7,
+   1
+  ],
+  "zone|show-search": [
+   6,
+   1
+  ],
+  "exclude-sheet|name": [
+   5,
+   1
+  ],
+  "tooltip-style|tooltip-mode": [
+   5,
+   1
+  ],
+  "reference-line-value|percentage": [
+   4,
+   1
+  ],
+  "device|name": [
+   4,
+   1
+  ],
+  "device|type": [
+   4,
+   1
+  ],
+  "repository-location|site": [
+   4,
+   1
+  ],
+  "run|indent": [
+   3,
+   1
+  ],
+  "device|is-portrait": [
+   3,
+   1
+  ],
+  "dropline|drop-when": [
+   3,
+   1
+  ],
+  "dropline|haslabel": [
+   3,
+   1
+  ],
+  "dropline|x-axis": [
+   3,
+   1
+  ],
+  "dropline|y-axis": [
+   3,
+   1
+  ],
+  "zone|removable": [
+   3,
+   1
+  ],
+  "story-point|caption": [
+   3,
+   1
+  ],
+  "story-point|captured-sheet": [
+   3,
+   1
+  ],
+  "story-point|id": [
+   3,
+   1
+  ],
+  "filter|context": [
+   3,
+   1
+  ],
+  "tag|name": [
+   3,
+   1
+  ],
+  "reference-line|fill-above": [
+   2,
+   1
+  ],
+  "reference-line|fill-below": [
+   2,
+   1
+  ],
+  "reference-line|percentage-bands": [
+   2,
+   1
+  ],
+  "layout-options|export-center-horz": [
+   2,
+   1
+  ],
+  "layout-options|export-center-vert": [
+   2,
+   1
+  ],
+  "layout-options|export-orientation": [
+   2,
+   1
+  ],
+  "zone|show-exclude": [
+   2,
+   1
+  ],
+  "zone|show-filter-state": [
+   2,
+   1
+  ],
+  "zone|paired-zone-id": [
+   2,
+   1
+  ],
+  "x-coord|axis-value": [
+   2,
+   1
+  ],
+  "y-coord|axis-value": [
+   2,
+   1
+  ],
+  "zone|synchronized": [
+   2,
+   1
+  ],
+  "_.fcp.Layers.true...pane|id": [
+   2,
+   1
+  ],
+  "_.fcp.Layers.true...pane|selection-relaxation-option": [
+   2,
+   1
+  ],
+  "zone|show-reldate-picker": [
+   2,
+   1
+  ],
+  "layout-cache|has-max-size-w": [
+   2,
+   1
+  ],
+  "layout-cache|maxwidth": [
+   2,
+   1
+  ],
+  "pair|execution-subgraph-guid": [
+   2,
+   1
+  ],
+  "pair|node-guid": [
+   2,
+   1
+  ],
+  "layout-cache|has-max-size-h": [
+   2,
+   1
+  ],
+  "layout-cache|maxheight": [
+   2,
+   1
+  ],
+  "zone|single-line": [
+   2,
+   1
+  ],
+  "zone|alt-text": [
+   2,
+   1
+  ],
+  "filter|first-period": [
+   2,
+   1
+  ],
+  "filter|include-future": [
+   2,
+   1
+  ],
+  "filter|include-null": [
+   2,
+   1
+  ],
+  "filter|last-period": [
+   2,
+   1
+  ],
+  "filter|period-anchor": [
+   2,
+   1
+  ],
+  "filter|period-type-v2": [
+   2,
+   1
+  ],
+  "table-calc|level-address": [
+   2,
+   1
+  ],
+  "hierarchy|name": [
+   2,
+   1
+  ],
+  "_.fcp.LocalDataTyped.true...local-data-typed|directory": [
+   1,
+   1
+  ],
+  "_.fcp.LocalDataTyped.true...local-data-typed|type": [
+   1,
+   1
+  ],
+  "group|{http://www.tableausoftware.com/xml/user}ui-vit-column": [
+   1,
+   1
+  ],
+  "connection|temporary": [
+   1,
+   1
+  ],
+  "datasource-relationship|source": [
+   1,
+   1
+  ],
+  "datasource-relationship|target": [
+   1,
+   1
+  ],
+  "forecast-specification|season-type": [
+   1,
+   1
+  ],
+  "forecast-specification|trend-type": [
+   1,
+   1
+  ],
+  "connection|channel": [
+   1,
+   1
+  ],
+  "shape|column": [
+   1,
+   1
+  ],
+  "table-calc|aggregation": [
+   1,
+   1
+  ],
+  "layout|rowDisplayCount": [
+   1,
+   1
+  ],
+  "second-end-point|unique-key": [
+   1,
+   1
+  ],
+  "dashboard|type": [
+   1,
+   1
+  ],
+  "flipboard|active-id": [
+   1,
+   1
+  ],
+  "flipboard|nav-type": [
+   1,
+   1
+  ],
+  "flipboard|show-nav-arrows": [
+   1,
+   1
+  ],
+  "encoding|minor-origin": [
+   1,
+   1
+  ],
+  "encoding|minor-show": [
+   1,
+   1
+  ],
+  "encoding|minor-spacing": [
+   1,
+   1
+  ],
+  "encoding|minor-units": [
+   1,
+   1
+  ],
+  "windows|show-side-pane": [
+   1,
+   1
+  ],
+  "annotation|text-pinx": [
+   1,
+   1
+  ],
+  "annotation|text-piny": [
+   1,
+   1
+  ],
+  "annotation|text-width-delta": [
+   1,
+   1
+  ],
+  "text|x": [
+   1,
+   1
+  ],
+  "text|y": [
+   1,
+   1
+  ],
+  "page-trail-options|mark-color-auto": [
+   1,
+   1
+  ],
+  "page-trail-options|marks": [
+   1,
+   1
+  ],
+  "page-trail-options|trail-effect": [
+   1,
+   1
+  ],
+  "edit-parameter-action|caption": [
+   1,
+   1
+  ],
+  "edit-parameter-action|name": [
+   1,
+   1
+  ],
+  "agg-type|type": [
+   1,
+   1
+  ],
+  "_.fcp.ParameterActionClearSelection.true...clear-option|type": [
+   1,
+   1
+  ],
+  "_.fcp.ParameterActionClearSelection.true...clear-option|value": [
+   1,
+   1
+  ],
+  "panes|_.fcp.Layers.true...customization-axis": [
+   1,
+   1
+  ],
+  "pane|_.fcp.Layers.true...generated-title": [
+   1,
+   1
+  ],
+  "_.fcp.Layers.true...pane|title": [
+   1,
+   1
+  ],
+  "default-execution-subgraph-guid|value": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeSingleValueFieldV1.true...single-value-field-node|fieldname": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeSingleValueFieldV1.true...single-value-field-node|fieldname-input-guid": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeSingleValueFieldV1.true...single-value-field-node|node-guid": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeSingleValueFieldV1.true...single-value-field-node|value-output-guid": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...dashboard-zone-visibility-node|dashboard-identifier": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...dashboard-zone-visibility-node|node-guid": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...dashboard-zone-visibility-node|visibility-input-guid": [
+   1,
+   1
+  ],
+  "_.fcp.DatagraphNodeDashboardZoneVisibilityV1.true...dashboard-zone-visibility-node|zone-id": [
+   1,
+   1
+  ],
+  "edge|from": [
+   1,
+   1
+  ],
+  "edge|to": [
+   1,
+   1
+  ],
+  "_.fcp.PatternedLineMarks.true...format|attr": [
+   1,
+   1
+  ],
+  "_.fcp.PatternedLineMarks.true...format|value": [
+   1,
+   1
+  ],
+  "map-scale-visibility|value": [
+   1,
+   1
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.false...relation|join": [
+   1,
+   1
+  ],
+  "_.fcp.ObjectModelEncapsulateLegacy.true...relation|join": [
+   1,
+   1
+  ],
+  "groupfilter|{http://www.tableausoftware.com/xml/user}ui-filter-by-field": [
+   1,
+   1
+  ],
+  "single-value-per-nest-shelf-sort|dimension-to-sort": [
+   1,
+   1
+  ],
+  "single-value-per-nest-shelf-sort|direction": [
+   1,
+   1
+  ],
+  "single-value-per-nest-shelf-sort|is-on-innermost-dimension": [
+   1,
+   1
+  ],
+  "single-value-per-nest-shelf-sort|measure-to-sort-by": [
+   1,
+   1
+  ],
+  "single-value-per-nest-shelf-sort|shelf": [
+   1,
+   1
+  ],
+  "rows|onTop": [
+   1,
+   1
+  ],
+  "reference-line|value": [
+   1,
+   1
+  ],
+  "layout|common-percentage": [
+   1,
+   1
+  ],
+  "layout|user-set-layout-v2": [
+   1,
+   1
+  ],
+  "mark-label|id": [
+   1,
+   1
+  ],
+  "mark-label|label-state": [
+   1,
+   1
+  ],
+  "highlight|type": [
+   1,
+   1
+  ],
+  "analytic-model-specifications|class": [
+   1,
+   1
+  ],
+  "column|auto-hidden": [
+   1,
+   1
+  ],
+  "column|is-adhoc-cluster": [
+   1,
+   1
+  ],
+  "column|parent-model": [
+   1,
+   1
+  ],
+  "column-instance|is-adhoc-cluster": [
+   1,
+   1
+  ],
+  "pane|x-index": [
+   1,
+   1
+  ],
+  "device-preview|visible": [
+   1,
+   1
+  ]
+ },
+ "attribute_values": {
+  "datasource@inline": {
+   "true": [
+    126,
+    59
+   ]
+  },
+  "connection@class": {
+   "federated": [
+    108,
+    54
+   ],
+   "hyper": [
+    89,
+    38
+   ],
+   "textscan": [
+    26,
+    19
+   ],
+   "excel-direct": [
+    78,
+    19
+   ],
+   "sqlserver": [
+    9,
+    9
+   ],
+   "dataengine": [
+    4,
+    4
+   ],
+   "textclean": [
+    4,
+    4
+   ],
+   "mysql": [
+    3,
+    3
+   ],
+   "google-sheets": [
+    3,
+    3
+   ],
+   "postgres": [
+    2,
+    2
+   ],
+   "sqlproxy": [
+    1,
+    1
+   ]
+  },
+  "format@attr": {
+   "mark-labels-show": [
+    399,
+    46
+   ],
+   "mark-labels-cull": [
+    325,
+    46
+   ],
+   "border-style": [
+    1872,
+    44
+   ],
+   "border-color": [
+    1803,
+    42
+   ],
+   "border-width": [
+    1735,
+    42
+   ],
+   "margin": [
+    1380,
+    41
+   ],
+   "padding": [
+    686,
+    36
+   ],
+   "washout": [
+    42,
+    30
+   ],
+   "color": [
+    301,
+    29
+   ],
+   "width": [
+    114,
+    27
+   ],
+   "size": [
+    125,
+    27
+   ],
+   "mark-labels-mode": [
+    87,
+    27
+   ],
+   "title": [
+    168,
+    26
+   ],
+   "display-field-labels": [
+    117,
+    26
+   ],
+   "background-color": [
+    454,
+    25
+   ],
+   "text-align": [
+    162,
+    25
+   ],
+   "line-visibility": [
+    580,
+    23
+   ],
+   "display": [
+    155,
+    22
+   ],
+   "text-format": [
+    151,
+    22
+   ],
+   "font-size": [
+    204,
+    22
+   ],
+   "font-weight": [
+    217,
+    22
+   ],
+   "mark-color": [
+    92,
+    21
+   ],
+   "stroke-size": [
+    498,
+    21
+   ],
+   "mark-labels-range-scope": [
+    53,
+    21
+   ],
+   "mark-labels-range-min": [
+    50,
+    20
+   ],
+   "height": [
+    47,
+    19
+   ],
+   "palette": [
+    22,
+    19
+   ],
+   "mark-labels-range-max": [
+    48,
+    19
+   ],
+   "mark-labels-range-field": [
+    46,
+    19
+   ],
+   "stroke-color": [
+    191,
+    18
+   ],
+   "line-pattern-only": [
+    90,
+    18
+   ],
+   "minwidth": [
+    72,
+    18
+   ],
+   "maxwidth": [
+    72,
+    18
+   ],
+   "mark-labels-line-first": [
+    44,
+    18
+   ],
+   "mark-labels-line-last": [
+    46,
+    18
+   ],
+   "font-family": [
+    48,
+    17
+   ],
+   "enabled": [
+    561,
+    17
+   ],
+   "map-style": [
+    19,
+    17
+   ],
+   "minheight": [
+    60,
+    16
+   ],
+   "maxheight": [
+    60,
+    16
+   ],
+   "vertical-align": [
+    54,
+    15
+   ],
+   "has-stroke": [
+    41,
+    15
+   ],
+   "mark-transparency": [
+    55,
+    14
+   ],
+   "geo-area-type": [
+    16,
+    14
+   ],
+   "show-null-value-warning": [
+    26,
+    12
+   ],
+   "wrap": [
+    22,
+    12
+   ],
+   "omit-on-special": [
+    18,
+    10
+   ],
+   "break-on-special": [
+    18,
+    10
+   ],
+   "band-size": [
+    16,
+    10
+   ],
+   "color-mode": [
+    56,
+    10
+   ],
+   "tick-color": [
+    53,
+    9
+   ],
+   "band-color": [
+    22,
+    8
+   ],
+   "fill-above": [
+    23,
+    7
+   ],
+   "fill-below": [
+    23,
+    7
+   ],
+   "text-orientation": [
+    15,
+    7
+   ],
+   "height-header": [
+    7,
+    7
+   ],
+   "div-level": [
+    54,
+    6
+   ],
+   "shape": [
+    7,
+    5
+   ],
+   "aspect": [
+    11,
+    5
+   ],
+   "animation-on": [
+    6,
+    4
+   ],
+   "cell-w": [
+    6,
+    4
+   ],
+   "cell-h": [
+    6,
+    4
+   ],
+   "cell": [
+    6,
+    4
+   ],
+   "cell-q": [
+    6,
+    4
+   ],
+   "subtitle": [
+    17,
+    3
+   ],
+   "auto-subtitle": [
+    17,
+    3
+   ],
+   "font-style": [
+    5,
+    3
+   ],
+   "margin-top": [
+    12,
+    3
+   ],
+   "has-halo": [
+    3,
+    3
+   ],
+   "width-header": [
+    3,
+    3
+   ],
+   "mark-markers-mode": [
+    13,
+    3
+   ],
+   "render-fold-reversed": [
+    3,
+    3
+   ],
+   "in-tooltip": [
+    5,
+    3
+   ],
+   "col-width": [
+    2,
+    2
+   ],
+   "band-level": [
+    3,
+    2
+   ],
+   "margin-right": [
+    8,
+    2
+   ],
+   "margin-left": [
+    4,
+    2
+   ],
+   "margin-bottom": [
+    7,
+    2
+   ],
+   "alternate-text": [
+    2,
+    2
+   ],
+   "display-alternate-text": [
+    2,
+    2
+   ],
+   "line-pattern": [
+    6,
+    2
+   ],
+   "separator": [
+    4,
+    2
+   ],
+   "text-decoration": [
+    2,
+    2
+   ],
+   "animation-duration": [
+    2,
+    1
+   ],
+   "animation-style": [
+    1,
+    1
+   ],
+   "reverse-palette": [
+    2,
+    1
+   ],
+   "padding-top": [
+    1,
+    1
+   ],
+   "padding-right": [
+    3,
+    1
+   ],
+   "halo-color": [
+    1,
+    1
+   ],
+   "hnaxis": [
+    1,
+    1
+   ],
+   "hnlabel": [
+    1,
+    1
+   ],
+   "line-interpolation": [
+    3,
+    1
+   ],
+   "boxplot-style": [
+    1,
+    1
+   ],
+   "fill-color": [
+    1,
+    1
+   ],
+   "opacity": [
+    1,
+    1
+   ],
+   "whisker-end": [
+    1,
+    1
+   ],
+   "whisker-stroke-color": [
+    1,
+    1
+   ],
+   "whisker-stroke-size": [
+    1,
+    1
+   ]
+  },
+  "column@datatype": {
+   "string": [
+    2540,
+    54
+   ],
+   "integer": [
+    1862,
+    52
+   ],
+   "real": [
+    1101,
+    48
+   ],
+   "date": [
+    323,
+    29
+   ],
+   "table": [
+    96,
+    22
+   ],
+   "datetime": [
+    84,
+    10
+   ],
+   "boolean": [
+    32,
+    6
+   ]
+  },
+  "column@role": {
+   "dimension": [
+    1903,
+    54
+   ],
+   "measure": [
+    1752,
+    54
+   ]
+  },
+  "column@type": {
+   "nominal": [
+    1431,
+    54
+   ],
+   "quantitative": [
+    1785,
+    54
+   ],
+   "ordinal": [
+    439,
+    44
+   ]
+  },
+  "calculation@class": {
+   "tableau": [
+    1118,
+    45
+   ],
+   "bin": [
+    47,
+    15
+   ],
+   "categorical-bin": [
+    12,
+    5
+   ]
+  },
+  "column-instance@derivation": {
+   "None": [
+    943,
+    53
+   ],
+   "Sum": [
+    645,
+    51
+   ],
+   "User": [
+    210,
+    25
+   ],
+   "Avg": [
+    112,
+    23
+   ],
+   "Year": [
+    125,
+    21
+   ],
+   "Max": [
+    34,
+    13
+   ],
+   "Year-Trunc": [
+    27,
+    12
+   ],
+   "Count": [
+    55,
+    10
+   ],
+   "Attribute": [
+    32,
+    9
+   ],
+   "Month-Trunc": [
+    32,
+    7
+   ],
+   "Month": [
+    17,
+    5
+   ],
+   "Day-Trunc": [
+    20,
+    5
+   ],
+   "InOut": [
+    4,
+    4
+   ],
+   "CountD": [
+    28,
+    4
+   ],
+   "Median": [
+    6,
+    3
+   ],
+   "MDY": [
+    3,
+    3
+   ],
+   "Quarter": [
+    8,
+    2
+   ],
+   "Weekday": [
+    3,
+    2
+   ],
+   "Min": [
+    3,
+    1
+   ],
+   "Week-Trunc": [
+    3,
+    1
+   ],
+   "Hour": [
+    1,
+    1
+   ],
+   "Stdev": [
+    1,
+    1
+   ],
+   "StdevP": [
+    1,
+    1
+   ],
+   "Quarter-Trunc": [
+    1,
+    1
+   ],
+   "Week": [
+    11,
+    1
+   ]
+  },
+  "column-instance@pivot": {
+   "key": [
+    2325,
+    53
+   ]
+  },
+  "column-instance@type": {
+   "nominal": [
+    806,
+    53
+   ],
+   "quantitative": [
+    1228,
+    52
+   ],
+   "ordinal": [
+    291,
+    37
+   ]
+  },
+  "groupfilter@function": {
+   "member": [
+    4446,
+    43
+   ],
+   "level-members": [
+    746,
+    40
+   ],
+   "union": [
+    88,
+    29
+   ],
+   "crossjoin": [
+    159,
+    28
+   ],
+   "end": [
+    43,
+    16
+   ],
+   "order": [
+    43,
+    16
+   ],
+   "except": [
+    52,
+    16
+   ],
+   "range": [
+    4,
+    3
+   ],
+   "empty-level": [
+    2,
+    2
+   ],
+   "filter": [
+    1,
+    1
+   ],
+   "reorder-dimensionality": [
+    1,
+    1
+   ]
+  },
+  "relation@type": {
+   "table": [
+    490,
+    55
+   ],
+   "collection": [
+    20,
+    8
+   ],
+   "join": [
+    11,
+    5
+   ],
+   "union": [
+    4,
+    2
+   ],
+   "pivot": [
+    1,
+    1
+   ]
+  },
+  "activation@type": {
+   "on-select": [
+    105,
+    31
+   ],
+   "on-hover": [
+    7,
+    3
+   ]
+  },
+  "source@type": {
+   "sheet": [
+    113,
+    32
+   ]
+  },
+  "pane@selection-relaxation-option": {
+   "selection-relaxation-allow": [
+    544,
+    46
+   ],
+   "selection-relaxation-disallow": [
+    16,
+    2
+   ]
+  },
+  "mark@class": {
+   "Automatic": [
+    341,
+    53
+   ],
+   "Pie": [
+    68,
+    16
+   ],
+   "Bar": [
+    50,
+    15
+   ],
+   "Circle": [
+    28,
+    14
+   ],
+   "Square": [
+    16,
+    9
+   ],
+   "Line": [
+    29,
+    9
+   ],
+   "Area": [
+    26,
+    8
+   ],
+   "Multipolygon": [
+    10,
+    7
+   ],
+   "Text": [
+    11,
+    6
+   ],
+   "Shape": [
+    6,
+    4
+   ]
+  },
+  "style-rule@element": {
+   "mark": [
+    612,
+    48
+   ],
+   "cell": [
+    315,
+    39
+   ],
+   "axis": [
+    179,
+    38
+   ],
+   "pane": [
+    182,
+    31
+   ],
+   "worksheet": [
+    170,
+    30
+   ],
+   "map": [
+    42,
+    30
+   ],
+   "header": [
+    156,
+    28
+   ],
+   "table": [
+    235,
+    27
+   ],
+   "label": [
+    97,
+    25
+   ],
+   "gridline": [
+    104,
+    20
+   ],
+   "table-div": [
+    121,
+    19
+   ],
+   "quick-filter": [
+    58,
+    17
+   ],
+   "map-layer": [
+    19,
+    17
+   ],
+   "map-data-layer": [
+    19,
+    17
+   ],
+   "refline": [
+    61,
+    13
+   ],
+   "title": [
+    111,
+    13
+   ],
+   "zeroline": [
+    78,
+    13
+   ],
+   "legend-title-text": [
+    17,
+    12
+   ],
+   "datalabel": [
+    56,
+    10
+   ],
+   "dropline": [
+    49,
+    8
+   ],
+   "trendline": [
+    39,
+    7
+   ],
+   "header-div": [
+    40,
+    6
+   ],
+   "legend": [
+    8,
+    5
+   ],
+   "field-labels": [
+    7,
+    5
+   ],
+   "legend-title": [
+    5,
+    5
+   ],
+   "field-labels-decoration": [
+    6,
+    4
+   ],
+   "tooltip": [
+    7,
+    4
+   ],
+   "quick-filter-title": [
+    7,
+    4
+   ],
+   "axis-title": [
+    3,
+    3
+   ],
+   "page-card-title": [
+    3,
+    3
+   ],
+   "field-labels-spanner": [
+    5,
+    3
+   ],
+   "refboxplot": [
+    2,
+    2
+   ],
+   "caption": [
+    4,
+    2
+   ],
+   "refband": [
+    2,
+    1
+   ],
+   "dash-container": [
+    6,
+    1
+   ],
+   "dash-subtitle": [
+    3,
+    1
+   ],
+   "all": [
+    1,
+    1
+   ],
+   "parameter-ctrl-title": [
+    1,
+    1
+   ],
+   "dash-title": [
+    1,
+    1
+   ],
+   "parameter-ctrl": [
+    1,
+    1
+   ]
+  },
+  "window@class": {
+   "worksheet": [
+    438,
+    54
+   ],
+   "dashboard": [
+    72,
+    43
+   ]
+  },
+  "sort@class": {
+   "computed": [
+    15,
+    3
+   ],
+   "manual": [
+    8,
+    2
+   ]
+  },
+  "sort@direction": {
+   "DESC": [
+    15,
+    3
+   ],
+   "ASC": [
+    8,
+    2
+   ]
+  },
+  "datasource@hasconnection": {
+   "false": [
+    12,
+    12
+   ]
+  },
+  "column@param-domain-type": {
+   "list": [
+    63,
+    7
+   ],
+   "range": [
+    53,
+    6
+   ],
+   "any": [
+    4,
+    1
+   ]
+  },
+  "table-calc@ordering-type": {
+   "Rows": [
+    175,
+    22
+   ],
+   "Columns": [
+    40,
+    11
+   ],
+   "Field": [
+    34,
+    11
+   ]
+  },
+  "encoding@attr": {
+   "color": [
+    216,
+    42
+   ],
+   "space": [
+    135,
+    34
+   ],
+   "size-bar": [
+    28,
+    13
+   ],
+   "size": [
+    4,
+    4
+   ],
+   "shape": [
+    2,
+    2
+   ]
+  },
+  "column@aggregation": {
+   "Sum": [
+    99,
+    13
+   ],
+   "None": [
+    31,
+    13
+   ],
+   "Avg": [
+    32,
+    4
+   ],
+   "CountD": [
+    15,
+    1
+   ]
+  },
+  "table-calc@type": {
+   "PctTotal": [
+    55,
+    16
+   ],
+   "Rank": [
+    23,
+    5
+   ],
+   "Difference": [
+    2,
+    2
+   ],
+   "CumTotal": [
+    1,
+    1
+   ],
+   "PctDiff": [
+    2,
+    1
+   ]
+  },
+  "command@command": {
+   "tsc:tsl-filter": [
+    85,
+    28
+   ],
+   "tsc:brush": [
+    25,
+    9
+   ]
+  },
+  "filter@class": {
+   "categorical": [
+    607,
+    45
+   ],
+   "quantitative": [
+    98,
+    21
+   ],
+   "relative-date": [
+    2,
+    1
+   ]
+  },
+  "reference-line@formula": {
+   "average": [
+    15,
+    8
+   ],
+   "max": [
+    1,
+    1
+   ],
+   "median": [
+    1,
+    1
+   ],
+   "constant": [
+    1,
+    1
+   ]
+  },
+  "reference-line@scope": {
+   "per-cell": [
+    7,
+    4
+   ],
+   "per-table": [
+    7,
+    3
+   ],
+   "per-pane": [
+    4,
+    3
+   ]
+  },
+  "filter@filter-group": {
+   "4": [
+    48,
+    12
+   ],
+   "5": [
+    29,
+    9
+   ],
+   "3": [
+    26,
+    8
+   ],
+   "6": [
+    31,
+    8
+   ],
+   "7": [
+    17,
+    5
+   ],
+   "10": [
+    6,
+    2
+   ],
+   "8": [
+    15,
+    2
+   ],
+   "9": [
+    6,
+    2
+   ],
+   "11": [
+    6,
+    2
+   ],
+   "12": [
+    3,
+    1
+   ],
+   "18": [
+    3,
+    1
+   ],
+   "14": [
+    4,
+    1
+   ],
+   "2": [
+    9,
+    1
+   ]
+  },
+  "zone@mode": {
+   "dropdown": [
+    79,
+    17
+   ],
+   "checkdropdown": [
+    99,
+    12
+   ],
+   "compact": [
+    15,
+    4
+   ],
+   "slider": [
+    6,
+    4
+   ],
+   "radiolist": [
+    4,
+    2
+   ],
+   "type_in": [
+    2,
+    1
+   ],
+   "pattern": [
+    2,
+    1
+   ]
+  },
+  "size@sizing-mode": {
+   "vscroll": [
+    60,
+    36
+   ],
+   "fixed": [
+    27,
+    14
+   ],
+   "automatic": [
+    18,
+    14
+   ],
+   "range": [
+    3,
+    3
+   ]
+  },
+  "extract@enabled": {
+   "true": [
+    89,
+    38
+   ]
+  },
+  "relation@join": {
+   "inner": [
+    11,
+    5
+   ]
+  },
+  "zone@type": {
+   "layout-basic": [
+    8,
+    4
+   ],
+   "layout-flow": [
+    18,
+    4
+   ],
+   "filter": [
+    4,
+    3
+   ],
+   "size": [
+    2,
+    2
+   ],
+   "title": [
+    2,
+    2
+   ],
+   "bitmap": [
+    4,
+    2
+   ],
+   "text": [
+    4,
+    2
+   ]
+  },
+  "zone@type-v2": {
+   "layout-basic": [
+    145,
+    33
+   ],
+   "layout-flow": [
+    209,
+    30
+   ],
+   "color": [
+    89,
+    25
+   ],
+   "filter": [
+    189,
+    23
+   ],
+   "text": [
+    155,
+    17
+   ],
+   "bitmap": [
+    70,
+    12
+   ],
+   "dashboard-object": [
+    99,
+    7
+   ],
+   "empty": [
+    42,
+    5
+   ],
+   "paramctrl": [
+    17,
+    5
+   ],
+   "title": [
+    5,
+    3
+   ],
+   "flipboard-nav": [
+    1,
+    1
+   ],
+   "flipboard": [
+    1,
+    1
+   ],
+   "currpage": [
+    2,
+    1
+   ],
+   "size": [
+    2,
+    1
+   ]
+  },
+  "devicelayout@auto-generated": {
+   "true": [
+    57,
+    35
+   ]
+  },
+  "shelf-sort-v2@shelf": {
+   "rows": [
+    24,
+    14
+   ],
+   "columns": [
+    9,
+    6
+   ]
+  }
+ },
+ "ref_derivations": {
+  "none": [
+   1009,
+   53
+  ],
+  "sum": [
+   585,
+   49
+  ],
+  "<bare>": [
+   553,
+   43
+  ],
+  "usr": [
+   189,
+   23
+  ],
+  "yr": [
+   110,
+   20
+  ],
+  "avg": [
+   83,
+   19
+  ],
+  "pcto": [
+   43,
+   16
+  ],
+  "tmn": [
+   16,
+   7
+  ],
+  "attr": [
+   58,
+   6
+  ],
+  "max": [
+   21,
+   6
+  ],
+  "cnt": [
+   36,
+   5
+  ],
+  "tyr": [
+   16,
+   5
+  ],
+  "tdy": [
+   11,
+   5
+  ],
+  "ctd": [
+   24,
+   4
+  ],
+  "mn": [
+   13,
+   4
+  ],
+  "fVal": [
+   6,
+   4
+  ],
+  "io": [
+   3,
+   3
+  ],
+  "md": [
+   3,
+   3
+  ],
+  "qr": [
+   8,
+   2
+  ],
+  "med": [
+   8,
+   2
+  ],
+  "rank": [
+   5,
+   2
+  ],
+  "wd": [
+   3,
+   2
+  ],
+  "pcdf": [
+   4,
+   1
+  ],
+  "twk": [
+   1,
+   1
+  ],
+  "hr": [
+   1,
+   1
+  ],
+  "diff": [
+   1,
+   1
+  ],
+  "tqr": [
+   1,
+   1
+  ],
+  "wk": [
+   1,
+   1
+  ]
+ },
+ "ref_type_keys": {
+  "nk": [
+   864,
+   53
+  ],
+  "qk": [
+   1150,
+   52
+  ],
+  "ok": [
+   224,
+   34
+  ],
+  "1": [
+   13,
+   5
+  ],
+  "15": [
+   4,
+   2
+  ],
+  "5": [
+   2,
+   2
+  ],
+  "2": [
+   2,
+   2
+  ]
+ },
+ "ref_extras": {
+  "qk": [
+   21,
+   7
+  ],
+  "Sales": [
+   9,
+   6
+  ],
+  " GDP (curr $)": [
+   12,
+   2
+  ],
+  " GDP per capita (curr $)": [
+   10,
+   2
+  ],
+  "Patient cancellations": [
+   8,
+   2
+  ],
+  " Life exp (years)": [
+   4,
+   2
+  ],
+  " Health exp/cap (curr $)": [
+   4,
+   2
+  ],
+  "PercentPopulationInfected": [
+   4,
+   2
+  ],
+  "F": [
+   2,
+   2
+  ],
+  "Attendances": [
+   2,
+   2
+  ],
+  "Profit": [
+   2,
+   2
+  ],
+  "Calculation_1279655642516787200": [
+   6,
+   1
+  ],
+  "Pivot Field Values": [
+   5,
+   1
+  ],
+  "BMI": [
+   3,
+   1
+  ],
+  "1": [
+   3,
+   1
+  ],
+  "Orders_6D2EF74F348B46BDA976A7AEEA6FB5C9": [
+   2,
+   1
+  ],
+  "Calculation_1238208489104113672": [
+   2,
+   1
+  ],
+  "Total Profit": [
+   2,
+   1
+  ],
+  "Total Revenue": [
+   2,
+   1
+  ],
+  "anaemia": [
+   1,
+   1
+  ],
+  "diabetes": [
+   1,
+   1
+  ],
+  "high_blood_pressure": [
+   1,
+   1
+  ],
+  "sex": [
+   1,
+   1
+  ],
+  "smoking": [
+   1,
+   1
+  ],
+  "patient_id": [
+   1,
+   1
+  ],
+  "Outcome": [
+   1,
+   1
+  ],
+  "Calculation_1802847257304539140": [
+   1,
+   1
+  ],
+  "KPI Selector": [
+   1,
+   1
+  ],
+  "Calculation_1216816388371283968": [
+   1,
+   1
+  ]
+ },
+ "ref_part_counts": {
+  "3": [
+   2161,
+   53
+  ],
+  "1": [
+   386,
+   42
+  ],
+  "2": [
+   167,
+   31
+  ],
+  "4": [
+   85,
+   19
+  ],
+  "5": [
+   11,
+   3
+  ],
+  "6": [
+   2,
+   2
+  ]
+ },
+ "ref_sources": {
+  "rows": [
+   387,
+   53
+  ],
+  "cols": [
+   289,
+   49
+  ],
+  "encoding": [
+   1102,
+   48
+  ],
+  "filter": [
+   680,
+   45
+  ],
+  "zone-param": [
+   354,
+   36
+  ]
+ },
+ "shelf_operators": {
+  "(": [
+   135,
+   29
+  ],
+  ")": [
+   135,
+   29
+  ],
+  "+": [
+   79,
+   19
+  ],
+  "/": [
+   49,
+   17
+  ],
+  "6": [
+   8,
+   2
+  ],
+  "7": [
+   7,
+   2
+  ],
+  "4": [
+   7,
+   2
+  ],
+  "t": [
+   6,
+   2
+  ],
+  "F": [
+   6,
+   2
+  ],
+  "D": [
+   5,
+   2
+  ],
+  "A": [
+   5,
+   2
+  ],
+  ":": [
+   4,
+   2
+  ],
+  "E": [
+   4,
+   2
+  ],
+  "B": [
+   4,
+   2
+  ],
+  ".": [
+   3,
+   2
+  ],
+  "c": [
+   3,
+   2
+  ],
+  "n": [
+   3,
+   2
+  ],
+  "r": [
+   3,
+   2
+  ],
+  "3": [
+   3,
+   2
+  ],
+  "9": [
+   3,
+   2
+  ],
+  "5": [
+   3,
+   2
+  ],
+  "[": [
+   2,
+   2
+  ],
+  "d": [
+   2,
+   2
+  ],
+  "s": [
+   2,
+   2
+  ],
+  "_": [
+   2,
+   2
+  ],
+  "2": [
+   2,
+   2
+  ],
+  "8": [
+   2,
+   2
+  ],
+  "C": [
+   2,
+   2
+  ],
+  "q": [
+   2,
+   2
+  ],
+  "k": [
+   2,
+   2
+  ],
+  "]": [
+   2,
+   2
+  ],
+  "*": [
+   7,
+   1
+  ],
+  "i": [
+   2,
+   1
+  ],
+  "a": [
+   2,
+   1
+  ],
+  "1": [
+   2,
+   1
+  ],
+  "0": [
+   2,
+   1
+  ],
+  "O": [
+   1,
+   1
+  ],
+  "e": [
+   1,
+   1
+  ],
+  "o": [
+   1,
+   1
+  ],
+  "v": [
+   1,
+   1
+  ]
+ },
+ "column_instance_decode": {
+  "none|None|nominal": [
+   761,
+   53
+  ],
+  "sum|Sum|quantitative": [
+   584,
+   50
+  ],
+  "usr|User|quantitative": [
+   176,
+   25
+  ],
+  "avg|Avg|quantitative": [
+   105,
+   23
+  ],
+  "none|None|ordinal": [
+   90,
+   22
+  ],
+  "yr|Year|ordinal": [
+   125,
+   21
+  ],
+  "none|None|quantitative": [
+   92,
+   20
+  ],
+  "pcto|Sum|quantitative": [
+   37,
+   12
+  ],
+  "usr|User|nominal": [
+   25,
+   9
+  ],
+  "max|Max|quantitative": [
+   29,
+   8
+  ],
+  "tmn|Month-Trunc|quantitative": [
+   14,
+   7
+  ],
+  "tyr|Year-Trunc|ordinal": [
+   10,
+   7
+  ],
+  "cnt|Count|quantitative": [
+   33,
+   6
+  ],
+  "tyr|Year-Trunc|quantitative": [
+   17,
+   6
+  ],
+  "attr|Attribute|nominal": [
+   12,
+   6
+  ],
+  "rank|Sum|quantitative": [
+   19,
+   5
+  ],
+  "tdy|Day-Trunc|quantitative": [
+   17,
+   5
+  ],
+  "pcto|Count|quantitative": [
+   14,
+   5
+  ],
+  "ctd|CountD|quantitative": [
+   28,
+   4
+  ],
+  "attr|Attribute|quantitative": [
+   20,
+   4
+  ],
+  "mn|Month|ordinal": [
+   10,
+   4
+  ],
+  "io|InOut|nominal": [
+   4,
+   4
+  ],
+  "max|Max|nominal": [
+   4,
+   4
+  ],
+  "tmn|Month-Trunc|ordinal": [
+   18,
+   3
+  ],
+  "usr|User|ordinal": [
+   6,
+   3
+  ],
+  "med|Median|quantitative": [
+   6,
+   3
+  ],
+  "md|MDY|ordinal": [
+   3,
+   3
+  ],
+  "qr|Quarter|ordinal": [
+   8,
+   2
+  ],
+  "mn|Month|quantitative": [
+   7,
+   2
+  ],
+  "rank|Avg|quantitative": [
+   4,
+   2
+  ],
+  "wd|Weekday|ordinal": [
+   3,
+   2
+  ],
+  "tdy|Day-Trunc|ordinal": [
+   3,
+   2
+  ],
+  "fVal|Sum|quantitative": [
+   2,
+   2
+  ],
+  "fVal|Avg|quantitative": [
+   2,
+   2
+  ],
+  "wk|Week|ordinal": [
+   10,
+   1
+  ],
+  "min|Min|quantitative": [
+   3,
+   1
+  ],
+  "twk|Week-Trunc|ordinal": [
+   2,
+   1
+  ],
+  "pcto|User|quantitative": [
+   2,
+   1
+  ],
+  "pcdf|Sum|quantitative": [
+   2,
+   1
+  ],
+  "twk|Week-Trunc|quantitative": [
+   1,
+   1
+  ],
+  "cum|Count|quantitative": [
+   1,
+   1
+  ],
+  "hr|Hour|ordinal": [
+   1,
+   1
+  ],
+  "cnt|Count|ordinal": [
+   1,
+   1
+  ],
+  "diff|User|quantitative": [
+   1,
+   1
+  ],
+  "diff|Sum|quantitative": [
+   1,
+   1
+  ],
+  "pcto|Avg|quantitative": [
+   1,
+   1
+  ],
+  "std|Stdev|quantitative": [
+   1,
+   1
+  ],
+  "stp|StdevP|quantitative": [
+   1,
+   1
+  ],
+  "tqr|Quarter-Trunc|quantitative": [
+   1,
+   1
+  ],
+  "max|Max|ordinal": [
+   1,
+   1
+  ],
+  "wk|Week|quantitative": [
+   1,
+   1
+  ]
+ },
+ "formula_functions": {
+  "SUM": [
+   328,
+   23
+  ],
+  "COUNTD": [
+   95,
+   7
+  ],
+  "LEFT": [
+   141,
+   6
+  ],
+  "FLOAT": [
+   48,
+   6
+  ],
+  "AVG": [
+   41,
+   6
+  ],
+  "SPLIT": [
+   24,
+   6
+  ],
+  "INT": [
+   155,
+   5
+  ],
+  "DATE": [
+   56,
+   5
+  ],
+  "LOOKUP": [
+   28,
+   5
+  ],
+  "MAX": [
+   11,
+   5
+  ],
+  "MIN": [
+   10,
+   5
+  ],
+  "FIND": [
+   130,
+   4
+  ],
+  "MAKEDATE": [
+   46,
+   4
+  ],
+  "F4": [
+   36,
+   4
+  ],
+  "F3": [
+   32,
+   4
+  ],
+  "F5": [
+   32,
+   4
+  ],
+  "F2": [
+   32,
+   4
+  ],
+  "REPLACE": [
+   20,
+   4
+  ],
+  "STR": [
+   14,
+   4
+  ],
+  "F6": [
+   12,
+   4
+  ],
+  "TOTAL": [
+   11,
+   4
+  ],
+  "INDEX": [
+   9,
+   4
+  ],
+  "TODAY": [
+   9,
+   4
+  ],
+  "OOP": [
+   8,
+   4
+  ],
+  "CONTAINS": [
+   478,
+   3
+  ],
+  "IN": [
+   132,
+   3
+  ],
+  "YEAR": [
+   96,
+   3
+  ],
+  "WINDOW_MAX": [
+   26,
+   3
+  ],
+  "DATEDIFF": [
+   15,
+   3
+  ],
+  "DATEADD": [
+   6,
+   3
+  ],
+  "RADIANS": [
+   8,
+   2
+  ],
+  "ROUND": [
+   7,
+   2
+  ],
+  "GDP": [
+   6,
+   2
+  ],
+  "WINDOW_MIN": [
+   18,
+   1
+  ],
+  "DATEPARSE": [
+   10,
+   1
+  ],
+  "REGEXP_REPLACE": [
+   4,
+   1
+  ],
+  "WINDOW_AVG": [
+   4,
+   1
+  ],
+  "IFNULL": [
+   3,
+   1
+  ],
+  "RUNNING_SUM": [
+   3,
+   1
+  ],
+  "ISNULL": [
+   2,
+   1
+  ],
+  "COUNT": [
+   2,
+   1
+  ],
+  "ELSE": [
+   2,
+   1
+  ],
+  "ABS": [
+   2,
+   1
+  ],
+  "LEN": [
+   1,
+   1
+  ],
+  "RIGHT": [
+   1,
+   1
+  ],
+  "CHAR": [
+   1,
+   1
+  ],
+  "RANK": [
+   1,
+   1
+  ]
+ },
+ "lod_expressions": {
+  "FIXED": [
+   21,
+   4
+  ]
+ },
+ "table_calc_functions": {
+  "LOOKUP": [
+   28,
+   5
+  ],
+  "TOTAL": [
+   11,
+   4
+  ],
+  "INDEX": [
+   9,
+   4
+  ],
+  "WINDOW_MAX": [
+   26,
+   3
+  ],
+  "WINDOW_MIN": [
+   18,
+   1
+  ],
+  "WINDOW_AVG": [
+   4,
+   1
+  ],
+  "RUNNING_SUM": [
+   3,
+   1
+  ],
+  "RANK": [
+   1,
+   1
+  ]
+ },
+ "calculation_classes": {
+  "tableau": [
+   1118,
+   45
+  ],
+  "bin": [
+   47,
+   15
+  ],
+  "categorical-bin": [
+   12,
+   5
+  ],
+  "": [
+   6,
+   5
+  ]
+ },
+ "formulas_total": 1171,
+ "formulas_with_parameters": 145,
+ "section_bytes_share": {
+  "datasources": {
+   "workbooks": 59,
+   "median_share": 0.245,
+   "max_share": 0.871
+  },
+  "document-format-change-manifest": {
+   "workbooks": 47,
+   "median_share": 0.003,
+   "max_share": 0.012
+  },
+  "repository-location": {
+   "workbooks": 32,
+   "median_share": 0.001,
+   "max_share": 0.003
+  },
+  "preferences": {
+   "workbooks": 54,
+   "median_share": 0.001,
+   "max_share": 0.021
+  },
+  "style": {
+   "workbooks": 5,
+   "median_share": 0.002,
+   "max_share": 0.006
+  },
+  "actions": {
+   "workbooks": 32,
+   "median_share": 0.005,
+   "max_share": 0.025
+  },
+  "worksheets": {
+   "workbooks": 54,
+   "median_share": 0.174,
+   "max_share": 0.599
+  },
+  "dashboards": {
+   "workbooks": 43,
+   "median_share": 0.059,
+   "max_share": 0.265
+  },
+  "windows": {
+   "workbooks": 54,
+   "median_share": 0.04,
+   "max_share": 0.586
+  },
+  "thumbnails": {
+   "workbooks": 43,
+   "median_share": 0.523,
+   "max_share": 0.862
+  },
+  "_.fcp.LocalDataTyped.true...local-data-typed": {
+   "workbooks": 1,
+   "median_share": 0.0,
+   "max_share": 0.0
+  },
+  "datasource-relationships": {
+   "workbooks": 1,
+   "median_share": 0.004,
+   "max_share": 0.004
+  },
+  "mapsources": {
+   "workbooks": 30,
+   "median_share": 0.0,
+   "max_share": 0.001
+  },
+  "_.fcp.AnimationOnByDefault.false...style": {
+   "workbooks": 16,
+   "median_share": 0.001,
+   "max_share": 0.004
+  },
+  "external": {
+   "workbooks": 3,
+   "median_share": 0.059,
+   "max_share": 0.267
+  },
+  "style-theme": {
+   "workbooks": 6,
+   "median_share": 0.0,
+   "max_share": 0.001
+  },
+  "shared-views": {
+   "workbooks": 6,
+   "median_share": 0.008,
+   "max_share": 0.033
+  },
+  "_.fcp.DatagraphCoreV1.true...datagraph": {
+   "workbooks": 1,
+   "median_share": 0.005,
+   "max_share": 0.005
+  }
+ }
+}

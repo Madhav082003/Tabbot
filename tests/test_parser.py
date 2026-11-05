@@ -71,7 +71,7 @@ def test_dashboards(model, expected):
 
 def test_thumbnails_and_size(model, expected):
     assert len(model.thumbnails) == expected["workbook"]["thumbnails"]
-    assert all((t.width, t.height) == (192, 192) and t.file for t in model.thumbnails)
+    assert all((t.width, t.height) == (192, 192) for t in model.thumbnails)   # sizes only; images are not saved
     assert model.size_report["sections_kb"]["worksheets"] > 0
     assert model.size_report["token_estimate_rough"] > 0
 
