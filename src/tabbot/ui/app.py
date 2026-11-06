@@ -195,6 +195,13 @@ def _previews(lw: LoadedWorkbook, pages: list[str]) -> list[tuple[str, bytes]]:
     return [(n, by_name[n.strip()]) for n in pages if n.strip() in by_name]
 
 
+def _png_width(png: bytes) -> int | None:
+    """Pixel width from the PNG header (IHDR), or None."""
+    if len(png) >= 24 and png[12:16] == b"IHDR":
+        return int.from_bytes(png[16:20], "big") or None
+    return None
+
+
 def _render_dashboard(lw: LoadedWorkbook, view) -> None:
     st.markdown(f"<div class='tb-dash-title'>{html.escape(view.name)}</div>", unsafe_allow_html=True)
     sub = f"Dashboard in {lw.source_name}"
@@ -206,9 +213,10 @@ def _render_dashboard(lw: LoadedWorkbook, view) -> None:
         cols = st.columns(min(len(imgs), 3))
         for i, (name, png) in enumerate(imgs):
             with cols[i % len(cols)]:
-                st.image(png, width=260, caption=name.strip() if len(imgs) > 1 else None)
-        st.caption("Preview saved by Tableau when the workbook was last saved: a small image of the top-left part of "
-                   "the dashboard, so it may be cut off and may not show the latest data.")
+                # shown at its real pixel size: stretching a small image only makes it blurry
+                st.image(png, width=_png_width(png) or 192, caption=name.strip() if len(imgs) > 1 else None)
+        st.caption("This is the small preview Tableau stores inside the workbook: it shows only the top-left part "
+                   "of the dashboard, from the last time the workbook was saved.")
     else:
         st.caption("No preview image is saved in this workbook for this dashboard.")
     if view.summary:

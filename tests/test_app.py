@@ -90,7 +90,7 @@ def test_selecting_a_dashboard_shows_its_preview_explanation_and_questions(app):
     text = _markdown(app)
     assert pick in text and "In depth" in text and "What it shows" in text
     assert app.get("image"), "the preview image Tableau saved should be shown"
-    assert any("Preview saved by Tableau" in c.value for c in app.caption)
+    assert any("small preview Tableau stores" in c.value for c in app.caption)
     assert any(f"Asking about: **{pick}**" in c.value for c in app.caption)
     bar.set_value("Whole workbook").run()
     assert "In brief" in _markdown(app) and "In depth" not in _markdown(app)
