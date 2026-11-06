@@ -543,6 +543,23 @@ def _parse_action(el: Element) -> Action:
     return a
 
 
+PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+MAX_THUMBNAIL_BYTES = 5_000_000
+
+
+def _png(text: str | None) -> bytes | None:
+    """Decode a <thumbnail> (base64 PNG). Anything that is not a PNG, or is oversized, is dropped."""
+    import base64
+    import binascii
+    if not text or len(text) > MAX_THUMBNAIL_BYTES * 4 // 3 + 16:
+        return None
+    try:
+        data = base64.b64decode("".join(text.split()), validate=True)
+    except (binascii.Error, ValueError):
+        return None
+    return data if data.startswith(PNG_MAGIC) else None
+
+
 def _link_action_filters(model: WorkbookModel) -> None:
     """Tie each action filter to the action that drives it (user:ui-action-filter='[ActionN]').
     A filter whose action was deleted - or that names no action - is a leftover and has no effect."""
@@ -787,7 +804,8 @@ def parse_workbook(source: str | Path | bytes, name: str | None = None) -> Workb
     model.actions = [_parse_action(a) for a in children(root, "actions/action")]
     _link_action_filters(model)
     model.thumbnails = [Thumbnail(name=t.get("name", "").strip(), width=_int(t.get("width")),
-                                  height=_int(t.get("height")), base64_bytes=len(t.text or ""))
+                                  height=_int(t.get("height")), base64_bytes=len(t.text or ""),
+                                  png=_png(t.text))
                         for t in children(root, "thumbnails/thumbnail")]
 
     _resolve(model)

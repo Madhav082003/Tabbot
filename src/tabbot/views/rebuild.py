@@ -315,6 +315,8 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
             if raw == f.field.raw or (_same_field(raw, f.field)):
                 override = vals
                 seen.add(raw)
+        if f.action_status is not None and override is None:
+            continue      # click-driven (shows everything until a click) or a leftover with no effect
         try:
             sql, p, is_having = _filter_clause(ctx, f, override)
         except Unsupported as exc:
