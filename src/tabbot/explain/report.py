@@ -216,7 +216,7 @@ class Writer:
             return None
         sens = [c for c in sorted(b.sensitive) if c != b.entity]
         tail = (f"\n\nFields that look like identifiers, free text or personal details ({join(sens[:6])}"
-                f"{'…' if len(sens) > 6 else ''}) are never shown as values here or sent to Claude.") if sens else ""
+                f"{'…' if len(sens) > 6 else ''}) are never shown as values here or used to answer questions.") if sens else ""
         intro = (f"The main ways the data is split, with the number of {plural(self.word)} for the largest values "
                  f"(shares are out of all {self.records(b.entities)}; where a {self.word} can have several values "
                  "the shares add up to more than 100%):")

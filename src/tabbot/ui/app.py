@@ -1,6 +1,6 @@
 """Tableau Insights (Streamlit). Run:  streamlit run src/tabbot/ui/app.py
 
-Kept deliberately simple: open a workbook, read a short description of it, ask Claude about it.
+Kept deliberately simple: open a workbook, read a short description of it, ask the assistant about it.
 (No charts or dashboard tabs - a written explanation of the workbook comes next.)
 Engine logic lives in tabbot.* ; this file only lays things out. Session state keys:
   lw    LoadedWorkbook     chat  ChatSession     chat_log  [{role, text, tools, meta}]
@@ -69,6 +69,8 @@ NO_PAGE_SCROLL = """
   .block-container {padding-bottom: 0 !important;}
 </style>
 """
+
+ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
 
 SUGGESTIONS = ["Explain this workbook: what is it for and what does each dashboard show?",
                "What are the key insights in the data?",
@@ -151,8 +153,8 @@ def _render_workbook(lw: LoadedWorkbook) -> None:
     with st.spinner("Reading the workbook and writing the explanation…"):
         rep = _report(lw)
     if isinstance(rep, Exception):
-        st.warning(f"The written explanation could not be built ({type(rep).__name__}). You can still ask Claude "
-                   "on the right.")
+        st.warning(f"The written explanation could not be built ({type(rep).__name__}). You can still ask the "
+                   f"{ASSISTANT_NAME} on the right.")
         return
     st.caption("Written on this computer from the workbook and its data - no AI call was made for this text.")
     for sec in rep.sections:
@@ -169,8 +171,9 @@ def _render_start_page() -> None:
     _, mid, _ = st.columns([1, 2.2, 1])
     with mid:
         st.markdown("<div class='tb-hero'><h1>Open a Tableau workbook</h1>"
-                    "<p>Upload a packaged workbook and ask Claude to explain it. The workbook is read on this "
-                    "computer; Claude only sees its structure and summary numbers.</p></div>", unsafe_allow_html=True)
+                    "<p>Upload a packaged workbook to get a written explanation of it, then ask questions about it. "
+                    "The workbook is read on this computer; only its structure and summary numbers are used to "
+                    "answer questions.</p></div>", unsafe_allow_html=True)
         with st.container(border=True):
             up = st.file_uploader("Upload a packaged workbook (.twbx)", type=["twbx", "twb"], key="upload_main")
             if up is not None:
@@ -215,18 +218,18 @@ def _ask(lw: LoadedWorkbook, question: str, box) -> None:
 def _render_chat(lw: LoadedWorkbook) -> None:
     settings = get_settings()
     with st.container(border=True, key="chat_pane"):
-        st.markdown("**💬 Ask Claude about this workbook**")
+        st.markdown(f"**💬 {ASSISTANT_NAME}**")
         ready = bool(settings.anthropic_api_key) or settings.dry_run
-        st.caption(f"{settings.claude_model} · effort {settings.claude_effort}"
-                   + (" · DRY RUN (nothing is sent)" if settings.dry_run else ""))
+        if settings.dry_run:
+            st.caption("Test mode: nothing is sent")
         if not ready:
             st.info("Add your Anthropic API key to start chatting:\n\n1. Copy `C:\\tabbot\\.env.example` to "
                     "`.env`\n2. Paste the key after `ANTHROPIC_API_KEY=`\n3. Restart the app")
         box = st.container(border=False, key="chat_msgs")
         with box:
             if not st.session_state.chat_log:
-                st.caption("Claude sees the workbook's structure and summary numbers computed here - never the data "
-                           "rows. Every request is logged before it is sent.")
+                st.caption("Ask anything about this workbook. Only its structure and summary numbers are used - "
+                           "never the data rows.")
             for m in st.session_state.chat_log:
                 with st.chat_message(m["role"]):
                     st.markdown(m["text"])
