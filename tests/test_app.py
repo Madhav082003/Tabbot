@@ -32,7 +32,7 @@ def test_workbook_page(app, expected):
     assert "02 Jan 2021 to 20 May 2026" in text
     for d in expected["workbook"]["dashboards"]:
         assert d in text
-    assert "Ask Claude" in text
+    assert "Insights Assistant" in text and "Claude" not in text and "effort" not in text
 
 
 def test_nothing_extra_on_the_page(app):
