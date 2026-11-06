@@ -348,11 +348,16 @@ class Writer:
             strong = dr.table[dr.table["excess"] >= 0.15].head(3)
             if len(strong):
                 s = dr.summary
+                # the overall direction decides the words: a fall must never be called an increase
+                tot = pc.summary if pc.ok and pc.summary else None
+                up = (tot["last"] >= tot["previous"]) if tot else True
+                change_word = "increase" if up else "decrease"
+                other_move = "fell" if up else "rose"
                 items = []
                 for _, r in strong.iterrows():
-                    over = (f" - more than the whole increase, because {plural(self.word)} with other "
-                            f"{self.caption_of(r['field'])} values fell at the same time" if r["share_of_change"] > 1.05
-                            else "")
+                    over = (f" - more than the whole {change_word}, because {plural(self.word)} with other "
+                            f"{self.caption_of(r['field'])} values {other_move} at the same time"
+                            if r["share_of_change"] > 1.05 else "")
                     if not r["previous"]:
                         over += " (this value did not occur at all in the earlier period)"
                     items.append(f"**{self.caption_of(r['field'])} = {_val(r['value'])}**: {r['previous']:,.0f} → "
@@ -362,24 +367,25 @@ class Writer:
                              f"fields scanned):\n\n" + "\n".join(f"- {x}" for x in items))
                 r0 = strong.iloc[0]
                 f0, v0 = self.caption_of(r0["field"]), _val(r0["value"])
-                if v0 == "(empty)":
+                if v0 == "(empty)" and up:
                     lines.append(f"*Possible reading:* much of the increase has no {f0} value, which usually means "
                                  f"newer {plural(self.word)} are not fully processed or coded yet. Compare recent "
                                  f"periods on {f0} with care, and confirm with the data owner.")
                 elif r0["excess"] >= 0.4:
                     lines.append(f"*Possible reading:* most of the change comes through one {f0} value, which points "
                                  f"to a change in where or how {plural(self.word)} arrive (for example a new source "
-                                 "or programme) rather than an across-the-board rise. Worth confirming with the data "
-                                 "owner.")
-                if v0 == "(empty)":
+                                 f"or programme) rather than an across-the-board {'rise' if up else 'fall'}. Worth "
+                                 "confirming with the data owner.")
+                if v0 == "(empty)" and up:
                     self.brief["driver"] = (f"Most of the increase is in {plural(self.word)} with no {f0} value "
                                             f"({r0['previous']:,.0f} → {r0['last']:,.0f}): newer "
                                             f"{plural(self.word)} look less fully coded.")
                 else:
-                    self.brief["driver"] = (f"Most of the increase comes with {f0} = {v0} "
+                    self.brief["driver"] = (f"Most of the {change_word} comes with {f0} = {v0} "
                                             f"({r0['previous']:,.0f} → {r0['last']:,.0f}).")
-                self.questions.append(f"Why do so many recent {plural(self.word)} have no {f0} value?" if v0 == "(empty)"
-                                      else f"Why did {plural(self.word)} with {f0} = {v0} grow so much?")
+                self.questions.append(
+                    f"Why do so many recent {plural(self.word)} have no {f0} value?" if v0 == "(empty)" and up
+                    else f"Why did {plural(self.word)} with {f0} = {v0} {'grow' if up else 'fall'} so much?")
         if b.category:
             mu = rc.multiplicity(ctx)
             if mu.ok and mu.summary and mu.summary.get("first"):

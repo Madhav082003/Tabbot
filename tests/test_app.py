@@ -61,12 +61,14 @@ def test_chat_dry_run_round_trip(fixture_twbx, monkeypatch, tmp_path):
     config.get_settings.cache_clear()
 
 
-def test_open_new_workbook_deletes_previous_copy(app):
+def test_close_workbook_deletes_local_copy(app):
     first = app.session_state["lw"].workspace.root
     assert first.exists()
-    app.button(key="demo").click().run()
-    assert not app.exception
-    assert not first.exists()                       # previous copy deleted
-    assert app.session_state["lw"].workspace.root.exists()
     app.button(key="close_wb").click().run()
     assert not app.exception and app.session_state["lw"] is None
+    assert not first.exists()                       # local copy deleted
+
+
+def test_no_demo_and_no_usage_panel(app):
+    assert not [b for b in app.button if "demo" in (b.key or "")]
+    assert not any("Usage today" in e.label or "What was sent" in e.label for e in app.expander)

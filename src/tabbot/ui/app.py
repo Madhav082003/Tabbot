@@ -18,9 +18,7 @@ import streamlit as st
 
 from tabbot.config import get_settings
 from tabbot.data.store import qi
-from tabbot.llm.audit import AuditLog
 from tabbot.llm.orchestrator import ChatSession
-from tabbot.llm.usage import UsageLog
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.workspace import purge_workspaces
 
@@ -44,9 +42,31 @@ CSS = """
   .st-key-appbar button:hover {background: rgba(255,255,255,.22) !important;}
   .st-key-appbar button p {color: #fff !important;}
 
+  /* workbook view: the page stays put, each pane scrolls on its own */
+  .st-key-left_pane {height: calc(100vh - 124px) !important; max-height: calc(100vh - 124px) !important;
+                     min-height: 380px; overflow-y: auto !important;
+                     overflow-x: hidden; padding-right: 10px; flex-wrap: nowrap;}
+  div:has(> .st-key-chat_pane) {height: calc(100vh - 124px) !important; min-height: 380px;}
+  .st-key-chat_pane {height: 100% !important; display: flex !important; flex-direction: column;
+                     flex-wrap: nowrap !important;}
+  div:has(> .st-key-chat_msgs) {flex: 1 1 auto !important; min-height: 120px; display: flex;
+                                flex-direction: column;}
+  .st-key-chat_msgs {flex: 1 1 auto !important; min-height: 0; height: 0; overflow-y: auto !important;
+                     overflow-x: hidden;}
+  .st-key-chat_pane .stButton button {padding: 2px 10px; min-height: 0;}
+  .st-key-chat_pane .stButton button p {font-size: 13px;}
+
   .tb-title {font-size: 22px; font-weight: 600; color: #1F3A5F; margin: 6px 0 4px 0;}
   .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 4px 0;}
   .tb-hero p {font-size: 15px; color: #555; margin: 0 0 6px 0;}
+</style>
+"""
+
+# only on the workbook page: no page-level scrolling (the start page may scroll as usual)
+NO_PAGE_SCROLL = """
+<style>
+  [data-testid="stMain"], [data-testid="stAppViewContainer"] {overflow: hidden !important;}
+  .block-container {padding-bottom: 0 !important;}
 </style>
 """
 
@@ -96,18 +116,6 @@ def _load_upload(uploaded) -> None:
         st.error(f"Could not open {uploaded.name}: {exc}")
     finally:
         shutil.rmtree(incoming, ignore_errors=True)
-
-
-def _load_demo() -> None:
-    from tabbot.demo_workbook import build
-
-    out = get_settings().workspace_dir / "_demo"
-    twbx = out / "fixture.twbx"
-    if not twbx.exists():
-        build(out)
-    with st.spinner("Building demo workbook…"):
-        _load(twbx)
-    st.session_state.loaded_digest = "demo"
 
 
 # --------------------------------------------------------------------------------------------- pages
@@ -168,13 +176,6 @@ def _render_start_page() -> None:
             if up is not None:
                 _load_upload(up)
                 st.rerun()
-            c1, c2 = st.columns([1, 1.4], vertical_alignment="center")
-            with c1:
-                if st.button("▶ Try the demo workbook", key="demo_main", type="primary", width="stretch"):
-                    _load_demo()
-                    st.rerun()
-            with c2:
-                st.caption("Made-up data, for trying the app without a real workbook.")
 
 
 # --------------------------------------------------------------------------------------------- chat
@@ -211,27 +212,9 @@ def _ask(lw: LoadedWorkbook, question: str, box) -> None:
     st.rerun()
 
 
-def _render_usage(settings) -> None:
-    log = UsageLog(settings.workspace_dir / "audit" / "usage.jsonl")
-    today = log.today()
-    share = today["est_usd"] / settings.max_usd_per_day if settings.max_usd_per_day else 0
-    icon = "🟥" if share >= 0.8 else "🟧" if share >= 0.5 else "🟩"
-    with st.expander(f"{icon} Usage today: ≈ {_usd(today['est_usd'])} of {_usd(settings.max_usd_per_day)} limit"):
-        st.progress(min(share, 1.0))
-        st.caption(f"{today['calls']} API call(s) today (limit {settings.max_calls_per_day}) · "
-                   f"in {today['input_tokens']:,} + {today['cache_read_input_tokens']:,} cached · "
-                   f"out {today['output_tokens']:,} tokens"
-                   + (f" · {today['blocked']} blocked" if today["blocked"] else "")
-                   + (f" · {today['errors']} error(s)" if today["errors"] else ""))
-        st.caption(f"Per question: at most {settings.max_tool_rounds} calls and "
-                   f"≈ {_usd(settings.max_usd_per_question)}. Change the limits in C:\\tabbot\\.env. "
-                   "Costs are estimates from config/pricing.yaml; the Anthropic console bill is the source of truth.")
-        st.caption(f"Full log: {log.path}")
-
-
 def _render_chat(lw: LoadedWorkbook) -> None:
     settings = get_settings()
-    with st.container(border=True):
+    with st.container(border=True, key="chat_pane"):
         st.markdown("**💬 Ask Claude about this workbook**")
         ready = bool(settings.anthropic_api_key) or settings.dry_run
         st.caption(f"{settings.claude_model} · effort {settings.claude_effort}"
@@ -239,7 +222,7 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         if not ready:
             st.info("Add your Anthropic API key to start chatting:\n\n1. Copy `C:\\tabbot\\.env.example` to "
                     "`.env`\n2. Paste the key after `ANTHROPIC_API_KEY=`\n3. Restart the app")
-        box = st.container(height=560, border=False)
+        box = st.container(border=False, key="chat_msgs")
         with box:
             if not st.session_state.chat_log:
                 st.caption("Claude sees the workbook's structure and summary numbers computed here - never the data "
@@ -264,19 +247,10 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         question = q or pending
         if question:
             _ask(lw, question, box)
-        _render_usage(settings)
-        with st.expander("What was sent to Claude"):
-            entries = AuditLog(settings.workspace_dir / "audit" / "outbound.jsonl").read(last=10)
-            if not entries:
-                st.caption("Nothing sent yet.")
-            for e in reversed(entries):
-                st.caption(f"{e['ts']} · {e['chars']:,} chars (~{e['approx_tokens']:,} tokens)"
-                           + (" · dry run" if e.get("dry_run") else ""))
-            if entries and st.toggle("Show the latest request in full", key="show_req"):
-                st.json(entries[-1]["request"], expanded=False)
-            if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
-                st.session_state.chat, st.session_state.chat_log = None, []
-                st.rerun()
+        # every request is still written to workspace/audit/outbound.jsonl before it is sent
+        if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
+            st.session_state.chat, st.session_state.chat_log = None, []
+            st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- page
@@ -310,9 +284,6 @@ def main() -> None:
                 if up is not None:
                     _load_upload(up)
                     st.rerun()
-                if st.button("Try the demo workbook", key="demo", width="stretch"):
-                    _load_demo()
-                    st.rerun()
                 if st.button("🗑 Close workbook & delete local copy", key="close_wb", width="stretch"):
                     _close_workbook()
                     st.session_state.chat, st.session_state.chat_log = None, []
@@ -323,8 +294,9 @@ def main() -> None:
         _render_start_page()
         return
 
+    st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
     left, right = st.columns([1.2, 1])
-    with left:
+    with left, st.container(key="left_pane"):
         _render_workbook(lw)
     with right:
         _render_chat(lw)
