@@ -326,6 +326,9 @@ class Thumbnail(BaseModel):
     width: int | None = None
     height: int | None = None
     base64_bytes: int = 0
+    # the preview image Tableau saved (PNG bytes), for display on this computer only: excluded from every
+    # dump/serialisation so it can never end up in a tool result or a request (added for tabbot)
+    png: bytes | None = PField(default=None, exclude=True, repr=False)
 
 
 # ------------------------------------------------------------------ workbook

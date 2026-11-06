@@ -9,8 +9,10 @@ Engine logic lives in tabbot.* ; this file only lays things out. Session state k
 from __future__ import annotations
 
 import hashlib
+import html
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -42,11 +44,10 @@ CSS = """
   .st-key-appbar button:hover {background: rgba(255,255,255,.22) !important;}
   .st-key-appbar button p {color: #fff !important;}
 
-  /* workbook view: the page stays put, each pane scrolls on its own */
-  .st-key-left_pane {height: calc(100vh - 124px) !important; max-height: calc(100vh - 124px) !important;
-                     min-height: 380px; overflow-y: auto !important;
+  /* workbook view: the page stays put, each pane scrolls on its own (heights: see pane_css) */
+  .st-key-left_pane {min-height: 380px; overflow-y: auto !important;
                      overflow-x: hidden; padding-right: 10px; flex-wrap: nowrap;}
-  div:has(> .st-key-chat_pane) {height: calc(100vh - 124px) !important; min-height: 380px;}
+  div:has(> .st-key-chat_pane) {min-height: 380px;}
   .st-key-chat_pane {height: 100% !important; display: flex !important; flex-direction: column;
                      flex-wrap: nowrap !important;}
   div:has(> .st-key-chat_msgs) {flex: 1 1 auto !important; min-height: 120px; display: flex;
@@ -56,6 +57,16 @@ CSS = """
   .st-key-chat_pane .stButton button {padding: 2px 10px; min-height: 0;}
   .st-key-chat_pane .stButton button p {font-size: 13px;}
 
+  /* the dashboard bar: one row of boxes that scrolls sideways when there are many */
+  .st-key-dashbar {padding: 2px 0 0 0;}
+  .st-key-dashbar [data-testid="stButtonGroup"] > div {flex-wrap: nowrap !important; overflow-x: auto;
+                                                       overflow-y: hidden; padding-bottom: 4px;}
+  .st-key-dashbar [data-testid="stButtonGroup"] button {white-space: nowrap; flex-shrink: 0;}
+  .tb-dash-title {font-size: 21px; font-weight: 600; color: #1F3A5F; margin: 4px 0 0 0;}
+  .tb-dash-sub {font-size: 13px; color: #666; margin: 0 0 6px 0;}
+  .tb-summary {background: #F3F6FA; border-left: 3px solid #1F3A5F; border-radius: 4px; padding: 10px 14px;
+               margin: 6px 0 10px 0; font-size: 15px;}
+
   .tb-title {font-size: 22px; font-weight: 600; color: #1F3A5F; margin: 6px 0 4px 0;}
   .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 4px 0;}
   .tb-hero p {font-size: 15px; color: #555; margin: 0 0 6px 0;}
@@ -63,6 +74,17 @@ CSS = """
 """
 
 # only on the workbook page: no page-level scrolling (the start page may scroll as usual)
+def pane_css(top_px: int) -> str:
+    """Both panes fill the window below the bar(s) above them."""
+    return (f"<style>.st-key-left_pane {{height: calc(100vh - {top_px}px) !important; "
+            f"max-height: calc(100vh - {top_px}px) !important;}} "
+            f"div:has(> .st-key-chat_pane) {{height: calc(100vh - {top_px}px) !important;}}</style>")
+
+
+WHOLE = "Whole workbook"                     # the first box: the full explanation
+PANE_TOP = 124                               # app bar + margins above the panes (px)
+DASHBAR_H = 68                               # the dashboard bar (38px) and the gaps around it
+
 NO_PAGE_SCROLL = """
 <style>
   [data-testid="stMain"], [data-testid="stAppViewContainer"] {overflow: hidden !important;}
@@ -166,6 +188,65 @@ def _render_workbook(lw: LoadedWorkbook) -> None:
                 st.markdown(body)
 
 
+def _previews(lw: LoadedWorkbook, pages: list[str]) -> list[tuple[str, bytes]]:
+    """The preview images Tableau saved in the workbook for these dashboards (matched by name)."""
+    kit = lw.kit
+    by_name = {t.name.strip(): t.png for t in (kit.thumbnails if kit is not None else []) if t.png}
+    return [(n, by_name[n.strip()]) for n in pages if n.strip() in by_name]
+
+
+def _render_dashboard(lw: LoadedWorkbook, view) -> None:
+    st.markdown(f"<div class='tb-dash-title'>{html.escape(view.name)}</div>", unsafe_allow_html=True)
+    sub = f"Dashboard in {lw.source_name}"
+    if len(view.pages) > 1:
+        sub += f" · split over {len(view.pages)} pages"
+    st.markdown(f"<div class='tb-dash-sub'>{html.escape(sub)}</div>", unsafe_allow_html=True)
+    imgs = _previews(lw, view.pages)
+    if imgs:
+        cols = st.columns(min(len(imgs), 3))
+        for i, (name, png) in enumerate(imgs):
+            with cols[i % len(cols)]:
+                st.image(png, width=260, caption=name.strip() if len(imgs) > 1 else None)
+        st.caption("Preview saved by Tableau when the workbook was last saved: a small image of the top-left part of "
+                   "the dashboard, so it may be cut off and may not show the latest data.")
+    else:
+        st.caption("No preview image is saved in this workbook for this dashboard.")
+    if view.summary:
+        st.markdown(f"<div class='tb-summary'>{_md_inline(view.summary)}</div>", unsafe_allow_html=True)
+    st.markdown("#### In depth")
+    st.markdown(view.body.replace("$", "\\$"))
+
+
+def _md_inline(text: str) -> str:
+    """Summary text in an HTML box: escape it, keep **bold** and *italic*."""
+    t = html.escape(text)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+    return re.sub(r"\*(.+?)\*", r"<i>\1</i>", t)
+
+
+def _selected_view(lw: LoadedWorkbook):
+    rep = _report(lw)
+    pick = st.session_state.get(_pick_key(lw))
+    if isinstance(rep, Exception) or not pick or pick == WHOLE:
+        return None
+    return rep.dashboard(pick)
+
+
+def _pick_key(lw: LoadedWorkbook) -> str:
+    return f"dash_pick::{id(lw)}"
+
+
+def _render_dashbar(lw: LoadedWorkbook) -> bool:
+    """One box per dashboard (pages of one view share a box). Returns True when the bar is shown."""
+    rep = _report(lw)
+    if isinstance(rep, Exception) or not rep.dashboards:
+        return False
+    with st.container(key="dashbar"):
+        st.pills("Dashboards", [WHOLE] + [v.name for v in rep.dashboards], selection_mode="single",
+                 default=WHOLE, key=_pick_key(lw), label_visibility="collapsed")
+    return True
+
+
 def _render_start_page() -> None:
     st.write("")
     _, mid, _ = st.columns([1, 2.2, 1])
@@ -195,14 +276,28 @@ def _usd(x: float, digits: int = 2) -> str:
     return "\\$" + f"{x:,.{digits}f}"
 
 
-def _ask(lw: LoadedWorkbook, question: str, box) -> None:
+def _context(lw: LoadedWorkbook, view) -> str:
+    ctx = f"Open workbook: {lw.source_name}."
+    if view is not None:
+        ctx += (f" The user has selected the dashboard '{view.name}' (dashboard name(s) in the workbook: "
+                + "; ".join(f"'{p}'" for p in view.pages) + "). Questions that say 'this dashboard' or 'here' are "
+                "about it; describe_sheet accepts these dashboard names.")
+    else:
+        ctx += " The user is looking at the whole workbook (no dashboard selected)."
+    return ctx
+
+
+def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
     log = st.session_state.chat_log
-    log.append({"role": "user", "text": question, "tools": []})
+    about = view.name if view is not None else WHOLE
+    log.append({"role": "user", "text": question, "tools": [], "about": about})
+    st.session_state.asked_about = about
     with box:
         with st.chat_message("user"):
+            st.caption(f"About: {about}")
             st.markdown(question)
         with st.chat_message("assistant"), st.spinner("Looking at the workbook…"):
-            turn = _chat_session(lw).ask(question, f"Open workbook: {lw.source_name}")
+            turn = _chat_session(lw).ask(question, _context(lw, view))
     tools = [f"{'⚠️' if t.is_error else '🔧'} {t.name}({', '.join(f'{k}={v}' for k, v in t.input.items())})"
              + (f" → {t.preview}" if t.preview else "") for t in turn.tool_calls]
     meta = ""
@@ -218,7 +313,10 @@ def _ask(lw: LoadedWorkbook, question: str, box) -> None:
 def _render_chat(lw: LoadedWorkbook) -> None:
     settings = get_settings()
     with st.container(border=True, key="chat_pane"):
+        view = _selected_view(lw)
+        about = view.name if view is not None else WHOLE
         st.markdown(f"**💬 {ASSISTANT_NAME}**")
+        st.caption(f"Asking about: **{about}**")
         ready = bool(settings.anthropic_api_key) or settings.dry_run
         if settings.dry_run:
             st.caption("Test mode: nothing is sent")
@@ -228,10 +326,13 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         box = st.container(border=False, key="chat_msgs")
         with box:
             if not st.session_state.chat_log:
-                st.caption("Ask anything about this workbook. Only its structure and summary numbers are used - "
+                st.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only its "
+                           "structure and summary numbers are used - "
                            "never the data rows.")
             for m in st.session_state.chat_log:
                 with st.chat_message(m["role"]):
+                    if m.get("about"):
+                        st.caption(f"About: {m['about']}")
                     st.markdown(m["text"])
                     if m.get("tools"):
                         with st.expander(f"{len(m['tools'])} tool call(s)"):
@@ -240,19 +341,25 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                     if m.get("meta"):
                         st.caption(m["meta"])
         pending = None
-        if not st.session_state.chat_log and ready:
+        # suggestions follow the selection; they come back whenever another dashboard is picked
+        if ready and (not st.session_state.chat_log or st.session_state.get("asked_about") != about):
             rep = _report(lw)
-            sugs = [SUGGESTIONS[0]] + (rep.questions[:3] if not isinstance(rep, Exception) else SUGGESTIONS[1:])
+            if view is not None:
+                sugs = view.questions
+            else:
+                sugs = [SUGGESTIONS[0]] + (rep.questions[:3] if not isinstance(rep, Exception) else SUGGESTIONS[1:])
             for i, sug in enumerate(sugs):
-                if st.button(sug, key=f"sug{i}", width="stretch"):
+                if st.button(sug, key=f"sug{i}::{about}", width="stretch"):
                     pending = sug
-        q = st.chat_input("Ask about this workbook…", key="chat_in", disabled=not ready)
+        q = st.chat_input("Ask about this dashboard…" if view is not None else "Ask about this workbook…",
+                          key="chat_in", disabled=not ready)
         question = q or pending
         if question:
-            _ask(lw, question, box)
+            _ask(lw, question, box, view)
         # every request is still written to workspace/audit/outbound.jsonl before it is sent
         if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
             st.session_state.chat, st.session_state.chat_log = None, []
+            st.session_state.asked_about = None
             st.rerun()
 
 
@@ -298,9 +405,17 @@ def main() -> None:
         return
 
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
+    with st.spinner("Reading the workbook and writing the explanation…"):
+        _report(lw)
+    has_bar = _render_dashbar(lw)
+    st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0)), unsafe_allow_html=True)
     left, right = st.columns([1.2, 1])
     with left, st.container(key="left_pane"):
-        _render_workbook(lw)
+        view = _selected_view(lw)
+        if view is None:
+            _render_workbook(lw)
+        else:
+            _render_dashboard(lw, view)
     with right:
         _render_chat(lw)
 

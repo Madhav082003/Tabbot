@@ -36,10 +36,25 @@ class Section:
 
 
 @dataclass
+class DashboardView:
+    """One dashboard (or one view split over several dashboard pages), explained on its own."""
+    name: str                      # shown on its button
+    pages: list[str]               # the dashboard(s) it is made of, as named in the workbook
+    sheets: list[str]              # worksheets on those dashboards
+    summary: str                   # two or three plain sentences
+    body: str                      # the in-depth explanation (markdown)
+    questions: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Report:
     workbook: str
     sections: list[Section] = field(default_factory=list)
     questions: list[str] = field(default_factory=list)
+    dashboards: list[DashboardView] = field(default_factory=list)
+
+    def dashboard(self, name: str) -> DashboardView | None:
+        return next((d for d in self.dashboards if d.name == name), None)
 
     def to_markdown(self) -> str:
         return "\n\n".join(f"## {s.title}\n\n{s.body}" for s in self.sections)
@@ -102,6 +117,8 @@ class Writer:
         self.ctx = F.workbook_context(lw, self.b) if self.b else None
         self.questions: list[str] = []
         self.brief: dict[str, str] = {}
+        self.dash_info: dict[str, dict] = {}
+        self.views: list[DashboardView] = []
 
     # ------------------------------------------------------------------ helpers
     def records(self, n: float) -> str:
@@ -543,11 +560,13 @@ class Writer:
                                f"be ({pp['value']:,.0f} so far, about {pp['full_period_pace']:,.0f} at the same pace).")
                 else:
                     out.append(f"The last column ({pp['period']}) holds only {pp['days_elapsed']} day(s) of data.")
-        additive = m.aggregation in ("sum", "count", "count_distinct")    # a ratio's "largest" is not a ranking
+        # rank only by the measure the analysis really uses, and only when it adds up (a ratio is not a ranking)
+        cm = next((x for x in res.measures if ctx is not None and x.sql == ctx.measure_sql), None)
+        additive = cm is not None and cm.aggregation in ("sum", "count", "count_distinct")
         if ctx and ctx.category_sql and not res.time_dims() and additive:
             co = rc.concentration(ctx)
             if co.ok and not co.table.empty and float(co.table["value"].head(3).abs().sum()) > 0:
-                out.append(f"Largest {ctx.category_label} values: " + "; ".join(
+                out.append(f"Largest {ctx.category_label} values by {cm.label}: " + "; ".join(
                     f"{_val(r['member'])} {r['value']:,.0f}" for _, r in co.table.head(3).iterrows()) + ".")
         if dt_ and not dt_.get("cells_can_be_summed") and res.dims:
             who = f"one {self.word}" if self._counts_records(res) else "one value"
@@ -625,6 +644,7 @@ class Writer:
     def dashboard_text(self, g: DashboardGroup) -> str:
         m = self.kit
         lines: list[str] = []
+        info = self.dash_info.setdefault(g.name, {})
         if len(g.dashboards) > 1:
             lines.append(f"*Split over {len(g.dashboards)} dashboards: "
                          + join([f"'{d.name.strip()}' ({len(d.sheets)} charts)" for d in g.dashboards]) + ".*")
@@ -636,15 +656,24 @@ class Writer:
                 vals = fam.values
                 lines.append(f"**What it shows:** {len(fam.sheets)} small charts, one for each {fam.varying_field} "
                              f"({join(vals[:3])}{', …' if len(vals) > 3 else ''}). Each one is {what}.")
+                info["what"] = f"{len(fam.sheets)} small charts, one for each {fam.varying_field}; each one is {what}"
             else:
                 lines.append(f"**What it shows:** {len(fam.sheets)} charts with the same design: {what}.")
+                info["what"] = f"{len(fam.sheets)} charts with the same design: {what}"
             main = fam.example
         else:
             main = main_sheet(m, g.dashboards[0])
             sheets = [m.worksheet(s) for s in g.sheets if m.worksheet(s)]
             if len(sheets) == 1:
                 lines.append(f"**What it shows:** {self.ph.what_it_shows(sheets[0])}.")
+                info["what"] = self.ph.what_it_shows(sheets[0])
+            elif not sheets:
+                lines.append("**What it shows:** no worksheets (text, images or other objects only).")
+                info["what"] = "no worksheets - text, images or other objects only"
             else:
+                info["what"] = (f"{len(sheets)} charts: "
+                                + join([f"*{self.sheet_title(w.name)}*" for w in sheets[:4]])
+                                + (f" and {len(sheets) - 4} more" if len(sheets) > 4 else ""))
                 lines.append(f"**What it shows:** {len(sheets)} charts:")
                 for w in sheets[:6]:
                     lines.append(f"- *{self.sheet_title(w.name)}*: {self.ph.what_it_shows(w)}.")
@@ -662,12 +691,70 @@ class Writer:
             nums = self.family_numbers(fam) if fam is not None else (self.sheet_numbers(main.name) if main else [])
             if nums:
                 lines.append("**What the data shows:** " + " ".join(nums))
+                info["nums"] = nums
         mine = [f for f in self.lints if f.severity != "info" and
                 (set(f.dashboards) & {d.name for d in g.dashboards} or set(f.sheets) & set(g.sheets))]
         notes = list(dict.fromkeys(self.short_issue(f, g) for f in mine))
         if notes:
             lines.append("**Watch out:** " + " ".join(notes))
+        info["issues"] = len(notes)
+        info["main"] = main
         return "\n\n".join(lines)
+
+    # ------------------------------------------------------------------ one dashboard on its own
+    def calcs_used_by(self, sheets: list[str]) -> list[str]:
+        on = set(sheets)
+        out = []
+        for d in self.kit.datasources:
+            for f in d.fields:
+                if f.kind == "calculated" and on & set(f.used_by):
+                    out.append(f"- **{f.caption or f.name}** - {self._explain(f)}")
+        return out
+
+    def dashboard_questions(self, g: DashboardGroup, info: dict) -> list[str]:
+        """Suggested questions built from what this dashboard contains (no names or values are assumed)."""
+        sheets = [w for w in (self.kit.worksheet(x) for x in g.sheets) if w is not None]
+        qs = ["Explain this dashboard: what does each chart show and how should I read it?"]
+        has_time = any(r.kind in ("date_trunc", "date_part") for w in sheets for r in w.all_refs())
+        if has_time and self.lw.store is not None:
+            qs.append("What changed recently in this dashboard, and what is driving it?")
+        fam = g.family
+        if fam is not None and fam.varying_field:
+            qs.append(f"Which {fam.varying_field} stands out here, and why?")
+        else:
+            main = info.get("main")
+            prof = self.lw.profile_for(main.datasources[0]) if main is not None and main.datasources else None
+            sens = set(prof.sensitive_suggestions) if prof is not None else set()
+            cols = {c.name: c for c in prof.columns} if prof is not None else {}
+            dims = [r for r in (main.all_refs() if main is not None else []) if r.kind == "dimension"
+                    and r.field not in sens and (r.field not in cols or 2 <= cols[r.field].distinct <= 200)]
+            if dims:
+                qs.append(f"Which {dims[0].caption or dims[0].field} values stand out here?")
+        if info.get("issues"):
+            qs.append("Is anything on this dashboard misleading, and how should I read it correctly?")
+        names = {d.name for d in g.dashboards}
+        if any(a.source_dashboard in names for a in self.kit.actions) or any(d.quick_filters for d in g.dashboards):
+            qs.append("What can I filter or click on this dashboard, and what changes when I do?")
+        return list(dict.fromkeys(qs))[:4]
+
+    def dashboard_view(self, g: DashboardGroup, body: str) -> DashboardView:
+        info = self.dash_info.get(g.name, {})
+        pages = [d.name for d in g.dashboards]
+        parts = []
+        what = info.get("what")
+        if what:
+            parts.append(what[:1].upper() + what[1:] + ".")
+        if len(pages) > 1:
+            parts.append(f"It is split over {len(pages)} dashboard pages.")
+        nums = info.get("nums") or []
+        if nums:
+            parts.append(nums[0])
+        if info.get("issues"):
+            parts.append(f"{info['issues']} thing{'s' if info['issues'] > 1 else ''} to watch out for (see below).")
+        calcs = self.calcs_used_by(g.sheets)
+        full = body + (("\n\n**Calculations used here:**\n\n" + "\n".join(calcs)) if calcs else "")
+        return DashboardView(name=g.name.strip(), pages=pages, sheets=list(g.sheets), summary=" ".join(parts),
+                             body=full, questions=self.dashboard_questions(g, info))
 
     def short_issue(self, f, g: DashboardGroup | None = None) -> str:
         if f.code == "L2":
@@ -700,7 +787,12 @@ class Writer:
         return f" ({self.records(imp[0])}, {pct(*imp, 1)} of all)" if imp and imp[0] else ""
 
     def dashboards(self) -> Section:
-        parts = [f"### {g.name}\n\n{self.dashboard_text(g)}" for g in self.groups]
+        parts = []
+        self.views = []
+        for g in self.groups:
+            body = self.dashboard_text(g)
+            parts.append(f"### {g.name}\n\n{body}")
+            self.views.append(self.dashboard_view(g, body))
         return Section("The dashboards, one by one", "\n\n".join(parts) or "There are no dashboards.", "dashboards")
 
     # ------------------------------------------------------------------ calcs, problems, questions
@@ -795,4 +887,10 @@ def explain_workbook(lw) -> Report:
     rep.sections = [s for s in (Section("In brief", brief, "brief") if brief else None, about, data, org, ins,
                                 dashes, calcs, probs, qs) if s is not None]
     rep.questions = w.questions
+    names: dict[str, int] = {}
+    for v in w.views:                       # button labels must be unique
+        names[v.name] = names.get(v.name, 0) + 1
+        if names[v.name] > 1:
+            v.name = f"{v.name} ({names[v.name]})"
+    rep.dashboards = w.views
     return rep

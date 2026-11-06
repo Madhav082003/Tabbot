@@ -488,7 +488,7 @@ def tidy(text: str) -> str:
     return re.sub(r"\b([Aa]) (?=[aeiouAEIOU])", lambda m: m.group(1) + "n ", text)
 
 
-TITLE_FIELD = re.compile(r"<\[[^\]]*\]\.\[(?:[a-z]+:)?([^\]:]+)(?::[a-z]+)?\]>")
+TITLE_FIELD = re.compile(r"<\s*\[[^\]]*\]\.\[(?:[a-z]+:)?([^\]:]+)(?::[a-z]+)?\]\s*>")
 
 
 def clean_title(title: str | None, captions: dict[str, str] | None = None) -> str:
