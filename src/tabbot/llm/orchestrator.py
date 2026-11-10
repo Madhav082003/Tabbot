@@ -22,6 +22,7 @@ from typing import Any
 
 from tabbot.config import Settings
 from tabbot.llm.audit import AuditLog
+from tabbot.llm.chatlog import ChatLog, data_status
 from tabbot.llm.prompts import SYSTEM_PROMPT
 from tabbot.llm.provider import MessagesClient, build_request, make_messages_client
 from tabbot.llm.tools import ToolContext, UIAction, dispatch, tool_definitions
@@ -76,6 +77,7 @@ class ChatSession:
         audit_dir = settings.workspace_dir / "audit"
         self.audit = AuditLog(audit_dir / "outbound.jsonl")
         self.usage = UsageLog(audit_dir / "usage.jsonl")
+        self.chatlog = ChatLog(settings.workspace_dir / "logs", self.session_id, getattr(lw, "source_name", "?"))
         self.limits = Limits(max_usd_per_question=settings.max_usd_per_question,
                              max_usd_per_day=settings.max_usd_per_day,
                              max_calls_per_day=settings.max_calls_per_day,
@@ -99,6 +101,16 @@ class ChatSession:
                            "model": self.settings.claude_model, **kw})
 
     def ask(self, text: str, app_context: str | None = None) -> Turn:
+        qid = uuid.uuid4().hex[:8]
+        self.chatlog.question(qid, text, app_context, data_status(self.lw), self.settings.claude_model,
+                              self.settings.dry_run)
+        turn = self._ask(qid, text, app_context)
+        self.chatlog.answer(qid, turn.text, turn.rounds, turn.usage, turn.est_usd,
+                            stopped=turn.blocked or turn.error or (turn.stop_reason if turn.stop_reason
+                                                                   in ("refusal", "max_tokens") else None))
+        return turn
+
+    def _ask(self, qid: str, text: str, app_context: str | None) -> Turn:
         content: list[dict] = []
         if app_context:
             content.append({"type": "text", "text": f"<app_context>{app_context}</app_context>"})
@@ -106,7 +118,6 @@ class ChatSession:
         self.messages.append({"role": "user", "content": content})
         turn = Turn(text="")
         self.tools_ctx.actions = []
-        qid = uuid.uuid4().hex[:8]
         seen: Counter[str] = Counter()
         rnd = 0
         cached_chars = self._last_request_chars   # prefix of the conversation already in the prompt cache
@@ -130,10 +141,11 @@ class ChatSession:
             rnd += 1
             turn.rounds = rnd
             self.audit.write(req, dry_run=self.settings.dry_run)          # BEFORE sending
+            self.chatlog.sent(qid, rnd, req_chars, len(req["messages"]))
             if self.settings.dry_run:
                 turn.dry_run = True
                 turn.text = ("Dry run: the request was written to the audit log and not sent. "
-                             "Open 'What was sent to Claude' to inspect it.")
+                             "See workspace/logs/ (chat log) and workspace/audit/outbound.jsonl (full request).")
                 self.messages.pop()  # keep history valid for the next real request
                 return turn
             try:
@@ -160,6 +172,8 @@ class ChatSession:
             turn.est_usd = round(turn.est_usd + call_usd, 6)
             self._log("call", qid, rnd, served_by=served, stop_reason=stop, est_usd=call_usd, **call_usage)
             texts = [b.get("text", "") for b in blocks if b.get("type") == "text"]
+            self.chatlog.received(qid, rnd, texts, [b for b in blocks if b.get("type") == "tool_use"], stop,
+                                  call_usage, call_usd)
 
             if stop == "refusal":
                 turn.text = ("Claude declined this request (safety classifier). Try rephrasing the question."
@@ -186,6 +200,7 @@ class ChatSession:
                                                        "its earlier result instead of repeating it"}), True
                 else:
                     out, is_err = dispatch(self.tools_ctx, tu["name"], tu.get("input"))
+                self.chatlog.tool_result(qid, rnd, tu["name"], tu.get("input") or {}, out, is_err)
                 results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": out,
                                 **({"is_error": True} if is_err else {})})
                 turn.tool_calls.append(ToolCall(name=tu["name"], input=tu.get("input") or {}, is_error=is_err,

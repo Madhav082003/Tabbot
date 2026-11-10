@@ -199,3 +199,34 @@ def test_live_insights(lw, tmp_path, expected):
     text = turn.text
     assert expected["story"]["driver_value"] in text and "Category C" in text
     assert "Data" in text and any(t.name == "run_analysis" for t in turn.tool_calls)
+
+
+def test_chat_log_records_what_went_and_came_back(lw, tmp_path):
+    s = settings_for(tmp_path, anthropic_api_key="sk-ant-SENTINEL-not-a-key")
+    fake = FakeClient(list(SCRIPT), tmp_path / "audit" / "outbound.jsonl")
+    chat = ChatSession(lw, s, client=fake)
+    chat.ask("Key insights?", app_context="Open page: Overview")
+    logs = tmp_path / "logs"
+    md = next(logs.glob("chat_*.md")).read_text(encoding="utf-8")
+    events = [json.loads(x) for x in next(logs.glob("chat_*.jsonl")).read_text(encoding="utf-8").splitlines()]
+    kinds = [e["event"] for e in events]
+    assert kinds[0] == "question" and kinds[-1] == "answer"
+    assert kinds.count("sent") == 3 and kinds.count("received") == 3 and kinds.count("tool_result") == 4
+    q = events[0]
+    assert q["question"] == "Key insights?" and q["app_context"] == "Open page: Overview" and q["data"]
+    # the tool results in the log are exactly what was sent back to Claude
+    sent_back = [b["content"] for m in chat.messages if m["role"] == "user" for b in m["content"]
+                 if b.get("type") == "tool_result"]
+    assert [e["result"] for e in events if e["event"] == "tool_result"] == sent_back
+    assert events[-1]["text"].startswith("**Data**")
+    assert "Key insights?" in md and "run_analysis" in md and "Final answer" in md
+    raw = md + next(logs.glob("chat_*.jsonl")).read_text(encoding="utf-8")
+    assert "SENTINEL" not in raw                                    # the API key is never logged
+
+
+def test_chat_log_dry_run(lw, tmp_path):
+    s = settings_for(tmp_path, dry_run=True)
+    ChatSession(lw, s, client=FakeClient([], tmp_path / "audit" / "outbound.jsonl")).ask("hello")
+    events = [json.loads(x) for x in next((tmp_path / "logs").glob("chat_*.jsonl")).read_text(
+        encoding="utf-8").splitlines()]
+    assert [e["event"] for e in events] == ["question", "sent", "answer"] and events[0]["dry_run"] is True
