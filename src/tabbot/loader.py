@@ -132,8 +132,18 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
         model, kit = parse_both(pkg.workbook if path.suffix.lower() == ".twb" else ws.upload / path.name)
         lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model, kit=kit)
         _load_data(lw, ws, extra_extracts)
+        if path.suffix.lower() == ".twb":     # a .twb is not a package: say why its data is missing
+            def twb(t: str) -> str:
+                return (t.replace("its data file is not in the package", "its data file is separate - a .twb "
+                                  "file never includes data")
+                        .replace("is NOT in the package", "is not included - a .twb file never includes data"))
+            lw.notes = [twb(n) for n in lw.notes]
+            lw.data_files = [twb(n) for n in lw.data_files]
+            lw.data_files_shared = [twb(n) for n in lw.data_files_shared]
         if not lw.tables:
-            lw.notes.append("no readable data in the package: structure only")
+            lw.notes.append("a .twb file holds only the workbook design, never its data (only a packaged .twbx "
+                            "includes data): structure only" if path.suffix.lower() == ".twb"
+                            else "no readable data in the package: structure only")
             return lw
         lw.store = Store(lw.tables)
     except Exception:

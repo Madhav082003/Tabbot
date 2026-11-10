@@ -230,3 +230,26 @@ def test_chat_log_dry_run(lw, tmp_path):
     events = [json.loads(x) for x in next((tmp_path / "logs").glob("chat_*.jsonl")).read_text(
         encoding="utf-8").splitlines()]
     assert [e["event"] for e in events] == ["question", "sent", "answer"] and events[0]["dry_run"] is True
+
+
+def test_formulas_are_sent_whole(lw):
+    from tabbot.llm.tools import FORMULA_MAX, _formula
+
+    class F:
+        formula = None
+        formula_readable = "CASE [A] " + " ".join(f'WHEN "v{i}" THEN "w{i}"' for i in range(30)) + " END"
+    out = _formula(F())
+    assert out["formula"] == F.formula_readable and len(F.formula_readable) > 160
+    assert len(out["values"]["rules"]) == 30 and "formula_truncated" not in out
+    F.formula_readable = "x" * (FORMULA_MAX + 5)
+    assert _formula(F())["formula_truncated"] == f"first {FORMULA_MAX} of {FORMULA_MAX + 5} characters"
+
+
+def test_cap_keeps_json_whole(lw):
+    ctx = ToolContext(lw=lw, max_rows=200, max_chars=2000)
+    payload = {"name": "x", "items": [{"sheet": f"Sheet {i}", "shows": "a bar chart " * 5} for i in range(80)],
+               "small": [1, 2, 3]}
+    out = json.loads(ctx.cap(payload))                      # still valid JSON
+    assert len(json.dumps(out)) <= 2100 and out["items"][-1].endswith("more not shown")
+    shown = len(out["items"]) - 1
+    assert out["items"][-1] == f"… {80 - shown} more not shown" and out["small"] == [1, 2, 3]

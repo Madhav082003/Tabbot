@@ -40,4 +40,9 @@ differs between sheets, use the get_findings check that compares all sheets of a
 - Data comes only from the file each data source is linked to ("data_files"). Files under Local Data/ are \
 Tableau's map geocoding, not the workbook's data. If a data source's file is missing, say so (the user sees \
 its name in the app); never guess another cause and never use another file instead.
+- Formulas are sent whole; never say a formula is cut off unless it carries "formula_truncated" (then get \
+it whole from describe_sheet). For a calculation with "values", its possible outputs are listed there; when \
+"other_values" says there is no ELSE, unlisted values become Null and show as their own group - mention it \
+when asked what stands out. Say what a number counts using "measures_count" (rows vs distinct records); a \
+SUM of a 1/0 flag counts rows, even inside a LOD.
 """

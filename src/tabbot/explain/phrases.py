@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 
+from tabbot.explain.calcinfo import value_map
 from tabbot.tparse.fieldref import PART_RANGE
 from tabbot.tparse.fieldref import FieldRef as KRef
 from tabbot.tparse.model import FilterDef
@@ -433,6 +434,13 @@ def explain_formula(formula: str, kind: str | None = None, fields: list[str] | N
                  for c, v in chain[:8]]
         more = f" (+{len(chain) - 8} more)" if len(chain) > 8 else ""
         return "Assigns a value by rule: " + "; ".join(steps) + more + "."
+    vm = value_map(formula) if re.match(r"CASE\b", f, re.I) else None
+    if vm is not None:
+        rules = "; ".join(f"{join([repr(w) for w in (r['when'] if isinstance(r['when'], list) else [r['when']])])}"
+                          f" -> {repr(r['then']) if r['then'] is not None else 'empty'}" for r in vm["rules"][:10])
+        more = f" (+{len(vm['rules']) - 10} more)" if len(vm["rules"]) > 10 else ""
+        rest = vm["other_values"].replace(" - on a chart", ". On a chart").replace("no ELSE: any", "Any")
+        return f"Maps each {vm['maps_field']} value to a new value: {rules}{more}. {rest[:1].upper() + rest[1:]}."
     m = re.fullmatch(r"CASE\s+\[([^\]]+)\]\s+(.+?)\s+END", f, re.I)
     if m:
         whens = re.findall(r"WHEN\s+(.+?)\s+THEN\s+(.+?)(?=\s+WHEN|\s+ELSE|$)", m.group(2), re.I)

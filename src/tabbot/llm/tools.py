@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -23,6 +24,7 @@ from tabbot.analysis.checks import chart_checks
 from tabbot.analysis.lints import run_lints
 from tabbot.analysis.summary import key_facts
 from tabbot.data.store import qi
+from tabbot.explain.calcinfo import counts_what, value_map
 from tabbot.twb.fieldref import FieldRef
 from tabbot.twb.model import Worksheet
 from tabbot.views.calc_translate import Unsupported, _to_date
@@ -31,6 +33,95 @@ from tabbot.views.rebuild import _Ctx, rebuild_worksheet
 
 FIELD_TOKEN_CHARS = "[]"
 MAX_MEMBERS_SHOWN = 30
+FORMULA_MAX = 2000          # formulas are sent whole up to this; longer ones say plainly that they were cut
+_AGG_WORD = {"cnt": "COUNT", "ctd": "COUNTD", "cntd": "COUNTD", "sum": "SUM"}
+
+
+def _halve_largest_list(payload: Any) -> bool:
+    """Find the list with the most JSON text (anywhere inside) and keep its first half plus a note."""
+    best: tuple[int, list] | None = None
+
+    def walk(o: Any) -> None:
+        nonlocal best
+        if isinstance(o, list):
+            real = [x for x in o if not (isinstance(x, str) and x.startswith("… ") and x.endswith("not shown"))]
+            if len(real) > 2:
+                size = len(json.dumps(o, ensure_ascii=False, default=str))
+                if best is None or size > best[0]:
+                    best = (size, o)
+        for v in (o.values() if isinstance(o, dict) else o if isinstance(o, list) else []):
+            walk(v)
+
+    walk(payload)
+    if best is None:
+        return False
+    lst = best[1]
+    hidden = 0
+    if lst and isinstance(lst[-1], str) and lst[-1].startswith("… ") and lst[-1].endswith("not shown"):
+        hidden = int(lst.pop().split()[1])
+    keep = max(2, len(lst) // 2)
+    hidden += len(lst) - keep
+    del lst[keep:]
+    lst.append(f"… {hidden} more not shown")
+    return True
+
+
+def _formula(f) -> dict:
+    """A calculated field's full readable formula (+ an explicit note if very long) and its value map."""
+    text = f.formula_readable or f.formula or ""
+    out: dict[str, Any] = {"formula": text[:FORMULA_MAX]}
+    if len(text) > FORMULA_MAX:
+        out["formula_truncated"] = f"first {FORMULA_MAX} of {len(text)} characters"
+    vm = value_map(text)
+    if vm is not None:
+        out["values"] = vm
+    return out
+
+
+def _formula_lookup(lw, datasource: str | None):
+    """caption -> readable formula for the data source's calculated fields (None for plain columns)."""
+    ds = lw.model.datasource(datasource) if datasource else None
+    by = {f.caption: (f.formula_readable or f.formula) for f in (ds.fields if ds else []) if f.is_calculated}
+    return lambda name: by.get(name)
+
+
+def _sheet_calcs(lw, ws: Worksheet) -> list[dict]:
+    """Every calculated field the sheet uses, directly or through other calculations, with full formulas."""
+    ds = lw.model.datasource(ws.datasource) if ws.datasource else None
+    if ds is None:
+        return []
+    by_internal = {f.internal_name: f for f in ds.fields if f.is_calculated}
+    by_caption = {f.caption: f for f in ds.fields if f.is_calculated}
+    todo = [by_internal[r.field] for r in ws.all_refs() if r.field in by_internal]
+    seen: dict[str, Any] = {}
+    while todo and len(seen) < 25:
+        f = todo.pop(0)
+        if f.internal_name in seen:
+            continue
+        seen[f.internal_name] = f
+        for name in re.findall(r"\[((?:[^\]]|\]\])+)\]", f.formula_readable or ""):
+            g = by_caption.get(name.replace("]]", "]"))
+            if g is not None and g.internal_name not in seen:
+                todo.append(g)
+    return [{"name": f.caption, **_formula(f)} for f in seen.values()]
+
+
+def _sheet_measures(lw, ws: Worksheet) -> list[dict]:
+    """What each measure on the sheet counts (rows, distinct values ...), following calcs and LODs."""
+    lookup = _formula_lookup(lw, ws.datasource)
+    out, done = [], set()
+    places = [("rows", r) for r in ws.rows] + [("columns", r) for r in ws.cols] + \
+        [(k, r) for k, v in ws.encodings.items() for r in v]
+    for where, r in places:
+        if r.kind != "measure" or r.raw in done:
+            continue
+        done.add(r.raw)
+        base = r.caption or r.field
+        agg = _AGG_WORD.get(r.derivation) if r.derivation not in ("usr", "attr") else None
+        what = counts_what(agg, base, lookup) if (agg or lookup(base)) else None
+        if what:
+            out.append({"measure": r.label, "on": where, "counts": what})
+    return out
 
 
 # --------------------------------------------------------------------------------------------- inputs
@@ -270,6 +361,12 @@ class ToolContext:
                 payload[key] = payload[key][: max(5, len(payload[key]) // 2)]
                 payload["truncated"] = f"output cut to {len(payload[key])} rows to fit; narrow the request"
                 text = json.dumps(_clean(payload), ensure_ascii=False, default=str)
+        for _ in range(40):          # still too big: halve the largest list (saying so) - keeps the JSON whole
+            if len(text) <= self.max_chars:
+                return text
+            if not _halve_largest_list(payload):
+                break
+            text = json.dumps(_clean(payload), ensure_ascii=False, default=str)
         return text[: self.max_chars] + ("…[truncated]" if len(text) > self.max_chars else "")
 
 
@@ -334,7 +431,7 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
     sources = []
     for ds in m.datasources:
         prof = lw.profile_for(ds.name)
-        calcs = [{"name": f.caption, "formula": (f.formula_readable or "")[:160],
+        calcs = [{"name": f.caption, **_formula(f),
                   **({"unused": True} if not f.used_by_sheets and not f.used_by_calcs else {})}
                  for f in ds.fields if f.is_calculated]
         item: dict[str, Any] = {"name": ds.caption or ds.name, "connection": ds.connection_class,
@@ -356,7 +453,7 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
         sources.append(item)
     findings = ctx.lints()
     on_dash = {s for d in m.dashboards for s in d.sheets}
-    return {
+    out = {
         "workbook": lw.source_name,
         "data_sources": sources,
         "dashboards": [{"name": d.name, "quick_filters": [q.field.label for q in d.quick_filters],
@@ -369,6 +466,23 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
         "findings": [f"{f.severity}: {f.title}" for f in findings],
         "notes": lw.notes + m.unsupported,
     }
+    _fit_formulas(out, ctx.max_chars)
+    return out
+
+
+def _fit_formulas(out: dict, limit: int) -> None:
+    """A very large workbook: shorten the longest formulas (saying so) instead of cutting the whole reply."""
+    calcs = [c for d in out["data_sources"] for c in d["calculated_fields"]]
+    for size in (600, 300, 120):
+        if len(json.dumps(_clean(out), ensure_ascii=False, default=str)) <= limit:
+            return
+        for c in calcs:
+            if len(c["formula"]) > size:
+                c["formula_truncated"] = (f"shortened to {size} characters to fit; describe_sheet on a sheet using "
+                                          "it gives the full formula")
+                c["formula"] = c["formula"][:size]
+                if "values" in c and len(json.dumps(c["values"])) > size:
+                    c.pop("values")
 
 
 def _shelf(r, ws) -> str:
@@ -404,6 +518,8 @@ def t_describe_sheet(ctx: ToolContext, inp: SheetInput) -> dict:
         "rows_shelf": [_shelf(r, ws) for r in ws.rows], "columns_shelf": [_shelf(r, ws) for r in ws.cols],
         "marks": {k: [r.label for r in v] for k, v in ws.encodings.items()},
         "filters": filters,
+        "measures_count": _sheet_measures(ctx.lw, ws),
+        "calculations": _sheet_calcs(ctx.lw, ws),
         "redraw": res.status, "why_approximate": res.reasons,
         "checks": [c.model_dump(exclude={"evidence"}) for c in chart_checks(res, actx)],
     }
