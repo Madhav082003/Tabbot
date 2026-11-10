@@ -277,3 +277,27 @@ def test_truncation_is_a_timeline_and_part_combines_years():
                                      b"([federated.shop].[yr:Order Date:ok] / [federated.shop].[qr:Order Date:ok])"),
                        name="t")
     assert m.worksheet("Seasonal").cols.describe() == "YEAR(Order Date) › QUARTER(Order Date)"
+
+
+def test_no_value_questions_without_data(fixture_twbx, tmp_path):
+    """A bare .twb (or a .twbx without its data) cannot answer value questions, so none are suggested."""
+    import zipfile
+
+    from tabbot.config import load_settings
+    from tabbot.explain.report import explain_workbook
+    from tabbot.loader import load_workbook
+
+    with zipfile.ZipFile(fixture_twbx) as z:
+        name = next(n for n in z.namelist() if n.endswith(".twb"))
+        twb = tmp_path / "bare.twb"
+        twb.write_bytes(z.read(name))
+    s = load_settings().model_copy(update={"workspace_dir": tmp_path / "ws"})
+    lw = load_workbook(twb, settings=s)
+    try:
+        assert lw.store is None or not lw.ds_tables
+        rep = explain_workbook(lw)
+        qs = [q for v in rep.dashboards for q in v.questions]
+        assert qs and not any("stand" in q or "changed" in q for q in qs)
+        assert any("fields and calculations" in q for q in qs)
+    finally:
+        lw.close(delete=True)

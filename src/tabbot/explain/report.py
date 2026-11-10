@@ -716,10 +716,14 @@ class Writer:
         sheets = [w for w in (self.kit.worksheet(x) for x in g.sheets) if w is not None]
         qs = ["Explain this dashboard: what does each chart show and how should I read it?"]
         has_time = any(r.kind in ("date_trunc", "date_part") for w in sheets for r in w.all_refs())
-        if has_time and self.lw.store is not None:
+        # questions about values only when the app can read this dashboard's data (else they cannot be answered)
+        has_data = self.lw.store is not None and any(self.lw.table_for(d) for w in sheets for d in w.datasources)
+        if has_time and has_data:
             qs.append("What changed recently in this dashboard, and what is driving it?")
         fam = g.family
-        if fam is not None and fam.varying_field:
+        if not has_data:
+            qs.append("Which fields and calculations does this dashboard use, and what does each one mean?")
+        elif fam is not None and fam.varying_field:
             qs.append(f"Which {fam.varying_field} stands out here, and why?")
         else:
             main = info.get("main")

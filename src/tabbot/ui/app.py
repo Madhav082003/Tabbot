@@ -325,6 +325,12 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         about = view.name if view is not None else WHOLE
         st.markdown(f"**💬 {ASSISTANT_NAME}**")
         st.caption(f"Asking about: **{about}**")
+        if lw.store is None or not lw.ds_tables:
+            st.warning(("A .twb file holds only the design, never the data. " if lw.source_name.lower().endswith(".twb")
+                        else "The data file is not inside this workbook. ")
+                       + "Answers can explain the charts, fields and filters, but not give numbers. "
+                       "For numbers, upload the packaged workbook (.twbx) - in Tableau: File → Export Packaged "
+                       "Workbook.", icon="ℹ️")
         ready = bool(settings.anthropic_api_key) or settings.dry_run
         if settings.dry_run:
             st.caption("Test mode: nothing is sent")
