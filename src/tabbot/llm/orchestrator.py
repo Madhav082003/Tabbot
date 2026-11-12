@@ -9,7 +9,12 @@ Rules (CLAUDE.md data boundary, Claude API guidance, spend safety):
   repeat stops the question;
 - history is append-only: each assistant turn is appended exactly as returned (thinking blocks included);
 - all tool results of one turn go back in ONE user message, failures as is_error results;
-- refusals and token limits are reported, never hidden.
+- refusals and token limits are reported, never hidden;
+- replies are streamed: Claude's text reaches `on_event` piece by piece while it is written, and each tool
+  is announced before it runs, so the chat can show progress instead of waiting for the whole answer.
+
+on_event(kind, data) events:  ("text", "next piece of the answer")  ("tool", {"name": ..., "input": {...}})
+Text written before a tool call is a progress note; the final answer is the text of the last round.
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -28,6 +34,7 @@ from tabbot.llm.provider import MessagesClient, build_request, make_messages_cli
 from tabbot.llm.tools import ToolContext, UIAction, dispatch, tool_definitions
 from tabbot.llm.usage import TOKEN_KEYS, Limits, UsageLog, check_before_send, cost_usd
 
+EventHandler = Callable[[str, Any], None]
 REPEAT_WARN = 2   # 2nd identical call: not re-run, Claude is told to use the earlier result
 REPEAT_STOP = 3   # 3rd identical call: the question is stopped
 
@@ -66,6 +73,40 @@ def _get(o: Any, k: str, default=None):
     return o.get(k, default) if isinstance(o, dict) else getattr(o, k, default)
 
 
+NOT_ECHOED_BEFORE_FALLBACK = {"thinking", "redacted_thinking", "tool_use", "server_tool_use"}
+
+
+def _for_history(blocks: list[dict]) -> list[dict]:
+    """The assistant turn as it must be sent back. After a mid-stream server-side fallback the reply holds the
+    declined model's partial output, a `fallback` marker, then the fallback model's continuation: the declined
+    part's thinking and tool calls are not echoed back (nor run); its text and everything after the marker are."""
+    last = max((i for i, b in enumerate(blocks) if b.get("type") == "fallback"), default=None)
+    if last is None:
+        return blocks
+    return [b for i, b in enumerate(blocks) if i > last or b.get("type") not in NOT_ECHOED_BEFORE_FALLBACK]
+
+
+def _send(client: MessagesClient, req: dict, emit: EventHandler | None) -> Any:
+    """Send one request. With a streaming client, pass the answer text on as it arrives; return the full reply."""
+    stream = getattr(client, "stream", None)
+    if stream is None:
+        return client.create(**req)
+    with stream(**req) as s:
+        had_text = False
+        for ev in s:
+            t = _get(ev, "type")
+            if t == "content_block_start" and _get(_get(ev, "content_block"), "type") == "text":
+                if had_text and emit:
+                    emit("text", "\n\n")          # a new paragraph block
+            elif t == "content_block_delta":
+                d = _get(ev, "delta")
+                if _get(d, "type") == "text_delta" and _get(d, "text"):
+                    had_text = True
+                    if emit:
+                        emit("text", _get(d, "text"))
+        return s.get_final_message()
+
+
 class ChatSession:
     def __init__(self, lw, settings: Settings, client: MessagesClient | None = None):
         self.lw = lw
@@ -100,17 +141,19 @@ class ChatSession:
         self.usage.append({"event": event, "session": self.session_id, "question": question, "round": rnd,
                            "model": self.settings.claude_model, **kw})
 
-    def ask(self, text: str, app_context: str | None = None) -> Turn:
+    def ask(self, text: str, app_context: str | None = None, on_event: EventHandler | None = None) -> Turn:
+        """Answer one question. `on_event` (optional) receives the answer text while it streams in and a notice
+        before each tool runs; the returned Turn always holds the complete final answer."""
         qid = uuid.uuid4().hex[:8]
         self.chatlog.question(qid, text, app_context, data_status(self.lw), self.settings.claude_model,
                               self.settings.dry_run)
-        turn = self._ask(qid, text, app_context)
+        turn = self._ask(qid, text, app_context, _safe(on_event))
         self.chatlog.answer(qid, turn.text, turn.rounds, turn.usage, turn.est_usd,
                             stopped=turn.blocked or turn.error or (turn.stop_reason if turn.stop_reason
                                                                    in ("refusal", "max_tokens") else None))
         return turn
 
-    def _ask(self, qid: str, text: str, app_context: str | None) -> Turn:
+    def _ask(self, qid: str, text: str, app_context: str | None, emit: EventHandler | None) -> Turn:
         content: list[dict] = []
         if app_context:
             content.append({"type": "text", "text": f"<app_context>{app_context}</app_context>"})
@@ -149,7 +192,7 @@ class ChatSession:
                 self.messages.pop()  # keep history valid for the next real request
                 return turn
             try:
-                resp = self.client.create(**req)
+                resp = _send(self.client, req, emit)
             except Exception as exc:  # noqa: BLE001 - surfaced to the user, history stays consistent
                 turn.error = _friendly_error(exc)
                 turn.text = turn.error
@@ -159,7 +202,7 @@ class ChatSession:
                 return turn
 
             cached_chars = self._last_request_chars = req_chars
-            blocks = [_block_dict(b) for b in (_get(resp, "content") or [])]
+            blocks = _for_history([_block_dict(b) for b in (_get(resp, "content") or [])])
             self.messages.append({"role": "assistant", "content": blocks})   # append-only, as returned
             stop = _get(resp, "stop_reason")
             turn.stop_reason = stop
@@ -199,6 +242,8 @@ class ChatSession:
                     out, is_err = json.dumps({"error": "this exact call was already made in this question; use "
                                                        "its earlier result instead of repeating it"}), True
                 else:
+                    if emit:
+                        emit("tool", {"name": tu["name"], "input": tu.get("input") or {}})
                     out, is_err = dispatch(self.tools_ctx, tu["name"], tu.get("input"))
                 self.chatlog.tool_result(qid, rnd, tu["name"], tu.get("input") or {}, out, is_err)
                 results.append({"type": "tool_result", "tool_use_id": tu["id"], "content": out,
@@ -214,6 +259,19 @@ class ChatSession:
                     f"Stopped: {reason}. Try asking more specifically."
                 turn.actions = list(self.tools_ctx.actions)
                 return turn
+
+
+def _safe(handler: EventHandler | None) -> EventHandler | None:
+    """A display callback that fails must never break the question (the answer is still returned whole)."""
+    if handler is None:
+        return None
+
+    def call(kind: str, data: Any) -> None:
+        try:
+            handler(kind, data)
+        except Exception:  # noqa: BLE001 - display only
+            pass
+    return call
 
 
 def _preview(out: str, is_err: bool) -> str:

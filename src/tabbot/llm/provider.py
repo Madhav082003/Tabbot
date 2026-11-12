@@ -13,6 +13,9 @@ FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
 
 class MessagesClient(Protocol):
+    """`client.beta.messages`: `create(**req)` returns a whole message; `stream(**req)` (used when present)
+    returns a context manager that yields stream events and has `get_final_message()`."""
+
     def create(self, **kwargs: Any) -> Any: ...
 
 
@@ -21,7 +24,8 @@ class LLMNotConfigured(RuntimeError):
 
 
 def make_messages_client(api_key: str | None, timeout: float = 120.0, max_retries: int = 2) -> MessagesClient:
-    """Return an object with `.create(**request)` that sends one Messages API request."""
+    """Return `client.beta.messages`: `.stream(**request)` sends one request and streams the reply (the timeout
+    applies between chunks); `.create(**request)` sends one and waits for the whole reply."""
     import anthropic  # imported here so the rest of the app never needs it
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout, max_retries=max_retries) if api_key \
