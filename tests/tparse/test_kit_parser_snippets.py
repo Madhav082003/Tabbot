@@ -120,6 +120,24 @@ def test_text_and_member_helpers():
     assert unescape_member(r"[ds].[usr:\% Diff Sales:qk]") == "[ds].[usr:% Diff Sales:qk]"
 
 
+def test_dashboard_text_zones_deduped_across_layouts_and_annotations():
+    s1 = sheet("A", rows="[ds].[none:SOC:nk]", enc="<text column='[ds].[ctd:CASEID:qk]'/>", mark="Automatic")
+    s1 = s1.replace("</rows>", "</rows><annotations><annotation type='point'><formatted-text><run>Peak "
+                    "month</run></formatted-text></annotation></annotations>")
+    text = ("<zone id='43' type-v2='text' x='1' y='1' w='9' h='9'><formatted-text><run>Target to cut X by "
+            "10%</run></formatted-text></zone>")
+    phone_only = ("<zone id='50' type-v2='text'><formatted-text><run>Swipe for more</run>"
+                  "</formatted-text></zone>")
+    dash = f"""<dashboard name='D'><layout-options><title><formatted-text><run>Big Title</run></formatted-text>
+      </title></layout-options><zones><zone id='1' type-v2='layout-basic'><zone id='2' name='A'/>{text}</zone></zones>
+      <devicelayouts><devicelayout name='Phone'><zones><zone id='9' name='A'/>{text}{phone_only}</zones>
+      </devicelayout></devicelayouts></dashboard>"""
+    m = parse_workbook(wb(s1, dash), name="t")
+    d = m.dashboard("D")
+    assert d.title == "Big Title" and d.text_blocks == ["Target to cut X by 10%", "Swipe for more"]
+    assert m.worksheet("A").annotation_texts == ["Peak month"]
+
+
 def test_dashboard_dedup_hidden_and_actions():
     s1 = sheet("A", rows="[ds].[none:SOC:nk]", enc="<text column='[ds].[ctd:CASEID:qk]'/>", mark="Automatic")
     dash = """<dashboard name='D'><size sizing-mode='automatic'/><zones>

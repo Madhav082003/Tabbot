@@ -449,7 +449,9 @@ def _parse_worksheet(el: Element, model: WorkbookModel) -> Worksheet:
                                                       value_column=parse_ref(rl.get("value-column", "")),
                                                       label=rl.get("label")))
         ws.panes.append(pane)
-    ws.annotations = len(table.findall("annotations/annotation"))
+    notes = table.findall("annotations/annotation")
+    ws.annotations = len(notes)
+    ws.annotation_texts = list(dict.fromkeys(t for t in (text_of(first(a, "formatted-text")) for a in notes) if t))
     ws.uses_measure_names = any(r.kind == "special" and r.field == "Measure Names" for r in ws.all_refs())
     return ws
 
@@ -512,6 +514,11 @@ def _parse_dashboard(el: Element, worksheet_names: set[str], dashboard_names: se
         elif z.kind == "web":
             db.web_objects += 1
     db.sheets = seen
+    # one entry per text, whatever the layout: phone/tablet layouts copy the zones (and a zone can repeat)
+    for dl in children(el, "devicelayouts/devicelayout"):
+        db.text_blocks += [z.text for z in _walk_zones(first(dl, "zones"), worksheet_names)
+                           if z.kind in ("text", "title") and z.text]
+    db.text_blocks = list(dict.fromkeys(db.text_blocks))
     for dl in children(el, "devicelayouts/devicelayout"):
         db.device_layouts.append(dl.get("name", "device"))
     for sp in el.iter("story-point"):

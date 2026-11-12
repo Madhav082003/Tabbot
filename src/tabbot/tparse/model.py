@@ -238,6 +238,7 @@ class Worksheet(BaseModel):
     column_instances: list[ColumnInstance] = []
     uses_measure_names: bool = False
     annotations: int = 0
+    annotation_texts: list[str] = []     # text of the sheet's annotations (de-duplicated)
     hidden: bool = False
     in_dashboards: list[str] = []
     chart_type: str | None = None        # inferred, see describe.py

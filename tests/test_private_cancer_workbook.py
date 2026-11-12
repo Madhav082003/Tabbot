@@ -75,6 +75,22 @@ def test_cards(lw):
     assert int(surgery.data[surgery.measures[0].alias].iloc[0]) == 4
 
 
+def test_dashboard_text_objects_are_read_once(lw):
+    out, err = dispatch(ToolContext(lw=lw), "list_dashboards", {})
+    d = next(x for x in json.loads(out)["dashboards"] if x["name"] == "Dashboard 1")
+    assert not err and d["title"] == "Breast Cancer Analytics | 2017-2019"
+    assert d["text_on_dashboard"].count("Target to Reduce Death Rate by 10%") == 1   # also in the phone layout
+
+
+def test_last_visit_before_surgery_can_be_checked(lw):
+    import pandas as pd
+    raw = pd.read_parquet(lw.tables[0].parquet)
+    expected = int((pd.to_datetime(raw["date_of_last_visit"]) < pd.to_datetime(raw["Date_of_Surgery"])).sum())
+    out, err = dispatch(ToolContext(lw=lw), "query_data", {
+        "compare": [{"field": "date_of_last_visit", "op": "<", "other_field": "Date_of_Surgery"}]})
+    assert not err and json.loads(out)["rows"][0]["Distinct count of Patient_ID"] == expected
+
+
 def test_status_can_be_crossed_with_surgery_type(lw):
     out, err = dispatch(ToolContext(lw=lw), "query_data", {
         "dimensions": [{"field": "Surgery_type"}, {"field": "Patient_Status"}]})

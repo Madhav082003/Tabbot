@@ -148,6 +148,20 @@ def test_tools_return_status_labels_and_refuse_names(lw):
     assert err
 
 
+def test_query_data_compares_two_fields_row_by_row(lw):
+    raw = rows()
+    ctx = ToolContext(lw=lw)
+    out, err = dispatch(ctx, "query_data", {"compare": [{"field": "Amount", "op": ">", "other_field": "Amount"}]})
+    assert not err and json.loads(out)["rows"][0]["Distinct count of Patient_ID"] == 0
+    out, err = dispatch(ctx, "query_data", {"dimensions": [{"field": "Treatment"}],
+                                            "compare": [{"field": "Amount", "op": ">=", "other_field": "Amount"}]})
+    got = {r["Treatment"]: r["Distinct count of Patient_ID"] for r in json.loads(out)["rows"]}
+    assert not err and got == raw.groupby("Treatment")["Patient_ID"].nunique().to_dict()
+    _, err = dispatch(ctx, "query_data", {"compare": [{"field": "Patient_Name", "op": "=",
+                                                       "other_field": "Patient_Status"}]})
+    assert err                                                   # sensitive fields cannot be compared
+
+
 def test_query_data_percent_of_total(lw):
     out, err = dispatch(ToolContext(lw=lw), "query_data", {"dimensions": [{"field": "Patient_Status"}],
                                                           "percent_of_total": True})
