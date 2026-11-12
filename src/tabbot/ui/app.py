@@ -126,6 +126,8 @@ CSS = """
 
   /* the upload box: a grey square with the upload button in the middle */
   [class*="st-key-upload_card"] {max-width: 480px; margin: 0 auto;}
+  .st-key-same_wb {align-items: center;}
+  .st-key-same_wb button p {color: #1F3A5F; text-decoration: underline;}
   [class*="st-key-upload_card"] [data-testid="stFileUploader"] label {justify-content: center; width: 100%;}
   [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] {
       aspect-ratio: 1 / 1; display: flex !important; flex-direction: column !important;
@@ -221,6 +223,7 @@ def _new_chat() -> None:
 def _open_chat(c: SavedChat) -> None:
     """Show a past chat. On its own workbook it continues, with its context. If another workbook (or none) is open,
     its workbook is reopened from the kept copy; without a copy the chat is shown read-only."""
+    st.session_state.home = False
     lw: LoadedWorkbook | None = st.session_state.get("lw")
     if (lw is None or lw.digest != c.digest) and get_settings().keep_workbook_copies:
         copy = _library().get(c.digest)
@@ -298,6 +301,7 @@ def _render_history() -> None:
         _toggle_button()
         if st.button("＋ New chat", key="new_chat", width="stretch"):
             _new_chat()
+            st.session_state.home = True      # back to the start page: open another workbook, or the same one
             st.rerun()
         st.markdown("<div class='tb-recents'>Recents</div>", unsafe_allow_html=True)
         if not chats:
@@ -397,6 +401,7 @@ def _load(path: Path) -> None:
     _close_workbook()
     lw = load_workbook(path, settings=get_settings())
     st.session_state.lw = lw
+    st.session_state.home = False
     if get_settings().keep_workbook_copies:
         try:
             _library().put(path, lw.digest)              # so its chats can reopen it later
@@ -436,6 +441,11 @@ def _load_upload(uploaded) -> bool:
     this file is already open or failed - so a file left in an upload box never makes the page rerun forever."""
     data = uploaded.getvalue()
     digest = hashlib.sha256(data).hexdigest()[:16]
+    if digest == st.session_state.get("loaded_digest") and st.session_state.get("home") \
+            and st.session_state.get("lw") is not None:
+        st.session_state.home = False         # the open workbook chosen again from the start page: a new chat on it
+        st.session_state.upload_n = _upload_n() + 1
+        return True
     if digest in (st.session_state.get("loaded_digest"), st.session_state.get("failed_digest")):
         return False
     incoming = get_settings().workspace_dir / "_incoming" / digest
@@ -582,6 +592,13 @@ def _render_start_page() -> None:
                               key=f"upload_main_{_upload_n()}")
         if up is not None and _load_upload(up):
             st.rerun()
+    lw: LoadedWorkbook | None = st.session_state.get("lw")
+    if lw is not None:                # "New chat" from an open workbook: a fresh chat on it is one click away
+        with st.container(key="same_wb"):
+            if st.button(f"or start a new chat on {Path(lw.source_name).stem}", key="chat_on_open",
+                         type="tertiary"):
+                st.session_state.home = False
+                st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- chat
@@ -794,7 +811,8 @@ def main() -> None:
 
 
 def _render_body() -> None:
-    _render_appbar(st.session_state.get("lw"))
+    home = bool(st.session_state.get("home"))              # "New chat" pressed: the start page
+    _render_appbar(None if home else st.session_state.get("lw"))
     lw: LoadedWorkbook | None = st.session_state.get("lw")
     viewing = _store().load(st.session_state.viewing) if st.session_state.viewing else None
     if st.session_state.viewing and viewing is None:      # deleted meanwhile
@@ -803,7 +821,7 @@ def _render_body() -> None:
     if viewing is not None:                                # a past chat, its workbook not open
         _render_past_chat(viewing, lw)
         return
-    if lw is None:
+    if lw is None or home:
         st.markdown(pane_css(PANE_TOP), unsafe_allow_html=True)
         _render_start_page()
         return

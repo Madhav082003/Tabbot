@@ -131,6 +131,18 @@ def test_a_question_is_saved_and_listed_by_workbook_name(app):
     assert len(store.list()) == 1 and store.list()[0].questions == 2
 
 
+def test_new_chat_goes_to_the_start_page(app):
+    """Opened the wrong workbook: New chat shows the upload page; the open one is one click away."""
+    at, _ = app
+    at.button(key="new_chat").click().run()
+    assert not at.exception and at.session_state["home"] is True and not at.chat_input
+    assert any("Open a Tableau workbook" in m.value for m in at.markdown)
+    btn = at.button(key="chat_on_open")
+    assert btn.label == "or start a new chat on fixture"
+    btn.click().run()
+    assert at.session_state["home"] is False and at.chat_input and at.session_state["chat_log"] == []
+
+
 def test_new_chat_then_reopen_restores_it(app):
     at, store = app
     at.chat_input[0].set_value("First question").run()
