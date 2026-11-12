@@ -55,16 +55,20 @@ CSS = """
   .st-key-toggle_history button p {font-size: 20px !important;}
 
   /* past chats, on the left (like a chat app's sidebar) */
-  .st-key-history_pane {background: #F7F8FA; border-right: 1px solid #E3E7ED; border-radius: 8px;
-                        padding: 10px 8px; overflow-y: auto !important; overflow-x: hidden; flex-wrap: nowrap;
-                        min-height: 380px;}
+  .st-key-history_pane {background: #F7F8FA; border: 1px solid #E3E7ED; border-radius: 8px;
+                        padding: 8px 8px; overflow-y: auto !important; overflow-x: hidden; flex-wrap: nowrap;
+                        /* the whole page height (Streamlit overrides `height`; min = max fixes it) */
+                        min-height: calc(100vh - 1.9rem) !important; max-height: calc(100vh - 1.9rem) !important;}
+  .st-key-history_pane .st-key-toggle_history button p {color: #1F3A5F !important;}
+  .st-key-history_pane .st-key-toggle_history {margin-bottom: 6px;}
   .st-key-history_pane [class*="st-key-open__"] button {justify-content: flex-start !important; text-align: left;
       border: none !important; background: transparent; padding: 5px 10px !important; min-height: 0;
       border-radius: 8px; color: #1F2937;}
   .st-key-history_pane [class*="st-key-open__"] button > div {justify-content: flex-start !important; width: 100%;}
   .st-key-history_pane [class*="st-key-open__"] button:hover {background: #E9EDF2 !important;}
-  .st-key-history_pane [class*="st-key-open__"] button p {font-size: 14px; white-space: nowrap; overflow: hidden;
-                                                          text-overflow: ellipsis; text-align: left; color: #1F2937;}
+  .st-key-history_pane [class*="st-key-open__"] button p {font-size: 14px; text-align: left; color: #1F2937;
+      white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; line-height: 1.3;}       /* long names wrap to a second line */
   .st-key-history_pane [class*="st-key-open__"] button[kind="primary"] {background: #DDE4EE !important;}
   .st-key-history_pane [class*="st-key-open__"] button[kind="primary"] p {color: #1F3A5F; font-weight: 600;}
   .st-key-new_chat button {border: 1px solid #C9D3E0 !important; background: #fff !important;}
@@ -100,12 +104,12 @@ CSS = """
                margin: 6px 0 10px 0; font-size: 15px;}
 
   .tb-title {font-size: 22px; font-weight: 600; color: #1F3A5F; margin: 6px 0 4px 0;}
-  .tb-hero {text-align: center; max-width: 640px; margin: 28px auto 14px auto;}
-  .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 6px 0;}
+  .tb-hero {text-align: center; max-width: 860px; margin: 4px auto 10px auto;}   /* text on two lines */
+  .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 6px 0; padding: 0;}
   .tb-hero p {font-size: 15px; color: #555; margin: 0;}
 
   /* the upload box: a grey square with the upload button in the middle */
-  [class*="st-key-upload_card"] {max-width: 400px; margin: 0 auto;}
+  [class*="st-key-upload_card"] {max-width: 480px; margin: 0 auto;}
   [class*="st-key-upload_card"] [data-testid="stFileUploader"] label {justify-content: center; width: 100%;}
   [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] {
       aspect-ratio: 1 / 1; display: flex !important; flex-direction: column !important;
@@ -122,7 +126,7 @@ CSS = """
 def pane_css(top_px: int) -> str:
     """The panes fill the window below the bar(s) above them."""
     h = f"calc(100vh - {top_px}px)"
-    return (f"<style>.st-key-left_pane, .st-key-history_pane {{height: {h} !important; max-height: {h} !important;}} "
+    return (f"<style>.st-key-left_pane {{height: {h} !important; max-height: {h} !important;}} "
             f"div:has(> .st-key-chat_pane) {{height: {h} !important;}}</style>")
 
 
@@ -166,7 +170,7 @@ FOLLOW_CHAT_JS = """
 """
 
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
-HISTORY_W, MAIN_W, CHAT_W = 0.5, 1.25, 1    # column widths: past chats | explanation | chat
+HISTORY_W, MAIN_W, CHAT_W = 0.42, 1.25, 1   # column widths: past chats | explanation | chat
 
 SUGGESTIONS = ["Explain this workbook: what is it for and what does each dashboard show?",
                "What are the key insights in the data?",
@@ -221,12 +225,30 @@ def _when(iso: str) -> str:
     return f"{t:%d %b %H:%M}" if t.date() == dt.date.today() or t.year == dt.date.today().year else f"{t:%d %b %Y}"
 
 
+def _toggle_button() -> None:
+    """☰: hides the chat list (shown at the top of the list) or brings it back (shown in the app bar)."""
+    if st.button("☰", key="toggle_history",
+                 help=("Hide" if st.session_state.show_history else "Show") + " past chats"):
+        st.session_state.show_history = not st.session_state.show_history
+        st.rerun()
+
+
+def _short_when(iso: str) -> str:
+    """'14:05' for today, '12 Nov' otherwise: tells apart chats of one workbook without crowding the list."""
+    try:
+        t = dt.datetime.fromisoformat(iso)
+    except ValueError:
+        return ""
+    return f"{t:%H:%M}" if t.date() == dt.date.today() else f"{t:%d %b}"
+
+
 def _render_history() -> None:
     chats = _store().list()
     saved: SavedChat | None = st.session_state.get("saved")
     current = st.session_state.get("viewing") or (saved.id if saved is not None else None)
     names = [c.workbook for c in chats]
     with st.container(key="history_pane"):
+        _toggle_button()
         if st.button("＋ New chat", key="new_chat", width="stretch"):
             _new_chat()
             st.rerun()
@@ -234,7 +256,7 @@ def _render_history() -> None:
         if not chats:
             st.caption("Your chats will appear here.")
         for c in chats:
-            label = c.workbook + (f" · {_when(c.created)}" if names.count(c.workbook) > 1 else "")
+            label = c.workbook + (f" · {_short_when(c.created)}" if names.count(c.workbook) > 1 else "")
             tip = (f"{c.first_question[:120]}\n\n{_when(c.updated)} · {c.questions} question(s)"
                    if c.first_question else _when(c.updated))
             row = st.columns([6, 1], gap=None, vertical_alignment="center")
@@ -586,18 +608,20 @@ def _render_chat(lw: LoadedWorkbook) -> None:
 
 
 def _render_appbar(lw: LoadedWorkbook | None) -> None:
+    """The bar above the page. When the chat list is hidden, its ☰ button lives here."""
     with st.container(key="appbar"):
-        top = st.columns([0.35, 7.6, 1.8], vertical_alignment="center")
+        hidden = not st.session_state.show_history
+        top = st.columns([0.35, 7.6, 1.8] if hidden else [7.95, 1.8], vertical_alignment="center")
+        if hidden:
+            with top[0]:
+                _toggle_button()
+            top = top[1:]
         with top[0]:
-            if st.button("☰", key="toggle_history",
-                         help=("Hide" if st.session_state.show_history else "Show") + " past chats"):
-                st.session_state.show_history = not st.session_state.show_history
-        with top[1]:
             wb = f"<span class='wb'>{html.escape(lw.source_name)}</span>" if lw is not None else ""
             st.markdown(f"<span class='brand'>📊 Tableau Insights</span>{wb}", unsafe_allow_html=True)
         if lw is not None:
             # a fresh key after each load: the popover comes back closed instead of covering the new workbook
-            with top[2], st.popover("📂 Open workbook", width="stretch", key=f"open_wb_{_upload_n()}"):
+            with top[1], st.popover("📂 Open workbook", width="stretch", key=f"open_wb_{_upload_n()}"):
                 up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key=f"upload_{_upload_n()}")
                 if up is not None and _load_upload(up):
                     st.rerun()
@@ -621,24 +645,31 @@ def main() -> None:
         _load(Path(auto))
         st.session_state.loaded_digest = "autoload"
 
+    # two areas, like a chat app: the chat list down the whole left side (when shown), everything else to its
+    # right - the app bar starts after the list and stretches to the left edge when the list is hidden
+    if st.session_state.show_history:
+        side, body = st.columns([HISTORY_W, MAIN_W + CHAT_W], gap="small")
+        with side:
+            _render_history()
+    else:
+        body = st.container()
+    with body:
+        _render_body()
+
+
+def _render_body() -> None:
     _render_appbar(st.session_state.get("lw"))
     lw: LoadedWorkbook | None = st.session_state.get("lw")
     viewing = _store().load(st.session_state.viewing) if st.session_state.viewing else None
     if st.session_state.viewing and viewing is None:      # deleted meanwhile
         st.session_state.viewing = None
-    show = st.session_state.show_history
 
     if lw is None or viewing is not None:                  # start page, or reading a past chat
         st.markdown(pane_css(PANE_TOP), unsafe_allow_html=True)
-        cols = st.columns([HISTORY_W, MAIN_W + CHAT_W]) if show else [None, st.container()]
-        if show:
-            with cols[0]:
-                _render_history()
-        with cols[1]:
-            if viewing is not None:
-                _render_past_chat(viewing, lw)
-            else:
-                _render_start_page()
+        if viewing is not None:
+            _render_past_chat(viewing, lw)
+        else:
+            _render_start_page()
         return
 
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
@@ -646,12 +677,7 @@ def main() -> None:
         _report(lw)
     has_bar = _render_dashbar(lw)
     st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0)), unsafe_allow_html=True)
-    if show:
-        hist, left, right = st.columns([HISTORY_W, MAIN_W, CHAT_W])
-        with hist:
-            _render_history()
-    else:
-        left, right = st.columns([MAIN_W, CHAT_W])
+    left, right = st.columns([MAIN_W, CHAT_W])
     with left, st.container(key="left_pane"):
         view = _selected_view(lw)
         if view is None:
