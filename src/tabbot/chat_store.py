@@ -85,5 +85,5 @@ class ChatStore:
 def start_chat(lw) -> SavedChat:
     """A new (not yet saved) chat for the open workbook."""
     now = _now()
-    return SavedChat(id=new_chat_id(), workbook=lw.display_name, source_name=lw.source_name, digest=lw.digest,
-                     created=now, updated=now)
+    return SavedChat(id=new_chat_id(), workbook=Path(lw.source_name).stem, source_name=lw.source_name,
+                     digest=getattr(lw, "digest", ""), created=now, updated=now)

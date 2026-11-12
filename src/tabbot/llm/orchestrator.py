@@ -14,6 +14,7 @@ Rules (CLAUDE.md data boundary, Claude API guidance, spend safety):
   is announced before it runs, so the chat can show progress instead of waiting for the whole answer.
 
 on_event(kind, data) events:  ("text", "next piece of the answer")  ("tool", {"name": ..., "input": {...}})
+                             ("tick", None) for every stream event (a chance to react, e.g. to a Stop click)
 Text written before a tool call is a progress note; the final answer is the text of the last round.
 """
 
@@ -96,6 +97,8 @@ def _send(client: MessagesClient, req: dict, emit: EventHandler | None) -> Any:
         had_text = False
         for ev in s:
             t = _get(ev, "type")
+            if emit:
+                emit("tick", None)          # lets the page react (e.g. a Stop click) while Claude is still thinking
             if t == "content_block_start" and _get(_get(ev, "content_block"), "type") == "text":
                 if had_text and emit:
                     emit("text", "\n\n")          # a new paragraph block
@@ -157,7 +160,20 @@ class ChatSession:
         qid = uuid.uuid4().hex[:8]
         self.chatlog.question(qid, text, app_context, data_status(self.lw), self.settings.claude_model,
                               self.settings.dry_run)
-        turn = self._ask(qid, text, app_context, _safe(on_event))
+        start = len(self.messages)
+        try:
+            turn = self._ask(qid, text, app_context, _safe(on_event))
+        except BaseException as exc:
+            if isinstance(exc, Exception):
+                raise
+            # stopped from outside (the user pressed Stop: the page reran mid-answer). Leaving the stream closed
+            # the connection, so nothing more is generated or billed. Undo this question's half-finished
+            # history so the conversation stays valid, log it, and let the interruption continue.
+            del self.messages[start:]
+            self._log("stopped", qid, 0, reason="stopped by the user while the answer was being written "
+                                                "(tokens of the partial reply are not known)")
+            self.chatlog.answer(qid, "", 0, {}, 0.0, stopped="stopped by the user")
+            raise
         self.chatlog.answer(qid, turn.text, turn.rounds, turn.usage, turn.est_usd,
                             stopped=turn.blocked or turn.error or (turn.stop_reason if turn.stop_reason
                                                                    in ("refusal", "max_tokens") else None))
@@ -272,7 +288,8 @@ class ChatSession:
 
 
 def _safe(handler: EventHandler | None) -> EventHandler | None:
-    """A display callback that fails must never break the question (the answer is still returned whole)."""
+    """A display callback that fails must never break the question (the answer is still returned whole).
+    Only errors are swallowed: an interruption (BaseException, e.g. the user pressed Stop) passes through."""
     if handler is None:
         return None
 

@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import shutil
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -92,6 +93,12 @@ CSS = """
                      overflow-x: hidden;}
   .st-key-chat_pane .stButton button {padding: 2px 10px; min-height: 0;}
   .st-key-chat_pane .stButton button p {font-size: 13px;}
+  /* questions: a grey bubble on the right; answers: plain text */
+  [class*="st-key-umsg_"] {background: #F1F3F6; border-radius: 14px; padding: 10px 14px !important;
+                           align-self: flex-end; width: fit-content !important; max-width: 85%; margin: 6px 0;}
+  [class*="st-key-umsg_"] p {margin: 0;}
+  [class*="st-key-amsg_"] {padding: 2px 2px 8px 2px;}
+  .st-key-stop_answer button {border-radius: 16px !important; padding: 2px 14px !important;}
 
   /* the dashboard bar: one row of boxes that scrolls sideways when there are many */
   .st-key-dashbar {padding: 2px 0 0 0;}
@@ -123,11 +130,12 @@ CSS = """
 """
 
 
-def pane_css(top_px: int) -> str:
-    """The panes fill the window below the bar(s) above them."""
+def pane_css(top_px: int, chat_top_px: int | None = None) -> str:
+    """The panes fill the window below the bar(s) above them (the chat pane may start higher)."""
     h = f"calc(100vh - {top_px}px)"
+    hc = f"calc(100vh - {chat_top_px if chat_top_px is not None else top_px}px)"
     return (f"<style>.st-key-left_pane {{height: {h} !important; max-height: {h} !important;}} "
-            f"div:has(> .st-key-chat_pane) {{height: {h} !important;}}</style>")
+            f"div:has(> .st-key-chat_pane) {{height: {hc} !important;}}</style>")
 
 
 WHOLE = "Whole workbook"                     # the first box: the full explanation
@@ -205,15 +213,15 @@ def _open_chat(c: SavedChat) -> None:
 
 def _save_chat(lw: LoadedWorkbook) -> None:
     """Store the current chat after each answer (a new chat is created on its first question)."""
-    saved: SavedChat | None = st.session_state.get("saved")
-    if saved is None or saved.digest != lw.digest:
-        saved = start_chat(lw)
-    chat: ChatSession | None = st.session_state.get("chat")
-    saved.log = list(st.session_state.chat_log)
-    saved.messages = list(chat.messages) if chat is not None else []
     try:
+        saved: SavedChat | None = st.session_state.get("saved")
+        if saved is None or saved.digest != getattr(lw, "digest", ""):
+            saved = start_chat(lw)
+        chat: ChatSession | None = st.session_state.get("chat")
+        saved.log = list(st.session_state.chat_log)
+        saved.messages = list(chat.messages) if chat is not None else []
         st.session_state.saved = _store().save(saved)
-    except OSError:                       # a chat that cannot be saved must never break the answer
+    except Exception:  # noqa: BLE001 - a chat that cannot be saved must never break the answer
         log.exception("chat could not be saved")
 
 
@@ -273,11 +281,20 @@ def _render_history() -> None:
                     st.rerun()
 
 
+def _user_bubble(i: int, text: str, about: str | None) -> None:
+    """A question: a grey bubble on the right (which dashboard it was about, when one was picked)."""
+    with st.container(key=f"umsg_{i}"):
+        if about and about != WHOLE:
+            st.caption(f"About: {about}")
+        st.markdown(text)
+
+
 def _render_messages(entries: list[dict]) -> None:
-    for m in entries:
-        with st.chat_message(m["role"]):
-            if m.get("about"):
-                st.caption(f"About: {m['about']}")
+    for i, m in enumerate(entries):
+        if m["role"] == "user":
+            _user_bubble(i, m["text"], m.get("about"))
+            continue
+        with st.container(key=f"amsg_{i}"):                 # an answer: plain text, no icon
             st.markdown(m["text"])
             if m.get("tools"):
                 with st.expander(f"{len(m['tools'])} tool call(s)"):
@@ -301,7 +318,7 @@ def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
     if lw is not None:
         with cols[1]:
             st.write("")
-            if st.button(f"Back to {lw.display_name}", key="back_to_open"):
+            if st.button(f"Back to {Path(lw.source_name).stem}", key="back_to_open"):
                 st.session_state.viewing = None
                 st.rerun()
     with st.container(key="past_chat"):
@@ -525,25 +542,35 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
     about = view.name if view is not None else WHOLE
     entries.append({"role": "user", "text": question, "tools": [], "about": about})
     st.session_state.asked_about = about
+    # if the page reruns before the answer is complete (Stop pressed), the next run finds this and records what
+    # was written so far (see _finish_stopped)
+    st.session_state.pending_answer = {"text": ""}
     with box:
-        with st.chat_message("user"):
-            st.caption(f"About: {about}")
-            st.markdown(question)
-        with st.chat_message("assistant"):
+        _user_bubble(len(entries) - 1, question, about)
+        with st.container(key=f"amsg_{len(entries)}"):
             status, body = st.empty(), st.empty()
-            status.caption("⏳ Thinking…")
+            status.caption("Thinking…")
+            st.button("■ Stop", key="stop_answer", help="Stop this answer")   # any click reruns: that stops it
             tw = Typewriter(lambda t: body.markdown(t + " ▌") if t else body.empty())
+            now = {"status": "Thinking…", "tick": 0.0}
 
             def on_event(kind: str, data) -> None:
                 if kind == "tool":                  # text before a tool call was a progress note: replace it
                     tw.reset()
-                    status.caption(f"🔧 {_tool_label(data)}…")
+                    st.session_state.pending_answer["text"] = ""
+                    now["status"] = f"{_tool_label(data)}…"
+                    status.caption(now["status"])
                 elif kind == "text":
                     if not tw.shown:
                         status.empty()
                     tw.feed(data)
+                    st.session_state.pending_answer["text"] = tw.shown
+                elif kind == "tick" and not tw.shown and time.monotonic() - now["tick"] > 0.4:
+                    now["tick"] = time.monotonic()   # a screen update: lets a Stop click interrupt the wait
+                    status.caption(now["status"])
 
             turn = _chat_session(lw).ask(question, _context(lw, view), on_event=on_event)
+    st.session_state.pending_answer = None
     tools = [f"{'⚠️' if t.is_error else '🔧'} {t.name}({', '.join(f'{k}={v}' for k, v in t.input.items())})"
              + (f" → {t.preview}" if t.preview else "") for t in turn.tool_calls]
     meta = ""
@@ -557,13 +584,27 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
     st.rerun()
 
 
+def _finish_stopped(lw: LoadedWorkbook) -> None:
+    """The previous run was interrupted while an answer was being written (Stop): keep what was written, marked."""
+    p = st.session_state.get("pending_answer")
+    if not p:
+        return
+    st.session_state.pending_answer = None
+    text = (p.get("text") or "").strip()
+    st.session_state.chat_log.append({"role": "assistant", "tools": [], "meta": "",
+                                      "text": (text + "\n\n" if text else "") + "_Stopped._"})
+    _save_chat(lw)
+
+
 def _render_chat(lw: LoadedWorkbook) -> None:
     settings = get_settings()
     with st.container(border=True, key="chat_pane"):
         view = _selected_view(lw)
         about = view.name if view is not None else WHOLE
-        st.markdown(f"**💬 {ASSISTANT_NAME}**")
-        st.caption(f"Asking about: **{about}**")
+        fresh = not st.session_state.chat_log
+        st.markdown(f"**{ASSISTANT_NAME}**")
+        if fresh:                    # only before the first question: then the conversation has the room
+            st.caption(f"Asking about: **{about}**")
         if lw.store is None or not lw.ds_tables:
             st.warning(("A .twb file holds only the design, never the data. " if lw.source_name.lower().endswith(".twb")
                         else "The data file is not inside this workbook. ")
@@ -578,7 +619,7 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                     "`.env`\n2. Paste the key after `ANTHROPIC_API_KEY=`\n3. Restart the app")
         box = st.container(border=False, key="chat_msgs")
         with box:
-            if not st.session_state.chat_log:
+            if fresh:
                 st.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only its "
                            "structure and summary numbers are used - never the data rows.")
             _render_messages(st.session_state.chat_log)
@@ -645,6 +686,8 @@ def main() -> None:
         _load(Path(auto))
         st.session_state.loaded_digest = "autoload"
 
+    if st.session_state.get("lw") is not None:
+        _finish_stopped(st.session_state.lw)          # before the chat list is drawn, so it is listed right away
     # two areas, like a chat app: the chat list down the whole left side (when shown), everything else to its
     # right - the app bar starts after the list and stretches to the left edge when the list is hidden
     if st.session_state.show_history:
@@ -675,15 +718,17 @@ def _render_body() -> None:
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
     with st.spinner("Reading the workbook and writing the explanation…"):
         _report(lw)
-    has_bar = _render_dashbar(lw)
-    st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0)), unsafe_allow_html=True)
+    # panel 2 = dashboard bar + explanation; panel 3 = the assistant, starting right under the app bar
     left, right = st.columns([MAIN_W, CHAT_W])
-    with left, st.container(key="left_pane"):
-        view = _selected_view(lw)
-        if view is None:
-            _render_workbook(lw)
-        else:
-            _render_dashboard(lw, view)
+    with left:
+        has_bar = _render_dashbar(lw)
+        with st.container(key="left_pane"):
+            view = _selected_view(lw)
+            if view is None:
+                _render_workbook(lw)
+            else:
+                _render_dashboard(lw, view)
+    st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
     with right:
         _render_chat(lw)
     # a fixed script written here (never workbook or user text), run in the page itself

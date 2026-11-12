@@ -139,6 +139,27 @@ def test_delete_and_toggle_panel(app):
     assert _keys(at, "new_chat")
 
 
+def test_a_stopped_answer_keeps_what_was_written(app):
+    """The run that streamed the answer was interrupted by Stop: the next run records the partial text."""
+    at, store = app
+    at.chat_input[0].set_value("First").run()
+    at.session_state["chat_log"].append({"role": "user", "text": "Long question", "tools": [],
+                                         "about": "Whole workbook"})
+    at.session_state["pending_answer"] = {"text": "Half an answer"}
+    at.run()
+    last = at.session_state["chat_log"][-1]
+    assert last["role"] == "assistant" and last["text"] == "Half an answer\n\n_Stopped._"
+    assert at.session_state["pending_answer"] is None
+    assert store.list()[0].log[-1]["text"].endswith("_Stopped._")          # saved too
+
+
+def test_header_lines_only_before_the_first_question(app):
+    at, _ = app
+    assert any("Asking about" in c.value for c in at.caption)
+    at.chat_input[0].set_value("Hello").run()
+    assert not any("Asking about" in c.value or "Ask anything" in c.value for c in at.caption)
+
+
 def test_closing_the_workbook_keeps_chats_readable(app):
     at, store = app
     at.chat_input[0].set_value("Keep me").run()
