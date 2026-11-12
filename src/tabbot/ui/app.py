@@ -94,11 +94,17 @@ CSS = """
   .st-key-chat_pane .stButton button {padding: 2px 10px; min-height: 0;}
   .st-key-chat_pane .stButton button p {font-size: 13px;}
   /* questions: a grey bubble on the right; answers: plain text */
-  [class*="st-key-umsg_"] {background: #F1F3F6; border-radius: 14px; padding: 10px 14px !important;
+  [class*="st-key-umsg_"] {background: #F1F3F6; border-radius: 14px; padding: 8px 14px !important; gap: 2px !important;
                            align-self: flex-end; width: fit-content !important; max-width: 85%; margin: 6px 0;}
   [class*="st-key-umsg_"] p {margin: 0;}
   [class*="st-key-amsg_"] {padding: 2px 2px 8px 2px;}
-  .st-key-stop_answer button {border-radius: 16px !important; padding: 2px 14px !important;}
+  /* while an answer streams: the stop symbol takes the place of the input's send arrow */
+  .st-key-chat_pane {position: relative;}
+  .st-key-stop_answer {position: absolute !important; right: 26px; bottom: 26px; z-index: 5; width: auto !important;}
+  .st-key-stop_answer button {width: 32px; height: 32px; min-height: 32px !important; padding: 0 !important;
+                              border-radius: 8px !important; background: #1F3A5F !important; border: none !important;}
+  .st-key-stop_answer button span {color: #fff !important; margin: 0 !important;}
+  .st-key-chat_pane:has(.st-key-stop_answer) [data-testid="stChatInputSubmitButton"] {visibility: hidden;}
 
   /* the dashboard bar: one row of boxes that scrolls sideways when there are many */
   .st-key-dashbar {padding: 2px 0 0 0;}
@@ -294,14 +300,8 @@ def _render_messages(entries: list[dict]) -> None:
         if m["role"] == "user":
             _user_bubble(i, m["text"], m.get("about"))
             continue
-        with st.container(key=f"amsg_{i}"):                 # an answer: plain text, no icon
+        with st.container(key=f"amsg_{i}"):    # an answer: plain text (tool calls and cost stay in the logs only)
             st.markdown(m["text"])
-            if m.get("tools"):
-                with st.expander(f"{len(m['tools'])} tool call(s)"):
-                    for t in m["tools"]:
-                        st.caption(t)
-            if m.get("meta"):
-                st.caption(m["meta"])
 
 
 def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
@@ -537,7 +537,7 @@ def _tool_label(call: dict) -> str:
             "query_data": "Querying the data"}.get(call.get("name"), "Working")
 
 
-def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
+def _ask(lw: LoadedWorkbook, question: str, box, view=None, stop_slot=None) -> None:
     entries = st.session_state.chat_log
     about = view.name if view is not None else WHOLE
     entries.append({"role": "user", "text": question, "tools": [], "about": about})
@@ -550,7 +550,8 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
         with st.container(key=f"amsg_{len(entries)}"):
             status, body = st.empty(), st.empty()
             status.caption("Thinking…")
-            st.button("■ Stop", key="stop_answer", help="Stop this answer")   # any click reruns: that stops it
+            # any click reruns the page, and that interrupts the answer; the button sits over the input's arrow
+            (stop_slot or st).button("", icon=":material/stop:", key="stop_answer", help="Stop answering")
             tw = Typewriter(lambda t: body.markdown(t + " ▌") if t else body.empty())
             now = {"status": "Thinking…", "tick": 0.0}
 
@@ -638,10 +639,11 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                         pending = sug
         q = st.chat_input("Ask about this dashboard…" if view is not None else "Ask about this workbook…",
                           key="chat_in", disabled=not ready)
+        stop_slot = st.empty()       # while an answer streams: a stop symbol in place of the input's arrow
         question = q or pending
         if question:
             sug_slot.empty()
-            _ask(lw, question, box, view)
+            _ask(lw, question, box, view, stop_slot)
         # every request is still written to workspace/audit/outbound.jsonl before it is sent
 
 
