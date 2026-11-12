@@ -51,6 +51,7 @@ class Settings(BaseModel):
     max_calls_per_day: int = 200
     workspace_dir: Path = PROJECT_ROOT / "workspace"
     max_unzipped_mb: int = 2000
+    keep_workbook_copies: bool = True       # copies in workspace/library so saved chats can reopen their workbook
     dry_run: bool = False
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
 
@@ -84,6 +85,7 @@ def load_settings(env_file: Path | None = None, privacy_file: Path | None = None
         max_calls_per_day=int(os.getenv("LLM_MAX_CALLS_PER_DAY") or 200),
         workspace_dir=ws.resolve(),
         max_unzipped_mb=int(os.getenv("MAX_UNZIPPED_MB") or 2000),
+        keep_workbook_copies=_bool(os.getenv("KEEP_WORKBOOK_COPIES"), True),
         dry_run=_bool(os.getenv("DRY_RUN"), False),
         privacy=privacy,
     )

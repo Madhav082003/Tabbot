@@ -27,6 +27,7 @@ import streamlit as st
 
 from tabbot.chat_store import ChatStore, SavedChat, start_chat
 from tabbot.config import get_settings
+from tabbot.library import WorkbookLibrary
 from tabbot.llm.orchestrator import ChatSession
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.ui.typewriter import Typewriter
@@ -197,6 +198,17 @@ def _store() -> ChatStore:
     return ChatStore(get_settings().workspace_dir / "chats")
 
 
+def _library() -> WorkbookLibrary:
+    return WorkbookLibrary(get_settings().workspace_dir / "library")
+
+
+def _prune_library() -> None:
+    """Keep a workbook copy only while a saved chat (or the open workbook) uses it."""
+    lw: LoadedWorkbook | None = st.session_state.get("lw")
+    keep = {c.digest for c in _store().list()} | ({lw.digest} if lw is not None else set())
+    _library().prune(keep)
+
+
 # --------------------------------------------------------------------------------------------- chats
 
 
@@ -207,8 +219,24 @@ def _new_chat() -> None:
 
 
 def _open_chat(c: SavedChat) -> None:
-    """Show a past chat. On its own workbook it continues, with its context; otherwise it is shown read-only."""
+    """Show a past chat. On its own workbook it continues, with its context. If another workbook (or none) is open,
+    its workbook is reopened from the kept copy; without a copy the chat is shown read-only."""
     lw: LoadedWorkbook | None = st.session_state.get("lw")
+    if (lw is None or lw.digest != c.digest) and get_settings().keep_workbook_copies:
+        copy = _library().get(c.digest)
+        if copy is not None:
+            st.session_state.viewing = c.id           # _load continues this chat once the workbook is open
+            try:
+                with st.spinner(f"Opening {c.workbook}…"):
+                    _load(copy)
+                st.session_state.loaded_digest = c.digest[:16]   # re-uploading the same file changes nothing
+                return
+            except Exception as exc:  # noqa: BLE001 - fall back to reading the chat
+                log.exception("kept workbook copy could not be opened")
+                st.session_state.viewing = c.id
+                st.error(f"The kept copy of {c.workbook} could not be opened ({type(exc).__name__}).")
+                return
+        lw = st.session_state.get("lw")
     if lw is not None and lw.digest == c.digest:
         session = ChatSession(lw, get_settings())
         session.restore(c.messages)
@@ -289,6 +317,7 @@ def _render_history() -> None:
                     _store().delete(c.id)
                     if c.id == current:
                         _new_chat()
+                    _prune_library()                   # its workbook copy goes when no chat needs it
                     st.rerun()
 
 
@@ -368,6 +397,11 @@ def _load(path: Path) -> None:
     _close_workbook()
     lw = load_workbook(path, settings=get_settings())
     st.session_state.lw = lw
+    if get_settings().keep_workbook_copies:
+        try:
+            _library().put(path, lw.digest)              # so its chats can reopen it later
+        except OSError:
+            log.exception("workbook copy could not be kept")
     st.session_state.upload_n = _upload_n() + 1          # fresh, empty upload boxes: the file is not re-read
     wanted = st.session_state.get("viewing")
     waiting = _store().load(wanted) if wanted else None
@@ -390,8 +424,11 @@ def _close_workbook() -> None:
 
 @st.cache_resource(show_spinner=False)
 def _purge_leftovers_once() -> int:
-    """At server start: delete workbook copies left by earlier runs (sessions live in memory only)."""
-    return purge_workspaces(get_settings().workspace_dir)
+    """At server start: delete unpacked workbooks left by earlier runs (sessions live in memory only) and kept
+    workbook copies that no saved chat uses any more."""
+    s = get_settings()
+    WorkbookLibrary(s.workspace_dir / "library").prune({c.digest for c in ChatStore(s.workspace_dir / "chats").list()})
+    return purge_workspaces(s.workspace_dir)
 
 
 def _load_upload(uploaded) -> bool:
@@ -719,9 +756,12 @@ def _render_appbar(lw: LoadedWorkbook | None) -> None:
                 up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key=f"upload_{_upload_n()}")
                 if up is not None and _load_upload(up):
                     st.rerun()
-                if st.button("🗑 Close workbook & delete local copy", key="close_wb", width="stretch"):
+                if st.button("Close workbook", key="close_wb", width="stretch",
+                             help="Closes it and deletes its unpacked files; a copy stays only if a saved chat "
+                                  "uses it"):
                     _close_workbook()
                     _new_chat()
+                    _prune_library()
                     st.rerun()
 
 

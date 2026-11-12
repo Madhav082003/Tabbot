@@ -69,18 +69,49 @@ def test_restore_continues_result_ids_and_drops_unanswered_question(tmp_path, fi
 
 # ------------------------------------------------------------------ the app
 
-@pytest.fixture()
-def app(fixture_twbx, monkeypatch, tmp_path):
+def _start(fixture_twbx, monkeypatch, tmp_path, **env):
     monkeypatch.setenv("TABBOT_AUTOLOAD", str(fixture_twbx))
     monkeypatch.setenv("WORKSPACE_DIR", str(tmp_path))
     monkeypatch.setenv("DRY_RUN", "true")
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
     from tabbot import config
 
     config.get_settings.cache_clear()
     at = AppTest.from_file(str(APP), default_timeout=120)
     at.run()
-    yield at, ChatStore(tmp_path / "chats")
+    return at, ChatStore(tmp_path / "chats")
+
+
+@pytest.fixture()
+def app(fixture_twbx, monkeypatch, tmp_path):
+    yield _start(fixture_twbx, monkeypatch, tmp_path)
+    from tabbot import config
     config.get_settings.cache_clear()
+
+
+@pytest.fixture()
+def app_no_copies(fixture_twbx, monkeypatch, tmp_path):
+    yield _start(fixture_twbx, monkeypatch, tmp_path, KEEP_WORKBOOK_COPIES="false")
+    from tabbot import config
+    config.get_settings.cache_clear()
+
+
+# ------------------------------------------------------------------ the workbook library
+
+def test_library_keeps_one_copy_per_file_and_prunes(tmp_path):
+    from tabbot.library import WorkbookLibrary
+    src = tmp_path / "Sales.twbx"
+    src.write_bytes(b"pk-data")
+    lib = WorkbookLibrary(tmp_path / "library")
+    d1, d2 = "a" * 64, "b" * 64
+    p = lib.put(src, d1)
+    assert p.name == "Sales.twbx" and lib.get(d1) == p and lib.put(src, d1) == p
+    lib.put(src, d2)
+    assert lib.prune({d1}) == 1 and lib.get(d2) is None and lib.get(d1) is not None
+    assert lib.get("../../etc") is None                        # never outside the library folder
+    lib.delete(d1)
+    assert lib.get(d1) is None
 
 
 def _keys(at, prefix):
@@ -160,10 +191,37 @@ def test_header_lines_only_before_the_first_question(app):
     assert not any("Asking about" in c.value or "Ask anything" in c.value for c in at.caption)
 
 
-def test_closing_the_workbook_keeps_chats_readable(app):
+def test_old_chat_reopens_its_workbook_and_continues(app, tmp_path):
     at, store = app
     at.chat_input[0].set_value("Keep me").run()
+    c = store.list()[0]
+    assert (tmp_path / "library" / c.digest).exists()                        # a copy was kept
+    at.button(key="close_wb").click().run()
+    assert at.session_state["lw"] is None and (tmp_path / "library" / c.digest).exists()   # a chat still uses it
+    at.button(key=f"open__{c.id}").click().run()
+    assert not at.exception and at.session_state["lw"] is not None           # reopened automatically
+    assert at.session_state["lw"].digest == c.digest and at.session_state["viewing"] is None
+    assert at.session_state["saved"].id == c.id and at.session_state["chat_log"][0]["text"] == "Keep me"
+    assert at.chat_input and not any("To continue this chat" in i.value for i in at.info)
+    at.chat_input[0].set_value("And then?").run()                            # continues the same chat
+    assert len(store.list()) == 1 and store.list()[0].questions == 2
+
+
+def test_deleting_the_last_chat_removes_the_copy(app, tmp_path):
+    at, store = app
+    at.chat_input[0].set_value("Temp").run()
+    c = store.list()[0]
+    at.button(key="close_wb").click().run()
+    at.run()
+    at.button(key=f"del__{c.id}").click().run()
+    assert not (tmp_path / "library" / c.digest).exists()
+
+
+def test_without_copies_an_old_chat_is_read_beside_its_explanation(app_no_copies, tmp_path):
+    at, store = app_no_copies
+    at.chat_input[0].set_value("Keep me").run()
     cid = store.list()[0].id
+    assert not (tmp_path / "library").exists() or not any((tmp_path / "library").iterdir())
     assert store.load(cid).report["sections"]                                # explanation saved with the chat
     at.button(key="close_wb").click().run()
     assert at.session_state["lw"] is None and _keys(at, f"open__{cid}")     # listed on the start page
