@@ -50,6 +50,13 @@ class Filter(BaseModel):
     keeps_all_values: bool = False        # keeps every value the field can have: no practical effect
 
 
+class TableCalcSpec(BaseModel):
+    """How Tableau computes one table calculation on a sheet (from its <table-calc> element)."""
+    type: str | None = None               # PctTotal | CumTotal | Rank | Difference | PctDiff | None (a formula)
+    ordering_type: str | None = None      # Rows = Table (across) | Columns = Table (down) | Field | ...
+    ordering_fields: list[str] = []       # 'Field': internal names of the fields it runs along
+
+
 class Worksheet(BaseModel):
     name: str
     title: str | None = None
@@ -64,6 +71,7 @@ class Worksheet(BaseModel):
     filters: list[Filter] = []
     sort_count: int = 0
     table_calcs: int = 0
+    table_calc_specs: dict[str, TableCalcSpec] = {}   # field-ref raw -> how its table calculation runs
     hidden: bool = False
     xml_bytes: int = 0
     unsupported: list[str] = []

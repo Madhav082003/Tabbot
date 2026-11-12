@@ -7,7 +7,13 @@ from pathlib import Path
 
 from tabbot.config import Settings, get_settings
 from tabbot.data.hyper_reader import TableInfo, export_to_parquet
-from tabbot.data.profile import TableProfile, detect_entity, entity_consistency, profile_table
+from tabbot.data.profile import (
+    TableProfile,
+    detect_entity,
+    entity_consistency,
+    profile_table,
+    recheck_name_matches,
+)
 from tabbot.data.store import Store
 from tabbot.twb.model import WorkbookModel
 from tabbot.twb.parser import parse_both
@@ -160,4 +166,5 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
         if prof is not None and prof.entity is None:
             prof.entity = detect_entity(model, ds.name, prof)
             entity_consistency(lw.store, prof)
+            recheck_name_matches(lw.store, prof, settings.privacy)
     return lw

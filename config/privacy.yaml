@@ -9,7 +9,11 @@ sensitive_column_patterns:        # case-insensitive regex on column names
   - "birth|dob|ssn|mrn|national.?id|passport"
   - "verbatim|narrative|comment|note|description|free.?text"
   - "(^|_)id$|caseid|case_id"     # ids may be counted, never returned
-sensitive_columns: []             # exact column names confirmed by the user in the UI
+sensitive_columns: []             # exact column names confirmed by the user in the UI (always hidden)
+category_exemption:               # a name match on a column with few values, EVERY one shared by several records,
+  max_distinct: 25                #   is a category (e.g. "Patient_Status"): its labels are shown. 0 = hide all matches
+  min_records_per_value: 5        #   rarest value needs this many records (counted per record id, not per row)
+                                  #   identifiers, free text and sensitive_columns are never exempt
 free_text_detection:
   min_avg_length: 30
   min_distinct_ratio: 0.5

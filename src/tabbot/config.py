@@ -18,6 +18,14 @@ class FreeTextDetection(BaseModel):
     min_distinct_ratio: float = 0.5
 
 
+class CategoryExemption(BaseModel):
+    """A column whose NAME matches a sensitive pattern (e.g. "Patient_Status") but which holds only a few values,
+    EVERY one of them shared by several records, cannot point to a person: it is a category and its labels may be
+    shown. Columns detected as identifiers or free text, and columns listed in sensitive_columns, are never exempt."""
+    max_distinct: int = 25            # more values than this: stays hidden. 0 = every name match stays hidden
+    min_records_per_value: int = 5    # the rarest value must have at least this many records (per record id)
+
+
 class PrivacySettings(BaseModel):
     min_cell_count: int = 1
     max_rows: int = 200
@@ -26,6 +34,7 @@ class PrivacySettings(BaseModel):
     sensitive_column_patterns: list[str] = Field(default_factory=list)
     sensitive_columns: list[str] = Field(default_factory=list)
     free_text_detection: FreeTextDetection = Field(default_factory=FreeTextDetection)
+    category_exemption: CategoryExemption = Field(default_factory=CategoryExemption)
     redact_connection_paths: bool = True
 
 

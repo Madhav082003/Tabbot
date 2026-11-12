@@ -3,15 +3,20 @@
 Covers the common subset: literals, field references, arithmetic/comparison/logic, IF/ELSEIF/ELSE/END,
 CASE/WHEN, IIF, date functions (DATE, DATETRUNC, DATEPART, YEAR...), null handling, string and math functions,
 and aggregates (SUM, COUNT, COUNTD, AVG, MIN, MAX, MEDIAN, ATTR ...).
-Anything else (LOD expressions, table calculations, parameters, unknown functions) raises Unsupported:
-we never guess.
+Anything else (LOD expressions, parameters, unknown functions) raises Unsupported: we never guess.
+
+Table calculations (TOTAL, RUNNING_SUM, WINDOW_*, RANK, INDEX, LOOKUP ...) work on the chart's cells, not on rows,
+so a formula that uses them is translated in two stages by `translate_table_calc`: stage 1 = the plain aggregates,
+computed per cell by the worksheet query (columns <prefix>__a0, __a1 ...); stage 2 = an SQL expression over those
+columns with window functions, evaluated on the cells by views/table_calc.py, which fills in the partition/order
+(where the table calculation restarts and in which direction it runs).
 """
 
 from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 class Unsupported(Exception):
@@ -245,14 +250,127 @@ def call(name: str, args: list[Expr]) -> Expr:
     raise Unsupported(f"function {u}")
 
 
+# --------------------------------------------------------------------------------------------- table calcs
+
+OVER_P = "__OVER_P__"      # replaced by 'PARTITION BY <partition dims>' (or nothing)
+OVER_PO = "__OVER_PO__"    # replaced by 'PARTITION BY ... ORDER BY <addressing dims>'
+RUNNING = {"RUNNING_SUM": "SUM", "RUNNING_AVG": "AVG", "RUNNING_MIN": "MIN", "RUNNING_MAX": "MAX",
+           "RUNNING_COUNT": "COUNT"}
+WINDOW = {"WINDOW_SUM": "SUM", "WINDOW_AVG": "AVG", "WINDOW_MIN": "MIN", "WINDOW_MAX": "MAX",
+          "WINDOW_COUNT": "COUNT", "WINDOW_MEDIAN": "MEDIAN", "WINDOW_STDEV": "STDDEV_SAMP", "WINDOW_VAR": "VAR_SAMP"}
+RANKS = {"RANK": "RANK", "RANK_DENSE": "DENSE_RANK", "RANK_UNIQUE": "ROW_NUMBER"}
+
+
+@dataclass
+class TableCalcPlan:
+    """A table calculation split into per-cell aggregates (stage 1) and a stage-2 expression over them."""
+    prefix: str                                             # column name prefix, e.g. the measure alias "m0"
+    aggregates: list[str] = field(default_factory=list)     # stage-1 SQL aggregates -> columns <prefix>__a<k>
+    totals: list[str] = field(default_factory=list)         # TOTAL() arguments (stage-2 SQL) -> <prefix>__t<j>
+    sql: str = ""                                           # stage-2 expression (with OVER_P / OVER_PO markers)
+    functions: list[str] = field(default_factory=list)      # table calculation functions used
+    order_dependent: bool = False                           # running sums, INDEX, LOOKUP ... depend on sort order
+
+    def agg_col(self, k: int) -> str:
+        return f"{self.prefix}__a{k}"
+
+    def total_col(self, j: int) -> str:
+        return f"{self.prefix}__t{j}"
+
+    def register(self, e: Expr) -> Expr:
+        """A plain aggregate becomes a stage-1 column."""
+        if e.sql not in self.aggregates:
+            self.aggregates.append(e.sql)
+        return Expr(f'"{self.agg_col(self.aggregates.index(e.sql))}"', is_agg=True)
+
+    def is_stage2(self, sql: str) -> bool:
+        return f'"{self.prefix}__' in sql or OVER_P in sql or OVER_PO in sql
+
+
+def _int_literal(sql: str) -> int:
+    s = sql.replace("(", "").replace(")", "").replace(" ", "")
+    if not re.fullmatch(r"-?\d+", s):
+        raise Unsupported("LOOKUP offset must be a whole number")
+    return int(s)
+
+
+def _window(u: str, args: list[Expr], plan: TableCalcPlan) -> Expr:
+    """One table calculation function -> stage-2 SQL."""
+    n = len(args)
+    a = [x.sql for x in args]
+    for x in args[:1]:
+        if not (plan.is_stage2(x.sql) or x.is_agg):
+            raise Unsupported(f"{u} over a value that is not aggregated")
+    plan.functions.append(u)
+    if u == "TOTAL" and n == 1:
+        plan.totals.append(a[0])
+        return Expr(f'"{plan.total_col(len(plan.totals) - 1)}"', is_agg=True)
+    if u in WINDOW and n == 1:
+        return Expr(f"{WINDOW[u]}({a[0]}) OVER ({OVER_P})", is_agg=True)
+    if u in RUNNING and n == 1:
+        plan.order_dependent = True
+        return Expr(f"{RUNNING[u]}({a[0]}) OVER ({OVER_PO} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+                    is_agg=True)
+    if u in RANKS and n in (1, 2):
+        direction = "DESC"
+        if n == 2:
+            d = a[1].strip("'").lower()
+            if d not in ("asc", "desc"):
+                raise Unsupported(f"{u} direction must be 'asc' or 'desc'")
+            direction = d.upper()
+        return Expr(f"{RANKS[u]}() OVER ({OVER_P} ORDER BY {a[0]} {direction} NULLS LAST)", is_agg=True)
+    if u == "INDEX" and n == 0:
+        plan.order_dependent = True
+        return Expr(f"ROW_NUMBER() OVER ({OVER_PO})", is_agg=True)
+    if u == "SIZE" and n == 0:
+        return Expr(f"COUNT(*) OVER ({OVER_P})", is_agg=True)
+    if u == "FIRST" and n == 0:
+        plan.order_dependent = True
+        return Expr(f"(1 - ROW_NUMBER() OVER ({OVER_PO}))", is_agg=True)
+    if u == "LAST" and n == 0:
+        plan.order_dependent = True
+        return Expr(f"(COUNT(*) OVER ({OVER_P}) - ROW_NUMBER() OVER ({OVER_PO}))", is_agg=True)
+    if u == "LOOKUP" and n == 2:
+        plan.order_dependent = True
+        k = _int_literal(a[1])
+        if k == 0:
+            return Expr(a[0], is_agg=True)
+        fn = "LAG" if k < 0 else "LEAD"
+        return Expr(f"{fn}({a[0]}, {abs(k)}) OVER ({OVER_PO})", is_agg=True)
+    raise Unsupported(f"table calculation function {u}" + (f" with {n} argument(s)" if u in WINDOW else ""))
+
+
+def has_table_calc(formula: str | None) -> bool:
+    """Does the formula call a table calculation function?"""
+    try:
+        toks = tokenize(formula or "")
+    except Unsupported:
+        return False
+    return any(k == "ident" and v.upper() in TABLE_CALC_FUNCS and j + 1 < len(toks) and toks[j + 1][0] == "lparen"
+               for j, (k, v) in enumerate(toks))
+
+
 # --------------------------------------------------------------------------------------------- parser
 
 Resolver = Callable[[str], Expr]
 
 
 class _Parser:
-    def __init__(self, tokens: list[tuple[str, str]], resolve: Resolver):
-        self.t, self.i, self.resolve = tokens, 0, resolve
+    def __init__(self, tokens: list[tuple[str, str]], resolve: Resolver, plan: TableCalcPlan | None = None):
+        self.t, self.i, self.resolve, self.plan = tokens, 0, resolve, plan
+
+    def call(self, name: str, args: list[Expr]) -> Expr:
+        plan, u = self.plan, name.upper()
+        if plan is None:
+            return call(name, args)
+        if u in TABLE_CALC_FUNCS:
+            return _window(u, args, plan)
+        if any(plan.is_stage2(a.sql) for a in args):
+            if u in AGGS or u in ("COUNTD", "ATTR") or (u in ("MIN", "MAX") and len(args) == 1):
+                raise Unsupported(f"{u} of a table calculation")
+            return call(name, args)                 # e.g. ROUND(<table calc>, 2): stays in stage 2
+        e = call(name, args)
+        return plan.register(e) if e.is_agg else e
 
     def peek(self, k: int = 0) -> tuple[str, str] | None:
         j = self.i + k
@@ -355,7 +473,10 @@ class _Parser:
         if kind == "field":
             if "].[" in val:
                 raise Unsupported(f"reference to another data source or parameter {val}")
-            return self.resolve(val[1:-1].replace("]]", "]"))
+            e = self.resolve(val[1:-1].replace("]]", "]"))
+            if self.plan is not None and e.is_agg:     # an aggregating calc, e.g. [Total Count]
+                return self.plan.register(e)
+            return e
         if kind == "lparen":
             e = self.expr()
             self.take("rparen")
@@ -379,7 +500,7 @@ class _Parser:
                         self.take()
                         args.append(self.expr())
                 self.take("rparen")
-                return call(val, args)
+                return self.call(val, args)
         raise Unsupported(f"unexpected {val!r} in formula")
 
     def if_(self) -> Expr:
@@ -434,3 +555,17 @@ def translate(formula: str, resolve: Resolver) -> Expr:
     if formula is None or not formula.strip():
         raise Unsupported("empty formula")
     return _Parser(tokenize(formula), resolve).parse()
+
+
+def translate_table_calc(formula: str, resolve: Resolver, prefix: str) -> TableCalcPlan:
+    """Translate a formula that uses table calculation functions into a two-stage plan (see module doc)."""
+    if formula is None or not formula.strip():
+        raise Unsupported("empty formula")
+    plan = TableCalcPlan(prefix=prefix)
+    e = _Parser(tokenize(formula), resolve, plan).parse()
+    # stage 2 runs on the chart's cells: only cell columns, window functions and literals may remain
+    rest = re.sub(rf'"{re.escape(prefix)}__[at]\d+"', "", re.sub(r"'(?:[^']|'')*'", "''", e.sql))
+    if re.search(r'"[^"]+"', rest):
+        raise Unsupported("a table calculation uses a field that is not aggregated")
+    plan.sql = e.sql                    # may use no aggregate at all, e.g. INDEX()
+    return plan

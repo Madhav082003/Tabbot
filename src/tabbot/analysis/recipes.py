@@ -68,7 +68,7 @@ class AnalysisResult:
 def context_for(res: RebuildResult, store: Store, profile: TableProfile | None,
                 category: str | None = None) -> AnalysisContext:
     """Build the analysis context from a rebuilt worksheet. `category` = a dimension label to use instead."""
-    m = primary_measure(res, "color", "text", "rows", "cols", "size", "label")
+    m = primary_measure(res, "color", "text", "rows", "cols", "size", "label", plain=True)
     if m is None:
         raise ValueError("this view has no measure to analyse")
     notes: list[str] = []
@@ -100,7 +100,7 @@ def context_for(res: RebuildResult, store: Store, profile: TableProfile | None,
     ent = profile.entity if profile is not None else None
     return AnalysisContext(
         store=store, view=res.view, where=list(res.where_sql), params=list(res.where_params),
-        measure_sql=m.sql, measure_label=m.label, date_sql=date_sql, date_label=date_label, grain=grain,
+        measure_sql=m.sql, measure_label=m.analysis_label, date_sql=date_sql, date_label=date_label, grain=grain,
         category_sql=cat.sql if cat else None, category_label=cat.label if cat else None,
         entity_sql=qi(ent.field) if ent else None, entity_label=ent.field if ent else None,
         profile=profile, notes=notes)

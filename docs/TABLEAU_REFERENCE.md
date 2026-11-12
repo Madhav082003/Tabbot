@@ -203,3 +203,16 @@ Windows: `window(class worksheet|dashboard, name, hidden)`. Hidden sheets appear
 - Action kind comes from `<command command='tsc:tsl-filter'>` (filter) / `tsc:brush` (highlight). Filter actions also
   carry `<link expression='tsl:...'>`; only a link that is not `tsl:` (and has no command) is a URL action.
   Highlight actions never filter. Describe clicks only from the actions list. **[verified 60 wb]**
+## Table calculations (added after analyst testing)
+
+- A table calculation sits on the sheet's `column-instance` as `<table-calc type ordering-type [ordering-field]>`:
+  `type` = PctTotal | CumTotal | Rank | Difference | PctDiff (absent for formula calcs such as
+  `[x] / TOTAL([x])`). **[verified 60 wb]**
+- `ordering-type` is the "compute using" setting. Only `Rows` (Table across: restarts on every row, runs along the
+  columns and marks-card fields), `Columns` (Table down) and `Field` were seen. Evidence: sheets with dimensions only
+  on Rows use `Columns`, sheets with dimensions only on Columns use `Rows`. **[verified 60 wb]**
+- `Field` names its field in an `ordering-field` attribute (`'[ds].[none:X:nk]'`), sometimes `<order>` children. **[verified]**
+- tabbot computes them on the view's cells (`tabbot.views.table_calc`): quick pcto, cum, rank, diff, pcdf; formulas
+  using TOTAL, WINDOW_*, RUNNING_*, RANK/RANK_DENSE/RANK_UNIQUE, INDEX, SIZE, FIRST, LAST, LOOKUP. TOTAL re-aggregates
+  over the partition from the data (exact for COUNTD). Others (fVal forecasts, PREVIOUS_VALUE, windows with offsets,
+  table calcs nested inside other calcs) show the underlying value with a reason.

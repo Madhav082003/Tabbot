@@ -390,8 +390,12 @@ def _parse_sorts(view: Element) -> list[SortDef]:
 
 
 def _parse_table_calc(ci_name: str, tc: Element) -> TableCalcDef:
+    # the field(s) a 'Field' table calc runs along: an ordering-field attribute (seen in the corpus) and/or
+    # <order> children; kept as written ('[ds].[none:Region:nk]') so they can be resolved to a field
+    fields = [tc.get("ordering-field")] if tc.get("ordering-field") else []
+    fields += [(o.get("field") or o.text or "").strip() for o in tc.findall("order")]
     return TableCalcDef(column=ci_name, type=tc.get("type"), ordering_type=tc.get("ordering-type"),
-                        ordering_fields=[_bracket_name(o.text) for o in tc.findall("order")])
+                        ordering_fields=[f for f in fields if f])
 
 
 def _parse_worksheet(el: Element, model: WorkbookModel) -> Worksheet:

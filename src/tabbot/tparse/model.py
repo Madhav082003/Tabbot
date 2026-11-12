@@ -189,8 +189,8 @@ class SortDef(BaseModel):
 class TableCalcDef(BaseModel):
     column: str                          # the column-instance name it applies to
     type: str | None = None              # PctTotal | Rank | Difference | CumTotal | PctDiff | ...
-    ordering_type: str | None = None     # Rows | Columns | Field | Table | ...
-    ordering_fields: list[str] = []
+    ordering_type: str | None = None     # Rows = Table (across) | Columns = Table (down) | Field (verified 60 wb)
+    ordering_fields: list[str] = []      # 'Field': the references it runs along, as written ('[ds].[none:X:nk]')
 
 
 class Encoding(BaseModel):

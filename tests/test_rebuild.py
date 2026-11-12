@@ -116,10 +116,11 @@ def test_field_values(lw):
 def test_unsupported_sheet_is_flagged_approximate(lw):
     ws = lw.model.worksheet("Records Trend").model_copy(deep=True)
     ws.name = "Tampered"
-    ws.encodings["detail"] = [parse_ref("[federated.fx01].[pcto:sum:AGE:qk]")]
+    ws.encodings["detail"] = [parse_ref("[federated.fx01].[fVal:sum:AGE:qk]")]   # a table calc we don't compute
     r = rebuild_worksheet(lw.model, ws, lw.store, lw.table_for(None), lw.profile_for(None))
-    assert r.status == "approximate" and any("table_calc" in x for x in r.reasons)
-    assert not r.data.empty
+    assert r.status == "approximate" and any("not computed here" in x and "SUM(AGE)" in x for x in r.reasons)
+    m = next(m for m in r.measures if "detail" in m.roles)
+    assert m.label == "SUM(AGE) (before the table calculation)" and r.data[m.alias].notna().any()
 
 
 def test_no_extract_fails_cleanly(lw):
