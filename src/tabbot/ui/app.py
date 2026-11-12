@@ -97,6 +97,8 @@ CSS = """
   [class*="st-key-umsg_"] {background: #F1F3F6; border-radius: 14px; padding: 8px 14px !important; gap: 2px !important;
                            align-self: flex-end; width: fit-content !important; max-width: 85%; margin: 6px 0;}
   [class*="st-key-umsg_"] p {margin: 0;}
+  /* Streamlit gives text blocks a -16px bottom margin: inside the bubble that pushed the text out of the grey */
+  [class*="st-key-umsg_"] [data-testid="stMarkdownContainer"] {margin-bottom: 0 !important;}
   [class*="st-key-amsg_"] {padding: 2px 2px 8px 2px;}
   /* while an answer streams: the stop symbol takes the place of the input's send arrow */
   .st-key-chat_pane {position: relative;}
@@ -295,7 +297,12 @@ def _user_bubble(i: int, text: str, about: str | None) -> None:
     with st.container(key=f"umsg_{i}"):
         if about and about != WHOLE:
             st.caption(f"About: {about}")
-        st.markdown(text)
+        st.markdown(_md_text(text))
+
+
+def _md_text(text: str) -> str:
+    """Chat text for st.markdown: '$' would start a maths formula ('$0.08 … $0.16' turned into code), so escape it."""
+    return text.replace("\\$", "$").replace("$", "\\$")
 
 
 def _render_messages(entries: list[dict]) -> None:
@@ -304,7 +311,7 @@ def _render_messages(entries: list[dict]) -> None:
             _user_bubble(i, m["text"], m.get("about"))
             continue
         with st.container(key=f"amsg_{i}"):    # an answer: plain text (tool calls and cost stay in the logs only)
-            st.markdown(m["text"])
+            st.markdown(_md_text(m["text"]))
 
 
 def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
@@ -592,7 +599,7 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None, stop_slot=None) -> N
             status.caption("Thinking…")
             # any click reruns the page, and that interrupts the answer; the button sits over the input's arrow
             (stop_slot or st).button("", icon=":material/stop:", key="stop_answer", help="Stop answering")
-            tw = Typewriter(lambda t: body.markdown(t + " ▌") if t else body.empty())
+            tw = Typewriter(lambda t: body.markdown(_md_text(t) + " ▌") if t else body.empty())
             now = {"status": "Thinking…", "tick": 0.0}
 
             def on_event(kind: str, data) -> None:
@@ -644,8 +651,9 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         about = view.name if view is not None else WHOLE
         fresh = not st.session_state.chat_log
         st.markdown(f"**{ASSISTANT_NAME}**")
-        if fresh:                    # only before the first question: then the conversation has the room
-            st.caption(f"Asking about: **{about}**")
+        head_slot = st.empty()       # only before the first question: then the conversation has the room
+        if fresh:
+            head_slot.caption(f"Asking about: **{about}**")
         if lw.store is None or not lw.ds_tables:
             st.warning(("A .twb file holds only the design, never the data. " if lw.source_name.lower().endswith(".twb")
                         else "The data file is not inside this workbook. ")
@@ -660,9 +668,10 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                     "`.env`\n2. Paste the key after `ANTHROPIC_API_KEY=`\n3. Restart the app")
         box = st.container(border=False, key="chat_msgs")
         with box:
+            intro_slot = st.empty()
             if fresh:
-                st.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only its "
-                           "structure and summary numbers are used - never the data rows.")
+                intro_slot.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only "
+                                   "its structure and summary numbers are used - never the data rows.")
             _render_messages(st.session_state.chat_log)
         pending = None
         sug_slot = st.empty()        # emptied while an answer streams, so the answer has the room
@@ -683,6 +692,8 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         question = q or pending
         if question:
             sug_slot.empty()
+            head_slot.empty()        # the question is asked: the intro lines go at once, not after the answer
+            intro_slot.empty()
             _ask(lw, question, box, view, stop_slot)
         # every request is still written to workspace/audit/outbound.jsonl before it is sent
 
