@@ -164,7 +164,22 @@ def test_closing_the_workbook_keeps_chats_readable(app):
     at, store = app
     at.chat_input[0].set_value("Keep me").run()
     cid = store.list()[0].id
+    assert store.load(cid).report["sections"]                                # explanation saved with the chat
     at.button(key="close_wb").click().run()
     assert at.session_state["lw"] is None and _keys(at, f"open__{cid}")     # listed on the start page
     at.button(key=f"open__{cid}").click().run()
-    assert "Keep me" in " ".join(m.value for m in at.markdown)
+    text = " ".join(m.value for m in at.markdown)
+    assert not at.exception and "Keep me" in text and "In brief" in text     # chat beside the explanation
+    bar = at.get("button_group")[0]
+    assert bar.options[0] == "Whole workbook" and len(bar.options) > 1       # its dashboards too
+    bar.set_value(bar.options[1]).run()
+    assert not at.exception and "In depth" in " ".join(m.value for m in at.markdown)
+
+
+def test_old_chat_without_saved_explanation(app):
+    at, store = app
+    old = store.save(chat(digest="elsewhere", workbook="Old One", log=[{"role": "user", "text": "Q"},
+                                                                     {"role": "assistant", "text": "A"}]))
+    at.run()
+    at.button(key=f"open__{old.id}").click().run()
+    assert not at.exception and any("not saved with this older chat" in i.value for i in at.info)

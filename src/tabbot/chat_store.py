@@ -29,6 +29,8 @@ class SavedChat:
     updated: str
     log: list[dict] = field(default_factory=list)        # what the chat panel shows: {role, text, tools, meta, about}
     messages: list[dict] = field(default_factory=list)   # conversation history sent to Claude (for continuing)
+    report: dict = field(default_factory=dict)           # the written explanation of the workbook (snapshot), so
+                                                         # the chat can be read beside it when the file is closed
 
     @property
     def first_question(self) -> str:

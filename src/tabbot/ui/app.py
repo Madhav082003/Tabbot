@@ -226,6 +226,9 @@ def _save_chat(lw: LoadedWorkbook) -> None:
         chat: ChatSession | None = st.session_state.get("chat")
         saved.log = list(st.session_state.chat_log)
         saved.messages = list(chat.messages) if chat is not None else []
+        rep = st.session_state.get(f"report::{lw.workspace.id}")
+        if rep is not None and hasattr(rep, "to_dict"):
+            saved.report = rep.to_dict()
         st.session_state.saved = _store().save(saved)
     except Exception:  # noqa: BLE001 - a chat that cannot be saved must never break the answer
         log.exception("chat could not be saved")
@@ -305,24 +308,46 @@ def _render_messages(entries: list[dict]) -> None:
 
 
 def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
-    """A past chat whose workbook is not open: read it here; open that workbook to continue it."""
-    st.markdown(f"<div class='tb-title'>{html.escape(c.workbook)}</div>", unsafe_allow_html=True)
-    st.caption(f"Chat from {_when(c.created)} · {c.questions} question(s)")
-    st.info(f"To continue this chat, open the workbook **{c.workbook}** again (the same file). Until then you can "
-            "read it here.", icon="💬")
-    cols = st.columns([1, 1])
-    with cols[0]:
-        up = st.file_uploader(f"Open {c.workbook}", type=["twbx", "twb"], key=f"upload_view_{_upload_n()}")
+    """A past chat whose workbook is not open, laid out like an open workbook: the explanation saved with the chat
+    in the middle, the conversation on the right. Opening the same workbook again continues the chat."""
+    from tabbot.explain.report import Report
+
+    rep = None
+    if c.report:
+        try:
+            rep = Report.from_dict(c.report)
+        except (TypeError, KeyError):
+            rep = None
+    st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
+    left, right = st.columns([MAIN_W, CHAT_W])
+    with left:
+        key = f"dash_pick::past::{c.id}"
+        has_bar = _render_dashbar_for(rep, key)
+        with st.container(key="left_pane"):
+            view = _selected_from(rep, key)
+            if rep is None:
+                st.markdown(f"<div class='tb-title'>{html.escape(c.source_name)}</div>", unsafe_allow_html=True)
+                st.info("The explanation was not saved with this older chat. Open the workbook to see it.")
+            elif view is not None:
+                _render_dashboard(view, c.source_name, None)
+            else:
+                _render_report_text(rep, c.source_name,
+                                    note=f"Saved with this chat on {_when(c.updated)}. Written on this computer "
+                                         "from the workbook and its data - no AI call was made for this text.")
+    st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
+    with right, st.container(border=True, key="chat_pane"):
+        st.markdown(f"**{ASSISTANT_NAME}**")
+        st.caption(f"Chat from {_when(c.created)} · {c.questions} question(s)")
+        with st.container(border=False, key="chat_msgs"):
+            _render_messages(c.log)
+        st.info(f"To continue this chat, open **{c.workbook}** again (the same file).")
+        up = st.file_uploader(f"Open {c.workbook}", type=["twbx", "twb"], key=f"upload_view_{_upload_n()}",
+                              label_visibility="collapsed")
         if up is not None and _load_upload(up):
             st.rerun()
-    if lw is not None:
-        with cols[1]:
-            st.write("")
-            if st.button(f"Back to {Path(lw.source_name).stem}", key="back_to_open"):
-                st.session_state.viewing = None
-                st.rerun()
-    with st.container(key="past_chat"):
-        _render_messages(c.log)
+        if lw is not None and st.button(f"Back to {Path(lw.source_name).stem}", key="back_to_open"):
+            st.session_state.viewing = None
+            st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- loading
@@ -404,14 +429,21 @@ def _report(lw: LoadedWorkbook):
 
 
 def _render_workbook(lw: LoadedWorkbook) -> None:
-    st.markdown(f"<div class='tb-title'>{html.escape(lw.source_name)}</div>", unsafe_allow_html=True)
     with st.spinner("Reading the workbook and writing the explanation…"):
         rep = _report(lw)
     if isinstance(rep, Exception):
+        st.markdown(f"<div class='tb-title'>{html.escape(lw.source_name)}</div>", unsafe_allow_html=True)
         st.warning(f"The written explanation could not be built ({type(rep).__name__}). You can still ask the "
                    f"{ASSISTANT_NAME} on the right.")
         return
-    st.caption("Written on this computer from the workbook and its data - no AI call was made for this text.")
+    _render_report_text(rep, lw.source_name)
+
+
+def _render_report_text(rep, title: str, note: str | None = None) -> None:
+    """The written explanation (live, or the snapshot saved with a chat)."""
+    st.markdown(f"<div class='tb-title'>{html.escape(title)}</div>", unsafe_allow_html=True)
+    st.caption(note or "Written on this computer from the workbook and its data - no AI call was made for this "
+                       "text.")
     for sec in rep.sections:
         body = sec.body.replace("$", "\\$")
         if sec.key in ("brief", "about"):
@@ -435,14 +467,16 @@ def _png_width(png: bytes) -> int | None:
     return None
 
 
-def _render_dashboard(lw: LoadedWorkbook, view) -> None:
+def _render_dashboard(view, source_name: str, imgs: list[tuple[str, bytes]] | None) -> None:
+    """One dashboard's explanation. imgs=None: the workbook is not open, so its preview images are not at hand."""
     st.markdown(f"<div class='tb-dash-title'>{html.escape(view.name)}</div>", unsafe_allow_html=True)
-    sub = f"Dashboard in {lw.source_name}"
+    sub = f"Dashboard in {source_name}"
     if len(view.pages) > 1:
         sub += f" · split over {len(view.pages)} pages"
     st.markdown(f"<div class='tb-dash-sub'>{html.escape(sub)}</div>", unsafe_allow_html=True)
-    imgs = _previews(lw, view.pages)
-    if imgs:
+    if imgs is None:
+        st.caption("Tableau's preview image is shown when the workbook is open.")
+    elif imgs:
         cols = st.columns(min(len(imgs), 3))
         for i, (name, png) in enumerate(imgs):
             with cols[i % len(cols)]:
@@ -466,9 +500,12 @@ def _md_inline(text: str) -> str:
 
 
 def _selected_view(lw: LoadedWorkbook):
-    rep = _report(lw)
-    pick = st.session_state.get(_pick_key(lw))
-    if isinstance(rep, Exception) or not pick or pick == WHOLE:
+    return _selected_from(_report(lw), _pick_key(lw))
+
+
+def _selected_from(rep, key: str):
+    pick = st.session_state.get(key)
+    if rep is None or isinstance(rep, Exception) or not pick or pick == WHOLE:
         return None
     return rep.dashboard(pick)
 
@@ -478,13 +515,16 @@ def _pick_key(lw: LoadedWorkbook) -> str:
 
 
 def _render_dashbar(lw: LoadedWorkbook) -> bool:
+    return _render_dashbar_for(_report(lw), _pick_key(lw))
+
+
+def _render_dashbar_for(rep, key: str) -> bool:
     """One box per dashboard (pages of one view share a box). Returns True when the bar is shown."""
-    rep = _report(lw)
-    if isinstance(rep, Exception) or not rep.dashboards:
+    if rep is None or isinstance(rep, Exception) or not rep.dashboards:
         return False
     with st.container(key="dashbar"):
         st.pills("Dashboards", [WHOLE] + [v.name for v in rep.dashboards], selection_mode="single",
-                 default=WHOLE, key=_pick_key(lw), label_visibility="collapsed")
+                 default=WHOLE, key=key, label_visibility="collapsed")
     return True
 
 
@@ -709,12 +749,12 @@ def _render_body() -> None:
     if st.session_state.viewing and viewing is None:      # deleted meanwhile
         st.session_state.viewing = None
 
-    if lw is None or viewing is not None:                  # start page, or reading a past chat
+    if viewing is not None:                                # a past chat, its workbook not open
+        _render_past_chat(viewing, lw)
+        return
+    if lw is None:
         st.markdown(pane_css(PANE_TOP), unsafe_allow_html=True)
-        if viewing is not None:
-            _render_past_chat(viewing, lw)
-        else:
-            _render_start_page()
+        _render_start_page()
         return
 
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
@@ -729,7 +769,7 @@ def _render_body() -> None:
             if view is None:
                 _render_workbook(lw)
             else:
-                _render_dashboard(lw, view)
+                _render_dashboard(view, lw.source_name, _previews(lw, view.pages))
     st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
     with right:
         _render_chat(lw)
