@@ -1,13 +1,19 @@
 """Tableau Insights (Streamlit). Run:  streamlit run src/tabbot/ui/app.py
 
-Kept deliberately simple: open a workbook, read a short description of it, ask the assistant about it.
-(No charts or dashboard tabs - a written explanation of the workbook comes next.)
-Engine logic lives in tabbot.* ; this file only lays things out. Session state keys:
-  lw    LoadedWorkbook     chat  ChatSession     chat_log  [{role, text, tools, meta}]
+Open a workbook, read a written explanation of it, ask the assistant about it. Past chats are listed on the left
+(saved in workspace/chats/, on this computer) and can be read at any time; a chat continues, with its context,
+when its workbook is open. Engine logic lives in tabbot.* ; this file only lays things out.
+
+Session state keys:
+  lw            LoadedWorkbook | None      chat       ChatSession | None (the conversation sent to Claude)
+  chat_log      [{role, text, tools, meta, about}] (what the chat panel shows)
+  saved         SavedChat | None (the current chat as stored)      viewing    id of a past chat shown read-only
+  show_history  bool (left panel open)     upload_n   int (bumped after a load: gives the uploaders fresh keys)
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import html
 import logging
@@ -18,8 +24,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from tabbot.chat_store import ChatStore, SavedChat, start_chat
 from tabbot.config import get_settings
-from tabbot.data.store import qi
 from tabbot.llm.orchestrator import ChatSession
 from tabbot.loader import LoadedWorkbook, load_workbook
 from tabbot.ui.typewriter import Typewriter
@@ -35,7 +41,7 @@ CSS = """
   .block-container {padding: 0.9rem 1.4rem 1rem 1.4rem !important; max-width: 100% !important;}
   html, body, [class*="css"] {font-family: 'Segoe UI', 'Benton Sans', Arial, sans-serif;}
 
-  .st-key-appbar {background: #1F3A5F; border-radius: 8px; padding: 10px 14px 10px 16px; min-height: 52px;
+  .st-key-appbar {background: #1F3A5F; border-radius: 8px; padding: 10px 14px 10px 10px; min-height: 52px;
                   justify-content: center;}
   .st-key-appbar p {color: #fff; margin: 0;}
   .st-key-appbar .brand {font-weight: 600; font-size: 18px; letter-spacing: .2px; color: #fff;}
@@ -44,6 +50,31 @@ CSS = """
                          border: 1px solid rgba(255,255,255,.35) !important;}
   .st-key-appbar button:hover {background: rgba(255,255,255,.22) !important;}
   .st-key-appbar button p {color: #fff !important;}
+  .st-key-toggle_history button {border: none !important; background: transparent !important; font-size: 20px;
+                                 padding: 0 6px !important; min-height: 0 !important;}
+  .st-key-toggle_history button p {font-size: 20px !important;}
+
+  /* past chats, on the left (like a chat app's sidebar) */
+  .st-key-history_pane {background: #F7F8FA; border-right: 1px solid #E3E7ED; border-radius: 8px;
+                        padding: 10px 8px; overflow-y: auto !important; overflow-x: hidden; flex-wrap: nowrap;
+                        min-height: 380px;}
+  .st-key-history_pane [class*="st-key-open__"] button {justify-content: flex-start !important; text-align: left;
+      border: none !important; background: transparent; padding: 5px 10px !important; min-height: 0;
+      border-radius: 8px; color: #1F2937;}
+  .st-key-history_pane [class*="st-key-open__"] button > div {justify-content: flex-start !important; width: 100%;}
+  .st-key-history_pane [class*="st-key-open__"] button:hover {background: #E9EDF2 !important;}
+  .st-key-history_pane [class*="st-key-open__"] button p {font-size: 14px; white-space: nowrap; overflow: hidden;
+                                                          text-overflow: ellipsis; text-align: left; color: #1F2937;}
+  .st-key-history_pane [class*="st-key-open__"] button[kind="primary"] {background: #DDE4EE !important;}
+  .st-key-history_pane [class*="st-key-open__"] button[kind="primary"] p {color: #1F3A5F; font-weight: 600;}
+  .st-key-new_chat button {border: 1px solid #C9D3E0 !important; background: #fff !important;}
+  .st-key-history_pane {gap: 2px !important;}
+  .st-key-history_pane .tb-recents {font-size: 12px; color: #6B7280; font-weight: 600; margin: 14px 0 0 8px;
+                                    padding-bottom: 8px;}
+  .st-key-history_pane [class*="st-key-del__"] button {border: none !important; background: transparent !important;
+      color: #6B7280 !important; padding: 4px 2px !important; min-height: 0;}
+  .st-key-history_pane [class*="st-key-del__"] button:hover {color: #B42318 !important;}
+  .st-key-appbar [data-testid="stMarkdownContainer"] {display: flex; align-items: center; min-height: 34px;}
 
   /* workbook view: the page stays put, each pane scrolls on its own (heights: see pane_css) */
   .st-key-left_pane {min-height: 380px; overflow-y: auto !important;
@@ -69,17 +100,30 @@ CSS = """
                margin: 6px 0 10px 0; font-size: 15px;}
 
   .tb-title {font-size: 22px; font-weight: 600; color: #1F3A5F; margin: 6px 0 4px 0;}
-  .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 4px 0;}
-  .tb-hero p {font-size: 15px; color: #555; margin: 0 0 6px 0;}
+  .tb-hero {text-align: center; max-width: 640px; margin: 28px auto 14px auto;}
+  .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 6px 0;}
+  .tb-hero p {font-size: 15px; color: #555; margin: 0;}
+
+  /* the upload box: a grey square with the upload button in the middle */
+  [class*="st-key-upload_card"] {max-width: 400px; margin: 0 auto;}
+  [class*="st-key-upload_card"] [data-testid="stFileUploader"] label {justify-content: center; width: 100%;}
+  [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] {
+      aspect-ratio: 1 / 1; display: flex !important; flex-direction: column !important;
+      justify-content: center !important; align-items: center !important; gap: 14px;
+      background: #F1F3F6; border: 1.5px dashed #C3CBD6; border-radius: 14px; padding: 24px;}
+  [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] > span {order: 0; flex: 0 0 auto !important;
+      margin: 0 !important;}
+  [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzoneInstructions"] {order: 1; flex: 0 0 auto !important;
+      margin: 0 !important; text-align: center;}
 </style>
 """
 
-# only on the workbook page: no page-level scrolling (the start page may scroll as usual)
+
 def pane_css(top_px: int) -> str:
-    """Both panes fill the window below the bar(s) above them."""
-    return (f"<style>.st-key-left_pane {{height: calc(100vh - {top_px}px) !important; "
-            f"max-height: calc(100vh - {top_px}px) !important;}} "
-            f"div:has(> .st-key-chat_pane) {{height: calc(100vh - {top_px}px) !important;}}</style>")
+    """The panes fill the window below the bar(s) above them."""
+    h = f"calc(100vh - {top_px}px)"
+    return (f"<style>.st-key-left_pane, .st-key-history_pane {{height: {h} !important; max-height: {h} !important;}} "
+            f"div:has(> .st-key-chat_pane) {{height: {h} !important;}}</style>")
 
 
 WHOLE = "Whole workbook"                     # the first box: the full explanation
@@ -122,19 +166,144 @@ FOLLOW_CHAT_JS = """
 """
 
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
+HISTORY_W, MAIN_W, CHAT_W = 0.5, 1.25, 1    # column widths: past chats | explanation | chat
 
 SUGGESTIONS = ["Explain this workbook: what is it for and what does each dashboard show?",
                "What are the key insights in the data?",
                "Is anything wrong in how this workbook is built?"]
 
 
+def _store() -> ChatStore:
+    return ChatStore(get_settings().workspace_dir / "chats")
+
+
+# --------------------------------------------------------------------------------------------- chats
+
+
+def _new_chat() -> None:
+    """Start an empty chat (the previous one is already saved)."""
+    st.session_state.chat, st.session_state.chat_log, st.session_state.saved = None, [], None
+    st.session_state.viewing, st.session_state.asked_about = None, None
+
+
+def _open_chat(c: SavedChat) -> None:
+    """Show a past chat. On its own workbook it continues, with its context; otherwise it is shown read-only."""
+    lw: LoadedWorkbook | None = st.session_state.get("lw")
+    if lw is not None and lw.digest == c.digest:
+        session = ChatSession(lw, get_settings())
+        session.restore(c.messages)
+        st.session_state.chat, st.session_state.chat_log, st.session_state.saved = session, list(c.log), c
+        st.session_state.viewing = None
+        st.session_state.asked_about = next((m.get("about") for m in reversed(c.log) if m.get("about")), None)
+    else:
+        st.session_state.viewing = c.id
+
+
+def _save_chat(lw: LoadedWorkbook) -> None:
+    """Store the current chat after each answer (a new chat is created on its first question)."""
+    saved: SavedChat | None = st.session_state.get("saved")
+    if saved is None or saved.digest != lw.digest:
+        saved = start_chat(lw)
+    chat: ChatSession | None = st.session_state.get("chat")
+    saved.log = list(st.session_state.chat_log)
+    saved.messages = list(chat.messages) if chat is not None else []
+    try:
+        st.session_state.saved = _store().save(saved)
+    except OSError:                       # a chat that cannot be saved must never break the answer
+        log.exception("chat could not be saved")
+
+
+def _when(iso: str) -> str:
+    try:
+        t = dt.datetime.fromisoformat(iso)
+    except ValueError:
+        return iso
+    return f"{t:%d %b %H:%M}" if t.date() == dt.date.today() or t.year == dt.date.today().year else f"{t:%d %b %Y}"
+
+
+def _render_history() -> None:
+    chats = _store().list()
+    saved: SavedChat | None = st.session_state.get("saved")
+    current = st.session_state.get("viewing") or (saved.id if saved is not None else None)
+    names = [c.workbook for c in chats]
+    with st.container(key="history_pane"):
+        if st.button("＋ New chat", key="new_chat", width="stretch"):
+            _new_chat()
+            st.rerun()
+        st.markdown("<div class='tb-recents'>Recents</div>", unsafe_allow_html=True)
+        if not chats:
+            st.caption("Your chats will appear here.")
+        for c in chats:
+            label = c.workbook + (f" · {_when(c.created)}" if names.count(c.workbook) > 1 else "")
+            tip = (f"{c.first_question[:120]}\n\n{_when(c.updated)} · {c.questions} question(s)"
+                   if c.first_question else _when(c.updated))
+            row = st.columns([6, 1], gap=None, vertical_alignment="center")
+            with row[0]:
+                if st.button(label, key=f"open__{c.id}", width="stretch", help=tip,
+                             type="primary" if c.id == current else "tertiary"):
+                    _open_chat(c)
+                    st.rerun()
+            with row[1]:
+                if st.button("🗑", key=f"del__{c.id}", help="Delete this chat", type="tertiary"):
+                    _store().delete(c.id)
+                    if c.id == current:
+                        _new_chat()
+                    st.rerun()
+
+
+def _render_messages(entries: list[dict]) -> None:
+    for m in entries:
+        with st.chat_message(m["role"]):
+            if m.get("about"):
+                st.caption(f"About: {m['about']}")
+            st.markdown(m["text"])
+            if m.get("tools"):
+                with st.expander(f"{len(m['tools'])} tool call(s)"):
+                    for t in m["tools"]:
+                        st.caption(t)
+            if m.get("meta"):
+                st.caption(m["meta"])
+
+
+def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
+    """A past chat whose workbook is not open: read it here; open that workbook to continue it."""
+    st.markdown(f"<div class='tb-title'>{html.escape(c.workbook)}</div>", unsafe_allow_html=True)
+    st.caption(f"Chat from {_when(c.created)} · {c.questions} question(s)")
+    st.info(f"To continue this chat, open the workbook **{c.workbook}** again (the same file). Until then you can "
+            "read it here.", icon="💬")
+    cols = st.columns([1, 1])
+    with cols[0]:
+        up = st.file_uploader(f"Open {c.workbook}", type=["twbx", "twb"], key=f"upload_view_{_upload_n()}")
+        if up is not None and _load_upload(up):
+            st.rerun()
+    if lw is not None:
+        with cols[1]:
+            st.write("")
+            if st.button(f"Back to {lw.display_name}", key="back_to_open"):
+                st.session_state.viewing = None
+                st.rerun()
+    with st.container(key="past_chat"):
+        _render_messages(c.log)
+
+
 # --------------------------------------------------------------------------------------------- loading
+
+
+def _upload_n() -> int:
+    return st.session_state.get("upload_n", 0)
 
 
 def _load(path: Path) -> None:
     _close_workbook()
-    st.session_state.lw = load_workbook(path, settings=get_settings())
-    st.session_state.chat, st.session_state.chat_log = None, []
+    lw = load_workbook(path, settings=get_settings())
+    st.session_state.lw = lw
+    st.session_state.upload_n = _upload_n() + 1          # fresh, empty upload boxes: the file is not re-read
+    wanted = st.session_state.get("viewing")
+    waiting = _store().load(wanted) if wanted else None
+    if waiting is not None and waiting.digest == lw.digest:
+        _open_chat(waiting)                             # the workbook a past chat needs: continue that chat
+    else:
+        _new_chat()
 
 
 def _close_workbook() -> None:
@@ -142,6 +311,8 @@ def _close_workbook() -> None:
     old: LoadedWorkbook | None = st.session_state.get("lw")
     if old is not None:
         old.close(delete=True)
+        for k in [k for k in st.session_state if str(k).endswith(f"::{old.workspace.id}")]:
+            del st.session_state[k]                     # its explanation and dashboard choice
     st.session_state.lw = None
     st.session_state.loaded_digest = None
 
@@ -152,11 +323,13 @@ def _purge_leftovers_once() -> int:
     return purge_workspaces(get_settings().workspace_dir)
 
 
-def _load_upload(uploaded) -> None:
+def _load_upload(uploaded) -> bool:
+    """Open an uploaded workbook. True when a new workbook was opened (the caller then reruns the page); False when
+    this file is already open or failed - so a file left in an upload box never makes the page rerun forever."""
     data = uploaded.getvalue()
     digest = hashlib.sha256(data).hexdigest()[:16]
-    if st.session_state.get("loaded_digest") == digest:
-        return
+    if digest in (st.session_state.get("loaded_digest"), st.session_state.get("failed_digest")):
+        return False
     incoming = get_settings().workspace_dir / "_incoming" / digest
     incoming.mkdir(parents=True, exist_ok=True)
     path = incoming / Path(uploaded.name).name
@@ -165,8 +338,12 @@ def _load_upload(uploaded) -> None:
         with st.spinner("Reading workbook and extract…"):
             _load(path)
         st.session_state.loaded_digest = digest
+        st.session_state.failed_digest = None
+        return True
     except Exception as exc:  # noqa: BLE001 - show the problem, keep the app alive
+        st.session_state.failed_digest = digest
         st.error(f"Could not open {uploaded.name}: {exc}")
+        return False
     finally:
         shutil.rmtree(incoming, ignore_errors=True)
 
@@ -174,21 +351,9 @@ def _load_upload(uploaded) -> None:
 # --------------------------------------------------------------------------------------------- pages
 
 
-def _date_range(lw: LoadedWorkbook, prof) -> str | None:
-    col = next((c for c in prof.columns if c.date_format and c.entity_level is not False), None)
-    if col is None or lw.store is None:
-        return None
-    lo, hi = lw.store.con.execute(
-        f"SELECT CAST(MIN(try_strptime({qi(col.name)}, ?)) AS DATE), CAST(MAX(try_strptime({qi(col.name)}, ?)) "
-        f"AS DATE) FROM {lw.store.view(prof.table)}", [col.date_format.format, col.date_format.format]).fetchone()
-    if lo is None:
-        return None
-    return f"{lo:%d %b %Y} to {hi:%d %b %Y} (by {col.name})"
-
-
 def _report(lw: LoadedWorkbook):
     """The written explanation, built once per opened workbook (all local, no Claude call)."""
-    key = f"report::{lw.source_name}::{id(lw)}"
+    key = f"report::{lw.workspace.id}"
     if key not in st.session_state:
         from tabbot.explain.report import explain_workbook
         try:
@@ -200,7 +365,7 @@ def _report(lw: LoadedWorkbook):
 
 
 def _render_workbook(lw: LoadedWorkbook) -> None:
-    st.markdown(f"<div class='tb-title'>{lw.source_name}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='tb-title'>{html.escape(lw.source_name)}</div>", unsafe_allow_html=True)
     with st.spinner("Reading the workbook and writing the explanation…"):
         rep = _report(lw)
     if isinstance(rep, Exception):
@@ -270,7 +435,7 @@ def _selected_view(lw: LoadedWorkbook):
 
 
 def _pick_key(lw: LoadedWorkbook) -> str:
-    return f"dash_pick::{id(lw)}"
+    return f"dash_pick::{lw.workspace.id}"
 
 
 def _render_dashbar(lw: LoadedWorkbook) -> bool:
@@ -285,18 +450,15 @@ def _render_dashbar(lw: LoadedWorkbook) -> bool:
 
 
 def _render_start_page() -> None:
-    st.write("")
-    _, mid, _ = st.columns([1, 2.2, 1])
-    with mid:
-        st.markdown("<div class='tb-hero'><h1>Open a Tableau workbook</h1>"
-                    "<p>Upload a packaged workbook to get a written explanation of it, then ask questions about it. "
-                    "The workbook is read on this computer; only its structure and summary numbers are used to "
-                    "answer questions.</p></div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            up = st.file_uploader("Upload a packaged workbook (.twbx)", type=["twbx", "twb"], key="upload_main")
-            if up is not None:
-                _load_upload(up)
-                st.rerun()
+    st.markdown("<div class='tb-hero'><h1>Open a Tableau workbook</h1>"
+                "<p>Upload a packaged workbook to get a written explanation of it, then ask questions about it. "
+                "The workbook is read on this computer; only its structure and summary numbers are used to "
+                "answer questions.</p></div>", unsafe_allow_html=True)
+    with st.container(key=f"upload_card_{_upload_n()}"):
+        up = st.file_uploader("Upload a packaged workbook (.twbx)", type=["twbx", "twb"],
+                              key=f"upload_main_{_upload_n()}")
+        if up is not None and _load_upload(up):
+            st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- chat
@@ -337,9 +499,9 @@ def _tool_label(call: dict) -> str:
 
 
 def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
-    log = st.session_state.chat_log
+    entries = st.session_state.chat_log
     about = view.name if view is not None else WHOLE
-    log.append({"role": "user", "text": question, "tools": [], "about": about})
+    entries.append({"role": "user", "text": question, "tools": [], "about": about})
     st.session_state.asked_about = about
     with box:
         with st.chat_message("user"):
@@ -368,7 +530,8 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
         meta = (f"{turn.rounds} call(s) · in {u.get('input_tokens', 0):,} "
                 f"(+{u.get('cache_read_input_tokens', 0):,} cached) · out {u.get('output_tokens', 0):,} "
                 f"· ≈ {_usd(turn.est_usd, 3)}")
-    log.append({"role": "assistant", "text": turn.text or "_(no answer)_", "tools": tools, "meta": meta})
+    entries.append({"role": "assistant", "text": turn.text or "_(no answer)_", "tools": tools, "meta": meta})
+    _save_chat(lw)
     st.rerun()
 
 
@@ -395,19 +558,8 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         with box:
             if not st.session_state.chat_log:
                 st.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only its "
-                           "structure and summary numbers are used - "
-                           "never the data rows.")
-            for m in st.session_state.chat_log:
-                with st.chat_message(m["role"]):
-                    if m.get("about"):
-                        st.caption(f"About: {m['about']}")
-                    st.markdown(m["text"])
-                    if m.get("tools"):
-                        with st.expander(f"{len(m['tools'])} tool call(s)"):
-                            for t in m["tools"]:
-                                st.caption(t)
-                    if m.get("meta"):
-                        st.caption(m["meta"])
+                           "structure and summary numbers are used - never the data rows.")
+            _render_messages(st.session_state.chat_log)
         pending = None
         sug_slot = st.empty()        # emptied while an answer streams, so the answer has the room
         # suggestions follow the selection; they come back whenever another dashboard is picked
@@ -428,13 +580,31 @@ def _render_chat(lw: LoadedWorkbook) -> None:
             sug_slot.empty()
             _ask(lw, question, box, view)
         # every request is still written to workspace/audit/outbound.jsonl before it is sent
-        if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
-            st.session_state.chat, st.session_state.chat_log = None, []
-            st.session_state.asked_about = None
-            st.rerun()
 
 
 # --------------------------------------------------------------------------------------------- page
+
+
+def _render_appbar(lw: LoadedWorkbook | None) -> None:
+    with st.container(key="appbar"):
+        top = st.columns([0.35, 7.6, 1.8], vertical_alignment="center")
+        with top[0]:
+            if st.button("☰", key="toggle_history",
+                         help=("Hide" if st.session_state.show_history else "Show") + " past chats"):
+                st.session_state.show_history = not st.session_state.show_history
+        with top[1]:
+            wb = f"<span class='wb'>{html.escape(lw.source_name)}</span>" if lw is not None else ""
+            st.markdown(f"<span class='brand'>📊 Tableau Insights</span>{wb}", unsafe_allow_html=True)
+        if lw is not None:
+            # a fresh key after each load: the popover comes back closed instead of covering the new workbook
+            with top[2], st.popover("📂 Open workbook", width="stretch", key=f"open_wb_{_upload_n()}"):
+                up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key=f"upload_{_upload_n()}")
+                if up is not None and _load_upload(up):
+                    st.rerun()
+                if st.button("🗑 Close workbook & delete local copy", key="close_wb", width="stretch"):
+                    _close_workbook()
+                    _new_chat()
+                    st.rerun()
 
 
 def main() -> None:
@@ -442,7 +612,7 @@ def main() -> None:
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
     _purge_leftovers_once()
-    for k, v in (("chat", None), ("chat_log", [])):
+    for k, v in (("chat", None), ("chat_log", []), ("saved", None), ("viewing", None), ("show_history", True)):
         st.session_state.setdefault(k, v)
 
     auto = os.environ.get("TABBOT_AUTOLOAD")
@@ -451,28 +621,24 @@ def main() -> None:
         _load(Path(auto))
         st.session_state.loaded_digest = "autoload"
 
+    _render_appbar(st.session_state.get("lw"))
     lw: LoadedWorkbook | None = st.session_state.get("lw")
-    with st.container(key="appbar"):
-        if lw is None:
-            st.markdown("<span class='brand'>📊 Tableau Insights</span>", unsafe_allow_html=True)
-        else:
-            top = st.columns([8, 1.8], vertical_alignment="center")
-            with top[0]:
-                st.markdown(f"<span class='brand'>📊 Tableau Insights</span>"
-                            f"<span class='wb'>{lw.source_name}</span>", unsafe_allow_html=True)
-            with top[1], st.popover("📂 Open workbook", width="stretch"):
-                up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key="upload")
-                if up is not None:
-                    _load_upload(up)
-                    st.rerun()
-                if st.button("🗑 Close workbook & delete local copy", key="close_wb", width="stretch"):
-                    _close_workbook()
-                    st.session_state.chat, st.session_state.chat_log = None, []
-                    st.rerun()
+    viewing = _store().load(st.session_state.viewing) if st.session_state.viewing else None
+    if st.session_state.viewing and viewing is None:      # deleted meanwhile
+        st.session_state.viewing = None
+    show = st.session_state.show_history
 
-    lw = st.session_state.get("lw")
-    if lw is None:
-        _render_start_page()
+    if lw is None or viewing is not None:                  # start page, or reading a past chat
+        st.markdown(pane_css(PANE_TOP), unsafe_allow_html=True)
+        cols = st.columns([HISTORY_W, MAIN_W + CHAT_W]) if show else [None, st.container()]
+        if show:
+            with cols[0]:
+                _render_history()
+        with cols[1]:
+            if viewing is not None:
+                _render_past_chat(viewing, lw)
+            else:
+                _render_start_page()
         return
 
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
@@ -480,7 +646,12 @@ def main() -> None:
         _report(lw)
     has_bar = _render_dashbar(lw)
     st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0)), unsafe_allow_html=True)
-    left, right = st.columns([1.2, 1])
+    if show:
+        hist, left, right = st.columns([HISTORY_W, MAIN_W, CHAT_W])
+        with hist:
+            _render_history()
+    else:
+        left, right = st.columns([MAIN_W, CHAT_W])
     with left, st.container(key="left_pane"):
         view = _selected_view(lw)
         if view is None:

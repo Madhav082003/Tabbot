@@ -20,6 +20,7 @@ Text written before a tool call is a progress note; the final answer is the text
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from collections import Counter
 from collections.abc import Callable
@@ -125,6 +126,15 @@ class ChatSession:
                              max_rounds_per_question=settings.max_tool_rounds)
         self._client = client
         self._last_request_chars = 0
+
+    def restore(self, messages: list[dict]) -> None:
+        """Continue a saved conversation: its history is sent with the next question (so "do that again" works).
+        Result ids continue after the highest one in the history, so an old (R3) never means a new result."""
+        self.messages = [m for m in messages if m.get("role") in ("user", "assistant")]
+        if self.messages and self.messages[-1]["role"] == "user":
+            self.messages.pop()        # a question that was never answered: dropped so the history stays valid
+        ids = [int(n) for n in re.findall(r'result_id\W{1,8}R(\d+)', json.dumps(self.messages, default=str))]
+        self.tools_ctx._n = max(ids, default=0)
 
     @property
     def client(self) -> MessagesClient:
