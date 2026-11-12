@@ -123,6 +123,107 @@ def test_errors_and_refusal(lw, tmp_path):
     assert "declined" in chat2.ask("hi").text
 
 
+def _events(blocks):
+    """The stream events the API sends for a reply made of these blocks (text split into small deltas)."""
+    from types import SimpleNamespace as N
+    out = []
+    for b in blocks:
+        out.append(N(type="content_block_start", content_block=N(type=b["type"])))
+        if b["type"] == "text":
+            t = b["text"]
+            out += [N(type="content_block_delta", delta=N(type="text_delta", text=t[i:i + 4]))
+                    for i in range(0, len(t), 4)]
+        out.append(N(type="content_block_stop"))
+    return out
+
+
+class FakeStreamClient(FakeClient):
+    """Like the real client.beta.messages: has .stream(); create() must not be used when streaming exists."""
+
+    def create(self, **req):
+        raise AssertionError("streaming client: create() should not be called")
+
+    def stream(self, **req):
+        resp = FakeClient.create(self, **req)   # audit check + scripted reply
+        events = _events(resp["content"])
+
+        class Ctx:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def __iter__(self):
+                return iter(events)
+
+            def get_final_message(self):
+                return resp
+        return Ctx()
+
+
+def test_streaming_sends_text_as_it_arrives(lw, tmp_path):
+    s = settings_for(tmp_path)
+    fake = FakeStreamClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl")
+    events = []
+    turn = ChatSession(lw, s, client=fake).ask("Key insights?", on_event=lambda k, d: events.append((k, d)))
+
+    final = SCRIPT[2]["content"][0]["text"]
+    assert turn.text == final and turn.rounds == 3 and len(fake.requests) == 3
+    kinds = [k for k, _ in events]
+    # progress note of round 1, then the 4 tools announced before they run, then the answer in many pieces
+    assert kinds[0] == "text" and "".join(d for k, d in events[:kinds.index("tool")]) == "Let me look."
+    assert [d["name"] for k, d in events if k == "tool"] == ["list_dashboards", "run_analysis", "describe_sheet",
+                                                              "get_chart_data"]
+    last_tool = max(i for i, (k, _) in enumerate(events) if k == "tool")
+    answer = [d for k, d in events[last_tool + 1:] if k == "text"]
+    assert len(answer) > 3 and "".join(answer) == final
+
+
+def test_streaming_display_errors_never_break_the_answer(lw, tmp_path):
+    s = settings_for(tmp_path)
+
+    def broken(kind, data):
+        raise RuntimeError("display failed")
+    turn = ChatSession(lw, s, client=FakeStreamClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl")).ask(
+        "Key insights?", on_event=broken)
+    assert turn.text.startswith("**Data**") and turn.error is None
+
+
+def test_mid_stream_fallback_history(lw, tmp_path):
+    """After a mid-stream fallback, the declined part's thinking and tool calls are neither echoed nor run."""
+    s = settings_for(tmp_path)
+    reply = response([{"type": "thinking", "thinking": "", "signature": "a"},
+                      {"type": "text", "text": "Part one. "},
+                      tool_use(9, "get_findings", {}),
+                      {"type": "fallback", "from": {"model": "x"}, "to": {"model": "y"}},
+                      {"type": "text", "text": "Part two."}], "end_turn")
+    chat = ChatSession(lw, s, client=FakeStreamClient([reply], tmp_path / "audit" / "outbound.jsonl"))
+    turn = chat.ask("hi")
+    kept = [b["type"] for b in chat.messages[-1]["content"]]
+    assert kept == ["text", "fallback", "text"] and turn.tool_calls == []
+    assert turn.text == "Part one. \n\nPart two."
+
+
+def test_typewriter_paces_and_catches_up():
+    from tabbot.ui.typewriter import BASE_CPS, Typewriter
+    frames, waits = [], []
+    tw = Typewriter(frames.append, waits.append)
+    text = "The quick brown fox jumps over the lazy dog. " * 3
+    tw.feed(text[:10])
+    tw.feed(text[10:])
+    assert frames[-1] == text and len(frames) > 5                       # shown in several steps, in order
+    assert all(b.startswith(a) for a, b in zip(frames, frames[1:], strict=False))
+    assert abs(sum(waits) - len(text) / BASE_CPS) < len(text) / BASE_CPS  # about the base pace, never slower
+    # a big burst is typed faster per character than a trickle (the display never lags far behind)
+    slow, fast = [], []
+    Typewriter(lambda t: None, slow.append).feed("word " * 10)
+    Typewriter(lambda t: None, fast.append).feed("word " * 400)
+    assert sum(fast) / 2000 < sum(slow) / 50
+    tw.reset()
+    assert frames[-1] == "" and tw.shown == ""
+
+
 def test_tool_definitions_are_valid():
     defs = tool_definitions()
     assert len({d["name"] for d in defs}) == len(defs) == 6

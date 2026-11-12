@@ -22,6 +22,7 @@ from tabbot.config import get_settings
 from tabbot.data.store import qi
 from tabbot.llm.orchestrator import ChatSession
 from tabbot.loader import LoadedWorkbook, load_workbook
+from tabbot.ui.typewriter import Typewriter
 from tabbot.workspace import purge_workspaces
 
 log = logging.getLogger(__name__)
@@ -90,6 +91,34 @@ NO_PAGE_SCROLL = """
   [data-testid="stMain"], [data-testid="stAppViewContainer"] {overflow: hidden !important;}
   .block-container {padding-bottom: 0 !important;}
 </style>
+"""
+
+# The chat messages scroll inside their own pane; keep it at the bottom while an answer streams in (and after it
+# is drawn), unless the reader has scrolled up to read something - then leave them where they are.
+FOLLOW_CHAT_JS = """
+<script>
+(function () {
+  const w = window, doc = w.document;
+  if (w.__tbFollowChat) return;
+  w.__tbFollowChat = true;
+  let queued = false;
+  function follow() {
+    queued = false;
+    const el = doc.querySelector('.st-key-chat_msgs');
+    if (!el) return;
+    if (!el.dataset.tbBound) {
+      el.dataset.tbBound = '1';
+      el.addEventListener('scroll', () => {
+        el.dataset.tbStick = (el.scrollHeight - el.scrollTop - el.clientHeight < 80) ? '1' : '0';
+      });
+    }
+    if (el.dataset.tbStick !== '0') el.scrollTop = el.scrollHeight;
+  }
+  new w.MutationObserver(() => { if (!queued) { queued = true; w.requestAnimationFrame(follow); } })
+    .observe(doc.body, {childList: true, subtree: true, characterData: true});
+  follow();
+})();
+</script>
 """
 
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
@@ -295,6 +324,18 @@ def _context(lw: LoadedWorkbook, view) -> str:
     return ctx
 
 
+def _tool_label(call: dict) -> str:
+    """What the assistant is doing, in plain words, while a tool runs."""
+    inp = call.get("input") or {}
+    sheet = f" '{inp['sheet']}'" if inp.get("sheet") else ""
+    return {"list_dashboards": "Reading the workbook overview",
+            "describe_sheet": f"Looking at{sheet or ' a sheet'}",
+            "get_chart_data": f"Reading the numbers behind{sheet or ' a chart'}",
+            "run_analysis": f"Analysing{sheet or ' the data'}",
+            "get_findings": "Checking how the workbook is built",
+            "query_data": "Querying the data"}.get(call.get("name"), "Working")
+
+
 def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
     log = st.session_state.chat_log
     about = view.name if view is not None else WHOLE
@@ -304,8 +345,21 @@ def _ask(lw: LoadedWorkbook, question: str, box, view=None) -> None:
         with st.chat_message("user"):
             st.caption(f"About: {about}")
             st.markdown(question)
-        with st.chat_message("assistant"), st.spinner("Looking at the workbook…"):
-            turn = _chat_session(lw).ask(question, _context(lw, view))
+        with st.chat_message("assistant"):
+            status, body = st.empty(), st.empty()
+            status.caption("⏳ Thinking…")
+            tw = Typewriter(lambda t: body.markdown(t + " ▌") if t else body.empty())
+
+            def on_event(kind: str, data) -> None:
+                if kind == "tool":                  # text before a tool call was a progress note: replace it
+                    tw.reset()
+                    status.caption(f"🔧 {_tool_label(data)}…")
+                elif kind == "text":
+                    if not tw.shown:
+                        status.empty()
+                    tw.feed(data)
+
+            turn = _chat_session(lw).ask(question, _context(lw, view), on_event=on_event)
     tools = [f"{'⚠️' if t.is_error else '🔧'} {t.name}({', '.join(f'{k}={v}' for k, v in t.input.items())})"
              + (f" → {t.preview}" if t.preview else "") for t in turn.tool_calls]
     meta = ""
@@ -355,6 +409,7 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                     if m.get("meta"):
                         st.caption(m["meta"])
         pending = None
+        sug_slot = st.empty()        # emptied while an answer streams, so the answer has the room
         # suggestions follow the selection; they come back whenever another dashboard is picked
         if ready and (not st.session_state.chat_log or st.session_state.get("asked_about") != about):
             rep = _report(lw)
@@ -362,13 +417,15 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                 sugs = view.questions
             else:
                 sugs = [SUGGESTIONS[0]] + (rep.questions[:3] if not isinstance(rep, Exception) else SUGGESTIONS[1:])
-            for i, sug in enumerate(sugs):
-                if st.button(sug, key=f"sug{i}::{about}", width="stretch"):
-                    pending = sug
+            with sug_slot.container():
+                for i, sug in enumerate(sugs):
+                    if st.button(sug, key=f"sug{i}::{about}", width="stretch"):
+                        pending = sug
         q = st.chat_input("Ask about this dashboard…" if view is not None else "Ask about this workbook…",
                           key="chat_in", disabled=not ready)
         question = q or pending
         if question:
+            sug_slot.empty()
             _ask(lw, question, box, view)
         # every request is still written to workspace/audit/outbound.jsonl before it is sent
         if st.session_state.chat_log and st.button("Clear chat", key="clear_chat"):
@@ -432,6 +489,8 @@ def main() -> None:
             _render_dashboard(lw, view)
     with right:
         _render_chat(lw)
+    # a fixed script written here (never workbook or user text), run in the page itself
+    st.html(FOLLOW_CHAT_JS, unsafe_allow_javascript=True)
 
 
 main()
