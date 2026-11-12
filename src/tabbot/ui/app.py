@@ -190,7 +190,8 @@ FOLLOW_CHAT_JS = """
 
 # Streamlit's hover tooltips (e.g. a chat's first question in the chat list) can stay open after a click: the click
 # redraws the list, the item that opened the tooltip is replaced, and nothing is left to close it. So: whenever the
-# mouse is not over an item that has a tooltip, any open tooltip is hidden; over such an item, tooltips show again.
+# mouse is not over an item that has a tooltip, any open tooltip is hidden - for good: hovering an item opens a new
+# tooltip of its own, so a hidden (stale) one is never shown again.
 TOOLTIP_FIX_JS = """
 <script>
 (function () {
@@ -207,12 +208,10 @@ TOOLTIP_FIX_JS = """
     if (now - last < 100) return;
     last = now;
     const over = e.target && e.target.closest ? e.target.closest('[data-testid="stTooltipHoverTarget"]') : null;
+    if (over) return;
     doc.querySelectorAll('[data-testid="stTooltipContent"]').forEach((tip) => {
       const layer = layerOf(tip);
-      if (!layer) return;
-      if (over) {
-        if (layer.dataset.tbHidden) { layer.style.visibility = ''; delete layer.dataset.tbHidden; }
-      } else if (!layer.dataset.tbHidden) {
+      if (layer && !layer.dataset.tbHidden) {
         layer.style.visibility = 'hidden';
         layer.dataset.tbHidden = '1';
       }
