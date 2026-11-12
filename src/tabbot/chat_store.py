@@ -84,6 +84,19 @@ class ChatStore:
         self._path(chat_id).unlink(missing_ok=True)
 
 
+DAY_GROUPS = ("Today", "Yesterday", "Previous 7 days", "Older")
+
+
+def day_group(iso: str) -> str:
+    """Which heading a chat goes under in the list, by when it was last used."""
+    try:
+        d = dt.datetime.fromisoformat(iso).date()
+    except ValueError:
+        return "Older"
+    age = (dt.date.today() - d).days
+    return "Today" if age <= 0 else "Yesterday" if age == 1 else "Previous 7 days" if age <= 7 else "Older"
+
+
 def start_chat(lw) -> SavedChat:
     """A new (not yet saved) chat for the open workbook."""
     now = _now()

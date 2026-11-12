@@ -170,11 +170,58 @@ def test_chat_of_another_workbook_is_read_only_with_a_way_back(app):
     assert at.session_state["viewing"] is None and at.chat_input
 
 
+def test_delete_asks_first_and_cancel_keeps_it(app):
+    at, store = app
+    at.chat_input[0].set_value("Keep me please").run()
+    cid = store.list()[0].id
+    at.button(key=f"del__{cid}").click().run()
+    assert any("Delete this chat" in c.value for c in at.caption) and store.list()   # nothing deleted yet
+    at.button(key=f"del_no__{cid}").click().run()
+    assert [c.id for c in store.list()] == [cid] and _keys(at, f"open__{cid}")
+
+
+def test_chats_are_grouped_by_day():
+    import datetime as dt
+
+    from tabbot.chat_store import day_group
+    now = dt.datetime.now()
+    assert day_group(now.isoformat()) == "Today"
+    assert day_group((now - dt.timedelta(days=1)).isoformat()) == "Yesterday"
+    assert day_group((now - dt.timedelta(days=5)).isoformat()) == "Previous 7 days"
+    assert day_group((now - dt.timedelta(days=40)).isoformat()) == "Older"
+
+
+def test_thumbs_are_saved_with_the_answer(app):
+    at, store = app
+    at.chat_input[0].set_value("Rate me").run()
+    fb = at.get("feedback")
+    assert fb, "thumbs under the answer"
+    fb[0].set_value(1).run()
+    assert store.list()[0].log[1]["feedback"] == "up"
+
+
+def test_wider_chat_hides_the_explanation(app):
+    at, _ = app
+    assert any("In brief" in m.value for m in at.markdown)
+    at.button(key="wide_chat_btn").click().run()
+    assert not at.exception and not any("In brief" in m.value for m in at.markdown) and at.chat_input
+    at.button(key="wide_chat_btn").click().run()
+    assert any("In brief" in m.value for m in at.markdown)
+
+
+def test_suggestions_are_three_chips_at_most_and_header_has_a_summary(app):
+    at, _ = app
+    assert 0 < len(_keys(at, "sug")) <= 3
+    head = " ".join(m.value for m in at.markdown if "wbmeta" in m.value)
+    assert "fixture" in head and ".twbx" not in head and "rows" in head
+
+
 def test_delete_and_toggle_panel(app):
     at, store = app
     at.chat_input[0].set_value("To be deleted").run()
     cid = store.list()[0].id
     at.button(key=f"del__{cid}").click().run()
+    at.button(key=f"del_yes__{cid}").click().run()
     assert store.list() == [] and not _keys(at, "open__") and at.session_state["saved"] is None
     at.button(key="toggle_history").click().run()
     assert not _keys(at, "new_chat")                                   # panel hidden
@@ -199,7 +246,7 @@ def test_a_stopped_answer_keeps_what_was_written(app):
 def test_question_bubble_shows_only_the_question(app):
     """The dashboard a question was asked about is kept with the chat, but not printed in the bubble."""
     at, store = app
-    bar = at.get("button_group")[0]
+    bar = at.selectbox[0]
     bar.set_value(bar.options[1]).run()
     at.chat_input[0].set_value("Which values stand out here?").run()
     assert not any(c.value.startswith("About:") for c in at.caption)
@@ -236,6 +283,7 @@ def test_deleting_the_last_chat_removes_the_copy(app, tmp_path):
     at.button(key="close_wb").click().run()
     at.run()
     at.button(key=f"del__{c.id}").click().run()
+    at.button(key=f"del_yes__{c.id}").click().run()
     assert not (tmp_path / "library" / c.digest).exists()
 
 
@@ -250,7 +298,7 @@ def test_without_copies_an_old_chat_is_read_beside_its_explanation(app_no_copies
     at.button(key=f"open__{cid}").click().run()
     text = " ".join(m.value for m in at.markdown)
     assert not at.exception and "Keep me" in text and "In brief" in text     # chat beside the explanation
-    bar = at.get("button_group")[0]
+    bar = at.selectbox[0]
     assert bar.options[0] == "Whole workbook" and len(bar.options) > 1       # its dashboards too
     bar.set_value(bar.options[1]).run()
     assert not at.exception and "In depth" in " ".join(m.value for m in at.markdown)

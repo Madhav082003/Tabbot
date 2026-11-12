@@ -25,7 +25,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from tabbot.chat_store import ChatStore, SavedChat, start_chat
+from tabbot.chat_store import DAY_GROUPS, ChatStore, SavedChat, day_group, start_chat
 from tabbot.config import get_settings
 from tabbot.library import WorkbookLibrary
 from tabbot.llm.orchestrator import ChatSession
@@ -109,11 +109,37 @@ CSS = """
   .st-key-stop_answer button span {color: #fff !important; margin: 0 !important;}
   .st-key-chat_pane:has(.st-key-stop_answer) [data-testid="stChatInputSubmitButton"] {visibility: hidden;}
 
-  /* the dashboard bar: one row of boxes that scrolls sideways when there are many */
+  /* the dashboard selector: a searchable dropdown, fits any number of dashboards */
   .st-key-dashbar {padding: 2px 0 0 0;}
-  .st-key-dashbar [data-testid="stButtonGroup"] > div {flex-wrap: nowrap !important; overflow-x: auto;
-                                                       overflow-y: hidden; padding-bottom: 4px;}
-  .st-key-dashbar [data-testid="stButtonGroup"] button {white-space: nowrap; flex-shrink: 0;}
+  .st-key-dashbar .tb-dash-label {font-size: 14px; font-weight: 600; color: #1F3A5F;}
+
+  /* the header: workbook name and a one-line summary of its data */
+  .st-key-appbar .wbmeta {font-size: 12px; color: #AFC0D6; margin-left: 10px;}
+
+  /* chat list: the delete icon shows when the row is hovered (and asks before deleting) */
+  .st-key-history_pane [class*="st-key-del__"] {opacity: 0; transition: opacity .12s;}
+  .st-key-history_pane [data-testid="stHorizontalBlock"]:hover [class*="st-key-del__"] {opacity: 1;}
+  .st-key-history_pane [class*="st-key-confirm__"] {background: #FFF4F2; border-radius: 8px; padding: 6px 8px;}
+
+  /* suggested questions: small chips above the input */
+  .st-key-sugs button {border-radius: 16px !important; padding: 3px 12px !important; min-height: 0 !important;
+                       border: 1px solid #D4DAE3 !important; background: #fff !important;}
+  .st-key-sugs button p {font-size: 13px !important; white-space: normal; text-align: left;}
+  .st-key-sugs button:hover {border-color: #1F3A5F !important;}
+
+  /* under each answer: copy and thumbs up/down */
+  [class*="st-key-acts_"] {margin-top: -6px; opacity: .75;}
+  [class*="st-key-acts_"]:hover {opacity: 1;}
+  .tb-copy {border: none; background: transparent; cursor: pointer; font-size: 16px; color: #4B5563;
+            padding: 2px 6px; border-radius: 6px;}
+  .tb-copy:hover {background: #EEF1F5; color: #1F3A5F;}
+  .st-key-chat_head {gap: 4px;}
+
+  /* readable grey text (timestamps, notes, the input placeholder) */
+  [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {color: #4B5563 !important;}
+  [data-testid="stChatInput"] textarea::placeholder {color: #6B7280 !important; opacity: 1 !important;}
+  .st-key-history_pane .tb-recents {color: #4B5563 !important;}
+  .tb-upload-note {max-width: 480px; margin: 8px auto 0 auto; text-align: center; font-size: 13px; color: #4B5563;}
   .tb-dash-title {font-size: 21px; font-weight: 600; color: #1F3A5F; margin: 4px 0 0 0;}
   .tb-dash-sub {font-size: 13px; color: #666; margin: 0 0 6px 0;}
   .tb-summary {background: #F3F6FA; border-left: 3px solid #1F3A5F; border-radius: 4px; padding: 10px 14px;
@@ -151,7 +177,7 @@ def pane_css(top_px: int, chat_top_px: int | None = None) -> str:
 
 WHOLE = "Whole workbook"                     # the first box: the full explanation
 PANE_TOP = 124                               # app bar + margins above the panes (px)
-DASHBAR_H = 68                               # the dashboard bar (38px) and the gaps around it
+DASHBAR_H = 62                               # the dashboard selector (40px) and the gaps around it
 
 NO_PAGE_SCROLL = """
 <style>
@@ -217,12 +243,28 @@ TOOLTIP_FIX_JS = """
       }
     });
   }, {passive: true});
+  // copy button under an answer: puts the answer text on the clipboard
+  doc.addEventListener('click', (e) => {
+    const b = e.target && e.target.closest ? e.target.closest('.tb-copy') : null;
+    if (!b) return;
+    const text = b.getAttribute('data-copy') || '';
+    const done = () => { b.textContent = '✓'; setTimeout(() => { b.textContent = '⧉'; }, 1500); };
+    if (w.navigator.clipboard && w.isSecureContext) {
+      w.navigator.clipboard.writeText(text).then(done, () => {});
+    } else {
+      const t = doc.createElement('textarea');
+      t.value = text; doc.body.appendChild(t); t.select();
+      try { doc.execCommand('copy'); done(); } catch (err) {}
+      t.remove();
+    }
+  });
 })();
 </script>
 """
 
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
 HISTORY_W, MAIN_W, CHAT_W = 0.42, 1.25, 1   # column widths: past chats | explanation | chat
+CHAT_W_ASKED = 1.5                          # the chat's width once questions are asked (answers need the room)
 
 SUGGESTIONS = ["Explain this workbook: what is it for and what does each dashboard show?",
                "What are the key insights in the data?",
@@ -336,26 +378,50 @@ def _render_history() -> None:
             _new_chat()
             st.session_state.home = True      # back to the start page: open another workbook, or the same one
             st.rerun()
-        st.markdown("<div class='tb-recents'>Recents</div>", unsafe_allow_html=True)
         if not chats:
+            st.markdown("<div class='tb-recents'>Recents</div>", unsafe_allow_html=True)
             st.caption("Your chats will appear here.")
-        for c in chats:
-            label = c.workbook + (f" · {_short_when(c.created)}" if names.count(c.workbook) > 1 else "")
-            tip = (f"{c.first_question[:120]}\n\n{_when(c.updated)} · {c.questions} question(s)"
-                   if c.first_question else _when(c.updated))
-            row = st.columns([6, 1], gap=None, vertical_alignment="center")
-            with row[0]:
-                if st.button(label, key=f"open__{c.id}", width="stretch", help=tip,
-                             type="primary" if c.id == current else "tertiary"):
-                    _open_chat(c)
-                    st.rerun()
-            with row[1]:
-                if st.button("🗑", key=f"del__{c.id}", help="Delete this chat", type="tertiary"):
-                    _store().delete(c.id)
-                    if c.id == current:
-                        _new_chat()
-                    _prune_library()                   # its workbook copy goes when no chat needs it
-                    st.rerun()
+        groups: dict[str, list[SavedChat]] = {}
+        for c in chats:                                  # newest first, grouped by when they were last used
+            groups.setdefault(day_group(c.updated), []).append(c)
+        for group in DAY_GROUPS:
+            if group not in groups:
+                continue
+            st.markdown(f"<div class='tb-recents'>{group}</div>", unsafe_allow_html=True)
+            for c in groups[group]:
+                _history_row(c, current, names)
+
+
+def _history_row(c: SavedChat, current: str | None, names: list[str]) -> None:
+    """One chat in the list: its name (first question on hover); 🗑 shows on hover and asks before deleting."""
+    if st.session_state.get("confirm_del") == c.id:
+        with st.container(key=f"confirm__{c.id}"):
+            st.caption(f"Delete this chat about {c.workbook}?")
+            row = st.columns(2, gap="small")
+            if row[0].button("Delete", key=f"del_yes__{c.id}", type="primary", width="stretch"):
+                st.session_state.confirm_del = None
+                _store().delete(c.id)
+                if c.id == current:
+                    _new_chat()
+                _prune_library()                         # its workbook copy goes when no chat needs it
+                st.rerun()
+            if row[1].button("Cancel", key=f"del_no__{c.id}", width="stretch"):
+                st.session_state.confirm_del = None
+                st.rerun()
+        return
+    label = c.workbook + (f" · {_short_when(c.created)}" if names.count(c.workbook) > 1 else "")
+    tip = (f"{c.first_question[:120]}\n\n{_when(c.updated)} · {c.questions} question(s)"
+           if c.first_question else _when(c.updated))
+    row = st.columns([6, 1], gap=None, vertical_alignment="center")
+    with row[0]:
+        if st.button(label, key=f"open__{c.id}", width="stretch", help=tip,
+                     type="primary" if c.id == current else "tertiary"):
+            _open_chat(c)
+            st.rerun()
+    with row[1]:
+        if st.button("🗑", key=f"del__{c.id}", help="Delete this chat", type="tertiary"):
+            st.session_state.confirm_del = c.id
+            st.rerun()
 
 
 def _user_bubble(i: int, text: str, about: str | None = None) -> None:
@@ -370,13 +436,38 @@ def _md_text(text: str) -> str:
     return text.replace("\\$", "$").replace("$", "\\$")
 
 
-def _render_messages(entries: list[dict]) -> None:
+def _render_messages(entries: list[dict], actions: bool = False) -> None:
+    """The conversation. actions=True (the live chat): copy and thumbs up/down under each answer."""
     for i, m in enumerate(entries):
         if m["role"] == "user":
             _user_bubble(i, m["text"], m.get("about"))
             continue
         with st.container(key=f"amsg_{i}"):    # an answer: plain text (tool calls and cost stay in the logs only)
             st.markdown(_md_text(m["text"]))
+            if actions:
+                _answer_actions(i, m)
+
+
+def _answer_actions(i: int, m: dict) -> None:
+    saved: SavedChat | None = st.session_state.get("saved")
+    key = f"fb__{saved.id if saved is not None else 'new'}__{i}"
+    with st.container(key=f"acts_{i}", horizontal=True, vertical_alignment="center", gap="small"):
+        # copy: a plain button the page script handles (the text sits in an escaped attribute, never as markup)
+        st.html(f"<button class='tb-copy' title='Copy the answer' data-copy='{html.escape(m['text'], quote=True)}'>"
+                "⧉</button>", width="content")
+        st.feedback("thumbs", key=key, default={"up": 1, "down": 0}.get(m.get("feedback")),
+                    on_change=_set_feedback, args=(i, key))
+
+
+def _set_feedback(i: int, key: str) -> None:
+    """Thumbs up/down: kept with the answer in the saved chat (for testing how good answers are)."""
+    entries = st.session_state.get("chat_log") or []
+    if 0 <= i < len(entries):
+        v = st.session_state.get(key)
+        entries[i]["feedback"] = None if v is None else ("up" if v == 1 else "down")
+        lw = st.session_state.get("lw")
+        if lw is not None:
+            _save_chat(lw)
 
 
 def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
@@ -398,12 +489,12 @@ def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
         with st.container(key="left_pane"):
             view = _selected_from(rep, key)
             if rep is None:
-                st.markdown(f"<div class='tb-title'>{html.escape(c.source_name)}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='tb-title'>{html.escape(c.workbook)}</div>", unsafe_allow_html=True)
                 st.info("The explanation was not saved with this older chat. Open the workbook to see it.")
             elif view is not None:
-                _render_dashboard(view, c.source_name, None)
+                _render_dashboard(view, c.workbook, None)
             else:
-                _render_report_text(rep, c.source_name,
+                _render_report_text(rep, c.workbook,
                                     note=f"Saved with this chat on {_when(c.updated)}. Written on this computer "
                                          "from the workbook and its data - no AI call was made for this text.")
     st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
@@ -522,7 +613,31 @@ def _render_workbook(lw: LoadedWorkbook) -> None:
         st.warning(f"The written explanation could not be built ({type(rep).__name__}). You can still ask the "
                    f"{ASSISTANT_NAME} on the right.")
         return
-    _render_report_text(rep, lw.source_name)
+    _render_report_text(rep, _name(lw))
+
+
+def _name(lw: LoadedWorkbook) -> str:
+    """The workbook's name as people say it: the file name without .twbx / .twb."""
+    return Path(lw.source_name).stem
+
+
+def _meta(lw: LoadedWorkbook) -> str:
+    """'334 rows · Jan 2017 – Nov 2019' (computed once per opened workbook), or why there are no numbers."""
+    key = f"meta::{lw.workspace.id}"
+    if key not in st.session_state:
+        text = "structure only - no data in the file"
+        if lw.store is not None:
+            try:
+                from tabbot.explain.facts import basics
+                b = basics(lw)
+                if b is not None:            # the same count the explanation uses: records when it counts them
+                    text = f"{b.entities:,} records" if b.entity else f"{b.rows:,} rows"
+                    if b.date_from and b.date_to:
+                        text += f" · {b.date_from:%b %Y} – {b.date_to:%b %Y}"
+            except Exception:  # noqa: BLE001 - a header line must never break the page
+                log.exception("workbook summary line failed")
+        st.session_state[key] = text
+    return st.session_state[key]
 
 
 def _render_report_text(rep, title: str, note: str | None = None) -> None:
@@ -605,12 +720,19 @@ def _render_dashbar(lw: LoadedWorkbook) -> bool:
 
 
 def _render_dashbar_for(rep, key: str) -> bool:
-    """One box per dashboard (pages of one view share a box). Returns True when the bar is shown."""
+    """A searchable dropdown of the dashboards (pages of one view share an entry) - it fits any number of them,
+    however long their names. Returns True when it is shown."""
     if rep is None or isinstance(rep, Exception) or not rep.dashboards:
         return False
-    with st.container(key="dashbar"):
-        st.pills("Dashboards", [WHOLE] + [v.name for v in rep.dashboards], selection_mode="single",
-                 default=WHOLE, key=key, label_visibility="collapsed")
+    names = [WHOLE] + [v.name for v in rep.dashboards]
+    if st.session_state.get(key) not in names:
+        st.session_state[key] = WHOLE
+    n = len(rep.dashboards)
+    with st.container(key="dashbar", horizontal=True, vertical_alignment="center", gap="small"):
+        st.markdown("<span class='tb-dash-label'>Dashboard</span>", unsafe_allow_html=True, width="content")
+        st.selectbox("Dashboard", names, key=key, label_visibility="collapsed", width=460,
+                     help="Type to search the dashboards")
+        st.caption(f"{n} dashboard{'s' if n != 1 else ''}", width="content")
     return True
 
 
@@ -620,10 +742,13 @@ def _render_start_page() -> None:
                 "The workbook is read on this computer; only its structure and summary numbers are used to "
                 "answer questions.</p></div>", unsafe_allow_html=True)
     with st.container(key=f"upload_card_{_upload_n()}"):
-        up = st.file_uploader("Upload a packaged workbook (.twbx)", type=["twbx", "twb"],
+        up = st.file_uploader("Upload a workbook (.twbx or .twb)", type=["twbx", "twb"],
                               key=f"upload_main_{_upload_n()}")
         if up is not None and _load_upload(up):
             st.rerun()
+        st.markdown("<div class='tb-upload-note'>A packaged <b>.twbx</b> includes its data, so you can ask about "
+                    "numbers. A <b>.twb</b> holds only the design: the assistant can explain its charts, fields and "
+                    "filters, but not give numbers.</div>", unsafe_allow_html=True)
     lw: LoadedWorkbook | None = st.session_state.get("lw")
     if lw is not None:                # "New chat" from an open workbook: a fresh chat on it is one click away
         with st.container(key="same_wb"):
@@ -736,7 +861,14 @@ def _render_chat(lw: LoadedWorkbook) -> None:
         view = _selected_view(lw)
         about = view.name if view is not None else WHOLE
         fresh = not st.session_state.chat_log
-        st.markdown(f"**{ASSISTANT_NAME}**")
+        with st.container(key="chat_head", horizontal=True, vertical_alignment="center"):
+            st.markdown(f"**{ASSISTANT_NAME}**", width="stretch")
+            wide = bool(st.session_state.get("wide_chat"))
+            if st.button("", icon=":material/close_fullscreen:" if wide else ":material/open_in_full:",
+                         key="wide_chat_btn", type="tertiary",
+                         help="Show the explanation again" if wide else "Wider chat (hide the explanation)"):
+                st.session_state.wide_chat = not wide
+                st.rerun()
         head_slot = st.empty()       # only before the first question: then the conversation has the room
         if fresh:
             head_slot.caption(f"Asking about: **{about}**")
@@ -758,7 +890,7 @@ def _render_chat(lw: LoadedWorkbook) -> None:
             if fresh:
                 intro_slot.caption(f"Ask anything about this {'dashboard' if view is not None else 'workbook'}. Only "
                                    "its structure and summary numbers are used - never the data rows.")
-            _render_messages(st.session_state.chat_log)
+            _render_messages(st.session_state.chat_log, actions=True)
         pending = None
         sug_slot = st.empty()        # emptied while an answer streams, so the answer has the room
         # suggestions follow the selection; they come back whenever another dashboard is picked
@@ -768,9 +900,10 @@ def _render_chat(lw: LoadedWorkbook) -> None:
                 sugs = view.questions
             else:
                 sugs = [SUGGESTIONS[0]] + (rep.questions[:3] if not isinstance(rep, Exception) else SUGGESTIONS[1:])
-            with sug_slot.container():
-                for i, sug in enumerate(sugs):
-                    if st.button(sug, key=f"sug{i}::{about}", width="stretch"):
+            # two or three compact chips just above the input (not full-width buttons competing with answers)
+            with sug_slot.container(key="sugs", horizontal=True, gap="small"):
+                for i, sug in enumerate(sugs[:3]):
+                    if st.button(sug, key=f"sug{i}::{about}", width="content"):
                         pending = sug
         q = st.chat_input("Ask about this dashboard…" if view is not None else "Ask about this workbook…",
                           key="chat_in", disabled=not ready)
@@ -797,12 +930,14 @@ def _render_appbar(lw: LoadedWorkbook | None) -> None:
                 _toggle_button()
             top = top[1:]
         with top[0]:
-            wb = f"<span class='wb'>{html.escape(lw.source_name)}</span>" if lw is not None else ""
+            wb = (f"<span class='wb'>{html.escape(_name(lw))}</span>"
+                  f"<span class='wbmeta'>{html.escape(_meta(lw))}</span>") if lw is not None else ""
             st.markdown(f"<span class='brand'>📊 Tableau Insights</span>{wb}", unsafe_allow_html=True)
         if lw is not None:
             # a fresh key after each load: the popover comes back closed instead of covering the new workbook
             with top[1], st.popover("📂 Open workbook", width="stretch", key=f"open_wb_{_upload_n()}"):
-                up = st.file_uploader("Tableau workbook (.twbx)", type=["twbx", "twb"], key=f"upload_{_upload_n()}")
+                up = st.file_uploader("Tableau workbook (.twbx or .twb)", type=["twbx", "twb"],
+                                      key=f"upload_{_upload_n()}")
                 if up is not None and _load_upload(up):
                     st.rerun()
                 if st.button("Close workbook", key="close_wb", width="stretch",
@@ -863,19 +998,25 @@ def _render_body() -> None:
     st.markdown(NO_PAGE_SCROLL, unsafe_allow_html=True)
     with st.spinner("Reading the workbook and writing the explanation…"):
         _report(lw)
-    # panel 2 = dashboard bar + explanation; panel 3 = the assistant, starting right under the app bar
-    left, right = st.columns([MAIN_W, CHAT_W])
-    with left:
-        has_bar = _render_dashbar(lw)
-        with st.container(key="left_pane"):
-            view = _selected_view(lw)
-            if view is None:
-                _render_workbook(lw)
-            else:
-                _render_dashboard(view, lw.source_name, _previews(lw, view.pages))
-    st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
-    with right:
+    # panel 2 = dashboard selector + explanation; panel 3 = the assistant, starting right under the app bar.
+    # Once questions are asked the chat gets more room; "wider chat" hides the explanation altogether.
+    if st.session_state.get("wide_chat"):
+        st.markdown(pane_css(PANE_TOP, PANE_TOP), unsafe_allow_html=True)
         _render_chat(lw)
+    else:
+        asked = bool(st.session_state.chat_log)
+        left, right = st.columns([MAIN_W, CHAT_W_ASKED if asked else CHAT_W])
+        with left:
+            has_bar = _render_dashbar(lw)
+            with st.container(key="left_pane"):
+                view = _selected_view(lw)
+                if view is None:
+                    _render_workbook(lw)
+                else:
+                    _render_dashboard(view, _name(lw), _previews(lw, view.pages))
+        st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
+        with right:
+            _render_chat(lw)
     # a fixed script written here (never workbook or user text), run in the page itself
     st.html(FOLLOW_CHAT_JS, unsafe_allow_javascript=True)
 
