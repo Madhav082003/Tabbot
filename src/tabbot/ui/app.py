@@ -188,6 +188,40 @@ FOLLOW_CHAT_JS = """
 </script>
 """
 
+# Streamlit's hover tooltips (e.g. a chat's first question in the chat list) can stay open after a click: the click
+# redraws the list, the item that opened the tooltip is replaced, and nothing is left to close it. So: whenever the
+# mouse is not over an item that has a tooltip, any open tooltip is hidden; over such an item, tooltips show again.
+TOOLTIP_FIX_JS = """
+<script>
+(function () {
+  const w = window, doc = w.document;
+  if (w.__tbTipFix) return;
+  w.__tbTipFix = true;
+  let last = 0;
+  function layerOf(el) {             // the tooltip's own layer: the element directly inside the page body
+    while (el && el.parentElement && el.parentElement !== doc.body) el = el.parentElement;
+    return el;
+  }
+  doc.addEventListener('pointermove', (e) => {
+    const now = Date.now();
+    if (now - last < 100) return;
+    last = now;
+    const over = e.target && e.target.closest ? e.target.closest('[data-testid="stTooltipHoverTarget"]') : null;
+    doc.querySelectorAll('[data-testid="stTooltipContent"]').forEach((tip) => {
+      const layer = layerOf(tip);
+      if (!layer) return;
+      if (over) {
+        if (layer.dataset.tbHidden) { layer.style.visibility = ''; delete layer.dataset.tbHidden; }
+      } else if (!layer.dataset.tbHidden) {
+        layer.style.visibility = 'hidden';
+        layer.dataset.tbHidden = '1';
+      }
+    });
+  }, {passive: true});
+})();
+</script>
+"""
+
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
 HISTORY_W, MAIN_W, CHAT_W = 0.42, 1.25, 1   # column widths: past chats | explanation | chat
 
@@ -807,6 +841,8 @@ def main() -> None:
         body = st.container()
     with body:
         _render_body()
+    # fixed scripts written here (never workbook or user text), run in the page itself
+    st.html(TOOLTIP_FIX_JS, unsafe_allow_javascript=True)
 
 
 def _render_body() -> None:
