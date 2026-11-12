@@ -213,7 +213,7 @@ def test_suggestions_are_three_chips_at_most_and_header_has_a_summary(app):
     at, _ = app
     assert 0 < len(_keys(at, "sug")) <= 3
     head = " ".join(m.value for m in at.markdown if "wbmeta" in m.value)
-    assert "fixture" in head and ".twbx" not in head and "rows" in head
+    assert "fixture" in head and ".twbx" not in head and "3,080 records" in head    # same count as the explanation
 
 
 def test_delete_and_toggle_panel(app):
