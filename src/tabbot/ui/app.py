@@ -1,4 +1,4 @@
-"""Tableau Insights (Streamlit). Run:  streamlit run src/tabbot/ui/app.py
+"""DashInsights (Streamlit). Run:  streamlit run src/tabbot/ui/app.py
 
 Open a workbook, read a written explanation of it, ask the assistant about it. Past chats are listed on the left
 (saved in workspace/chats/, on this computer) and can be read at any time; a chat continues, with its context,
@@ -139,7 +139,8 @@ CSS = """
   [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {color: #4B5563 !important;}
   [data-testid="stChatInput"] textarea::placeholder {color: #6B7280 !important; opacity: 1 !important;}
   .st-key-history_pane .tb-recents {color: #4B5563 !important;}
-  .tb-upload-note {max-width: 480px; margin: 8px auto 0 auto; text-align: center; font-size: 13px; color: #4B5563;}
+  .tb-upload-label {text-align: center; font-size: 14px; font-weight: 600; color: #1F2937; margin: 0 0 2px 0;}
+  .tb-upload-note {text-align: center; font-size: 13px; color: #4B5563; margin: 0 0 6px 0;}
   .tb-dash-title {font-size: 21px; font-weight: 600; color: #1F3A5F; margin: 4px 0 0 0;}
   .tb-dash-sub {font-size: 13px; color: #666; margin: 0 0 6px 0;}
   .tb-summary {background: #F3F6FA; border-left: 3px solid #1F3A5F; border-radius: 4px; padding: 10px 14px;
@@ -150,15 +151,19 @@ CSS = """
   .tb-hero h1 {font-size: 30px; font-weight: 650; color: #1F3A5F; margin: 0 0 6px 0; padding: 0;}
   .tb-hero p {font-size: 15px; color: #555; margin: 0;}
 
-  /* the upload box: a grey square with the upload button in the middle */
-  [class*="st-key-upload_card"] {max-width: 480px; margin: 0 auto;}
+  /* the upload box: a compact grey drop box with "Drag and drop ..., or" above the button */
+  [class*="st-key-upload_card"] {max-width: 480px; margin: 0 auto; gap: 4px !important;}
+  /* the note above the box is shown in full (Streamlit's -16px text margin would tuck it under the box) */
+  [class*="st-key-upload_card"] [data-testid="stMarkdownContainer"] {margin-bottom: 0 !important;}
   .st-key-same_wb {align-items: center;}
   .st-key-same_wb button p {color: #1F3A5F; text-decoration: underline;}
   [class*="st-key-upload_card"] [data-testid="stFileUploader"] label {justify-content: center; width: 100%;}
   [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] {
-      aspect-ratio: 1 / 1; display: flex !important; flex-direction: column !important;
-      justify-content: center !important; align-items: center !important; gap: 14px;
-      background: #F1F3F6; border: 1.5px dashed #C3CBD6; border-radius: 14px; padding: 24px;}
+      height: 240px; display: flex !important; flex-direction: column !important;
+      justify-content: center !important; align-items: center !important; gap: 12px;
+      background: #F1F3F6; border: 1.5px dashed #C3CBD6; border-radius: 14px; padding: 20px;}
+  [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"]::before {
+      content: "Drag and drop your workbook here, or"; order: -1; font-size: 14px; color: #374151;}
   [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzone"] > span {order: 0; flex: 0 0 auto !important;
       margin: 0 !important;}
   [class*="st-key-upload_card"] [data-testid="stFileUploaderDropzoneInstructions"] {order: 1; flex: 0 0 auto !important;
@@ -262,7 +267,11 @@ TOOLTIP_FIX_JS = """
 </script>
 """
 
+APP_NAME = "DashInsights"                   # the product's name on screen and in the browser tab
 ASSISTANT_NAME = "Insights Assistant"       # the chat's name on screen (one place to change it)
+# true wherever the app runs (this laptop now, a server later)
+PRIVACY_LINE = "Your workbook is processed securely. Only its structure and summary numbers are sent to the AI."
+EXPLANATION_NOTE = "Written automatically from the workbook and its data - no AI was used for this text."
 HISTORY_W, MAIN_W, CHAT_W = 0.42, 1.25, 1   # column widths: past chats | explanation | chat
 CHAT_W_ASKED = 1.5                          # the chat's width once questions are asked (answers need the room)
 
@@ -495,8 +504,7 @@ def _render_past_chat(c: SavedChat, lw: LoadedWorkbook | None) -> None:
                 _render_dashboard(view, c.workbook, None)
             else:
                 _render_report_text(rep, c.workbook,
-                                    note=f"Saved with this chat on {_when(c.updated)}. Written on this computer "
-                                         "from the workbook and its data - no AI call was made for this text.")
+                                    note=f"Saved with this chat on {_when(c.updated)}. {EXPLANATION_NOTE}")
     st.markdown(pane_css(PANE_TOP + (DASHBAR_H if has_bar else 0), PANE_TOP), unsafe_allow_html=True)
     with right, st.container(border=True, key="chat_pane"):
         st.markdown(f"**{ASSISTANT_NAME}**")
@@ -643,8 +651,7 @@ def _meta(lw: LoadedWorkbook) -> str:
 def _render_report_text(rep, title: str, note: str | None = None) -> None:
     """The written explanation (live, or the snapshot saved with a chat)."""
     st.markdown(f"<div class='tb-title'>{html.escape(title)}</div>", unsafe_allow_html=True)
-    st.caption(note or "Written on this computer from the workbook and its data - no AI call was made for this "
-                       "text.")
+    st.caption(note or EXPLANATION_NOTE)
     for sec in rep.sections:
         body = sec.body.replace("$", "\\$")
         if sec.key in ("brief", "about"):
@@ -739,16 +746,17 @@ def _render_dashbar_for(rep, key: str) -> bool:
 def _render_start_page() -> None:
     st.markdown("<div class='tb-hero'><h1>Open a Tableau workbook</h1>"
                 "<p>Upload a packaged workbook to get a written explanation of it, then ask questions about it. "
-                "The workbook is read on this computer; only its structure and summary numbers are used to "
-                "answer questions.</p></div>", unsafe_allow_html=True)
+                f"{PRIVACY_LINE}</p></div>", unsafe_allow_html=True)
     with st.container(key=f"upload_card_{_upload_n()}"):
-        up = st.file_uploader("Upload a workbook (.twbx or .twb)", type=["twbx", "twb"],
-                              key=f"upload_main_{_upload_n()}")
-        if up is not None and _load_upload(up):
-            st.rerun()
-        st.markdown("<div class='tb-upload-note'>A packaged <b>.twbx</b> includes its data, so you can ask about "
+        # label and the .twbx/.twb note on top (always in view), then a compact drop box
+        st.markdown("<div class='tb-upload-label'>Upload a workbook (.twbx or .twb)</div>"
+                    "<div class='tb-upload-note'>A packaged <b>.twbx</b> includes its data, so you can ask about "
                     "numbers. A <b>.twb</b> holds only the design: the assistant can explain its charts, fields and "
                     "filters, but not give numbers.</div>", unsafe_allow_html=True)
+        up = st.file_uploader("Upload a workbook (.twbx or .twb)", type=["twbx", "twb"],
+                              key=f"upload_main_{_upload_n()}", label_visibility="collapsed")
+        if up is not None and _load_upload(up):
+            st.rerun()
     lw: LoadedWorkbook | None = st.session_state.get("lw")
     if lw is not None:                # "New chat" from an open workbook: a fresh chat on it is one click away
         with st.container(key="same_wb"):
@@ -932,7 +940,7 @@ def _render_appbar(lw: LoadedWorkbook | None) -> None:
         with top[0]:
             wb = (f"<span class='wb'>{html.escape(_name(lw))}</span>"
                   f"<span class='wbmeta'>{html.escape(_meta(lw))}</span>") if lw is not None else ""
-            st.markdown(f"<span class='brand'>📊 Tableau Insights</span>{wb}", unsafe_allow_html=True)
+            st.markdown(f"<span class='brand'>📊 {APP_NAME}</span>{wb}", unsafe_allow_html=True)
         if lw is not None:
             # a fresh key after each load: the popover comes back closed instead of covering the new workbook
             with top[1], st.popover("📂 Open workbook", width="stretch", key=f"open_wb_{_upload_n()}"):
@@ -950,7 +958,7 @@ def _render_appbar(lw: LoadedWorkbook | None) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Tableau Insights", page_icon="📊", layout="wide",
+    st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide",
                        initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
     _purge_leftovers_once()
