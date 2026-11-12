@@ -196,6 +196,16 @@ def test_a_stopped_answer_keeps_what_was_written(app):
     assert store.list()[0].log[-1]["text"].endswith("_Stopped._")          # saved too
 
 
+def test_question_bubble_shows_only_the_question(app):
+    """The dashboard a question was asked about is kept with the chat, but not printed in the bubble."""
+    at, store = app
+    bar = at.get("button_group")[0]
+    bar.set_value(bar.options[1]).run()
+    at.chat_input[0].set_value("Which values stand out here?").run()
+    assert not any(c.value.startswith("About:") for c in at.caption)
+    assert store.list()[0].log[0]["about"] == bar.options[1]
+
+
 def test_header_lines_only_before_the_first_question(app):
     at, _ = app
     assert any("Asking about" in c.value for c in at.caption)

@@ -325,11 +325,10 @@ def _render_history() -> None:
                     st.rerun()
 
 
-def _user_bubble(i: int, text: str, about: str | None) -> None:
-    """A question: a grey bubble on the right (which dashboard it was about, when one was picked)."""
+def _user_bubble(i: int, text: str, about: str | None = None) -> None:
+    """A question: a grey bubble on the right, the question only (the dashboard it was asked about is still sent
+    to the assistant and saved with the chat, just not shown)."""
     with st.container(key=f"umsg_{i}"):
-        if about and about != WHOLE:
-            st.caption(f"About: {about}")
         st.markdown(_md_text(text))
 
 
