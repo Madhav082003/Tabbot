@@ -648,17 +648,35 @@ def _meta(lw: LoadedWorkbook) -> str:
     return st.session_state[key]
 
 
+SHOWN_SECTIONS = ("about",)                        # always on the page
+MORE_SECTIONS = ("data", "insights", "calcs")      # behind the "detailed insights" button, in this order
+# not shown (the chat answers these better): brief, organisation, dashboards, problems, questions
+
+
 def _render_report_text(rep, title: str, note: str | None = None) -> None:
-    """The written explanation (live, or the snapshot saved with a chat)."""
+    """The written explanation (live, or the snapshot saved with a chat): what the workbook is about, and - only
+    when asked for - what is in the data, what stands out and the calculated fields. The focus is the chat."""
     st.markdown(f"<div class='tb-title'>{html.escape(title)}</div>", unsafe_allow_html=True)
     st.caption(note or EXPLANATION_NOTE)
-    for sec in rep.sections:
-        body = sec.body.replace("$", "\\$")
-        if sec.key in ("brief", "about"):
-            st.markdown(f"#### {sec.title}\n\n{body}")
-        else:
-            with st.expander(sec.title, expanded=sec.key in ("insights",)):
-                st.markdown(body)
+    by_key = {sec.key: sec for sec in rep.sections}
+    for key in SHOWN_SECTIONS:
+        if key in by_key:
+            body = by_key[key].body.replace("$", "\\$")
+            st.markdown(f"#### {by_key[key].title}\n\n{body}")
+    more = [by_key[k] for k in MORE_SECTIONS if k in by_key]
+    if not more:
+        return
+    state = f"more_insights::{title}"
+    shown = bool(st.session_state.get(state))
+    if st.button("Hide detailed insights" if shown else "Show detailed insights",
+                 icon=":material/expand_less:" if shown else ":material/expand_more:",
+                 key=f"more_btn::{title}", width="stretch"):
+        st.session_state[state] = not shown
+        st.rerun()
+    if shown:
+        for sec in more:
+            with st.expander(sec.title):
+                st.markdown(sec.body.replace("$", "\\$"))
 
 
 def _previews(lw: LoadedWorkbook, pages: list[str]) -> list[tuple[str, bytes]]:

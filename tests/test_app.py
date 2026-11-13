@@ -29,9 +29,9 @@ def test_workbook_page(app, expected):
     assert not app.exception
     text = _markdown(app)
     assert "Fixture Records" in text and f"{expected['data']['entities']:,} records" in text
-    assert "02 Jan 2021 to 20 May 2026" in text
+    assert "between 02 Jan 2021 and 20 May 2026" in text           # in "What this workbook is about"
     for d in expected["workbook"]["dashboards"]:
-        assert d in text
+        assert d in app.selectbox[0].options                       # picked from the dropdown
     assert "Insights Assistant" in text and "Claude" not in text and "effort" not in text
 
 
@@ -93,7 +93,7 @@ def test_selecting_a_dashboard_shows_its_preview_explanation_and_questions(app):
     assert any("small preview Tableau stores" in c.value for c in app.caption)
     assert any(f"Asking about: **{pick}**" in c.value for c in app.caption)
     bar.set_value("Whole workbook").run()
-    assert "In brief" in _markdown(app) and "In depth" not in _markdown(app)
+    assert "What this workbook is about" in _markdown(app) and "In depth" not in _markdown(app)
 
 
 def test_question_carries_the_selected_dashboard(fixture_twbx, monkeypatch, tmp_path):
@@ -118,3 +118,21 @@ def test_question_carries_the_selected_dashboard(fixture_twbx, monkeypatch, tmp_
     sent = [json.loads(x) for x in (tmp_path / "audit" / "outbound.jsonl").read_text(encoding="utf-8").splitlines()]
     assert f"selected the dashboard '{pick}'" in json.dumps(sent[-1]["request"])
     config.get_settings.cache_clear()
+
+
+def test_explanation_is_short_and_details_open_on_request(app):
+    text = _markdown(app)
+    assert "What this workbook is about" in text
+    titles = [e.label for e in app.expander]
+    for gone in ("In brief", "How the workbook is organised", "The dashboards, one by one", "Problems to fix",
+                 "Questions to explore next"):
+        assert gone not in text and gone not in titles
+    assert "What is in the data" not in titles                  # hidden until asked for
+    btn = next(b for b in app.button if b.label == "Show detailed insights")
+    btn.click().run()
+    assert not app.exception
+    titles = [e.label for e in app.expander]
+    assert [t for t in titles if t in ("What is in the data", "What stands out in the data", "Calculated fields")] \
+        == ["What is in the data", "What stands out in the data", "Calculated fields"]
+    next(b for b in app.button if b.label == "Hide detailed insights").click().run()
+    assert "What is in the data" not in [e.label for e in app.expander]

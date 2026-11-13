@@ -202,11 +202,11 @@ def test_thumbs_are_saved_with_the_answer(app):
 
 def test_wider_chat_hides_the_explanation(app):
     at, _ = app
-    assert any("In brief" in m.value for m in at.markdown)
+    assert any("What this workbook is about" in m.value for m in at.markdown)
     at.button(key="wide_chat_btn").click().run()
-    assert not at.exception and not any("In brief" in m.value for m in at.markdown) and at.chat_input
+    assert not at.exception and not any("What this workbook is about" in m.value for m in at.markdown) and at.chat_input
     at.button(key="wide_chat_btn").click().run()
-    assert any("In brief" in m.value for m in at.markdown)
+    assert any("What this workbook is about" in m.value for m in at.markdown)
 
 
 def test_suggestions_are_three_chips_at_most_and_header_has_a_summary(app):
@@ -297,7 +297,7 @@ def test_without_copies_an_old_chat_is_read_beside_its_explanation(app_no_copies
     assert at.session_state["lw"] is None and _keys(at, f"open__{cid}")     # listed on the start page
     at.button(key=f"open__{cid}").click().run()
     text = " ".join(m.value for m in at.markdown)
-    assert not at.exception and "Keep me" in text and "In brief" in text     # chat beside the explanation
+    assert not at.exception and "Keep me" in text and "What this workbook is about" in text  # beside the explanation
     bar = at.selectbox[0]
     assert bar.options[0] == "Whole workbook" and len(bar.options) > 1       # its dashboards too
     bar.set_value(bar.options[1]).run()
