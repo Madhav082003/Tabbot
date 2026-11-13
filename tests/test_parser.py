@@ -89,7 +89,7 @@ def test_unknown_xml_does_not_crash(tmp_path):
     m = parse_workbook(twb)
     w = m.worksheet("W")
     assert w.mark == "Hexbin"
-    assert any("table calculation" in u for u in w.unsupported)
+    assert w.rows[0].table_calc == "pcto" and w.rows[0].aggregation == "sum"   # computed by the rebuild now
     assert any("unsupported type" in u for u in w.unsupported)
     assert any("LOD" in u for u in m.unsupported)
     assert m.worksheet("Empty").unsupported

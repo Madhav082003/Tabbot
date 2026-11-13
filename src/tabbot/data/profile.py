@@ -23,7 +23,12 @@ from tabbot.twb.model import WorkbookModel
 DATE_FORMATS = ["%d-%b-%Y", "%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%Y%m%d", "%d.%m.%Y", "%d-%b-%y",
                 "%b %d, %Y", "%d %b %Y", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%d/%m/%Y %H:%M:%S",
                 "%m/%d/%Y %I:%M:%S %p", "%Y-%m-%dT%H:%M:%S"]
-ID_NAME = re.compile(r"(^|[^a-z])(id|key|no|nbr|num|number|code)$|id$", re.I)
+# identifier-like names: 'Patient_ID', 'Order No', 'PatientId', 'CASEID' - but not words that merely end in "id"
+# ('Insurance_Paid', 'Valid', 'Fluid')
+ID_NAME = re.compile(r"(?i:(^|[^a-z])(id|key|no|nbr|num|number|code)$)"
+                     r"|[a-z]I[dD]$"
+                     r"|(?i:(case|patient|record|customer|client|order|user|subject|member|person|account|"
+                     r"employee|entity|row|item|product|transaction|invoice|visit|encounter)_?id$)")
 CATEGORICAL_MAX = 50
 SAMPLE_DISTINCT = 5000
 
@@ -45,6 +50,7 @@ class ColumnProfile(BaseModel):
     entity_level: bool | None = None     # constant within each entity
     entities_varying: int | None = None  # entities with >1 distinct value
     sensitive_reasons: list[str] = []
+    name_match: bool = False             # the column name matches a sensitive pattern (privacy.yaml)
 
 
 class EntityInfo(BaseModel):
@@ -84,6 +90,42 @@ def _is_numeric(dtype: str) -> bool:
 
 def _is_date(dtype: str) -> bool:
     return dtype.upper().startswith(("DATE", "TIMESTAMP"))
+
+
+NAME_REASON = "name matches a sensitive pattern"
+
+
+def min_records_per_value(store: Store, view: str, col: str, entity: str | None) -> int:
+    """The fewest records any single (non-null) value of `col` has - records = distinct entities when the record
+    id is known, rows otherwise."""
+    n = f"COUNT(DISTINCT {qi(entity)})" if entity else "COUNT(*)"
+    v = store.scalar(f"SELECT MIN(n) FROM (SELECT {n} AS n FROM {view} WHERE {qi(col)} IS NOT NULL "
+                     f"GROUP BY {qi(col)}) s")
+    return int(v or 0)
+
+
+def is_shared_category(store: Store, view: str, c: ColumnProfile, privacy: PrivacySettings,
+                       entity: str | None = None) -> bool:
+    """A few values, EVERY one of them shared by at least `min_records_per_value` records: a category such as a
+    status, not something that can point to a person. Identifier-like names never qualify."""
+    ex = privacy.category_exemption
+    if not (c.kind in ("categorical", "numeric") and not ID_NAME.search(c.name.strip())
+            and 0 < c.distinct <= ex.max_distinct and ex.min_records_per_value > 0):
+        return False
+    return min_records_per_value(store, view, c.name, entity) >= ex.min_records_per_value
+
+
+def recheck_name_matches(store: Store, profile: TableProfile, privacy: PrivacySettings) -> None:
+    """Once the record (entity) is known, count per record: a name-matched column stays visible only if every value
+    is shared by enough records - not just repeated over the rows of one record (e.g. a name in a
+    10-rows-per-patient extract)."""
+    if profile.entity is None:
+        return
+    view = store.view(profile.table)
+    for c in profile.columns:
+        if c.name_match and NAME_REASON not in c.sensitive_reasons and c.name != profile.entity.field and \
+                not is_shared_category(store, view, c, privacy, profile.entity.field):
+            c.sensitive_reasons.append(NAME_REASON)
 
 
 def detect_date_format(store: Store, view: str, col: str) -> DateFormat | None:
@@ -148,8 +190,9 @@ def profile_table(store: Store, table_name: str, privacy: PrivacySettings | None
         elif _is_numeric(dtype):
             p.kind = "id" if ID_NAME.search(name.strip()) and distinct > CATEGORICAL_MAX else "numeric"
 
-        if any(rx.search(name) for rx in patterns):
-            p.sensitive_reasons.append("name matches a sensitive pattern")
+        p.name_match = any(rx.search(name) for rx in patterns)
+        if p.name_match and not is_shared_category(store, view, p, privacy):
+            p.sensitive_reasons.append(NAME_REASON)
         if p.kind == "free_text":
             p.sensitive_reasons.append("free text")
         if p.kind == "id":
@@ -170,9 +213,12 @@ def detect_entity(model: WorkbookModel, datasource: str | None, profile: TablePr
         for ref in ws.all_refs():
             if ref.aggregation == "count_distinct" and ref.field in colnames:
                 counts[ref.field] += 1
-    if counts:
-        field, n = counts.most_common(1)[0]
+    for field, n in counts.most_common():
         col = profile.column(field)
+        # a COUNT DISTINCT of a small category ("how many surgery types") counts categories, not records
+        # (an id in a small data set has few values too: an identifier-like name still qualifies)
+        if col.kind == "categorical" and col.distinct <= CATEGORICAL_MAX and not ID_NAME.search(field.strip()):
+            continue
         return EntityInfo(field=field, method="workbook_countd",
                           evidence=f"used in COUNT DISTINCT by {n} worksheet reference(s)",
                           distinct=col.distinct, rows_per_entity=round(profile.rows / max(col.distinct, 1), 2))

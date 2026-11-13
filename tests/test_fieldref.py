@@ -11,7 +11,8 @@ from tabbot.twb.fieldref import parse_ref, parse_shelf
     ("[federated.pv].[tqr:Calculation_1:qk]", "tqr", "Calculation_1", [], "qk", "date_trunc"),
     ("[federated.pv].[ctd:CASEID:vtsum:qk]", "ctd", "CASEID", ["vtsum"], "qk", "measure"),
     ("[ds].[sum:Sales:qk]", "sum", "Sales", [], "qk", "measure"),
-    ("[ds].[pcto:sum:Sales:qk]", "pcto", "sum:Sales", [], "qk", "table_calc"),
+    ("[ds].[pcto:sum:Sales:qk]", "sum", "Sales", [], "qk", "table_calc"),     # table calc over its aggregation
+    ("[ds].[pcto:cnt:BMI:qk:1]", "cnt", "BMI", [], "qk", "table_calc"),       # with an instance number
     ("[ds].[none:Order Date (copy):nk]", "none", "Order Date (copy)", [], "nk", "dimension"),
     ("[ds].[none:Ratio a:b:nk]", "none", "Ratio a:b", [], "nk", "dimension"),
     ("[ds].[none:Weird]]Name:nk]", "none", "Weird]Name", [], "nk", "dimension"),
@@ -38,3 +39,6 @@ def test_labels():
     r.caption = "Case Id"
     assert r.label == "Distinct count of Case Id"
     assert parse_ref("[ds].[qr:D:ok]").label == "QUARTER(D) (Q1–Q4, years combined)"
+    pct = parse_ref("[ds].[pcto:sum:Sales:qk]")
+    assert pct.table_calc == "pcto" and pct.aggregation == "sum" and pct.label == "Percent of total of SUM(Sales)"
+    assert parse_ref("[ds].[rank:ctd:ID:qk]").label == "Rank of Distinct count of ID"

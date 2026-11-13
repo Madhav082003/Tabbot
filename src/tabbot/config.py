@@ -18,6 +18,14 @@ class FreeTextDetection(BaseModel):
     min_distinct_ratio: float = 0.5
 
 
+class CategoryExemption(BaseModel):
+    """A column whose NAME matches a sensitive pattern (e.g. "Patient_Status") but which holds only a few values,
+    EVERY one of them shared by several records, cannot point to a person: it is a category and its labels may be
+    shown. Columns detected as identifiers or free text, and columns listed in sensitive_columns, are never exempt."""
+    max_distinct: int = 25            # more values than this: stays hidden. 0 = every name match stays hidden
+    min_records_per_value: int = 5    # the rarest value must have at least this many records (per record id)
+
+
 class PrivacySettings(BaseModel):
     min_cell_count: int = 1
     max_rows: int = 200
@@ -26,6 +34,7 @@ class PrivacySettings(BaseModel):
     sensitive_column_patterns: list[str] = Field(default_factory=list)
     sensitive_columns: list[str] = Field(default_factory=list)
     free_text_detection: FreeTextDetection = Field(default_factory=FreeTextDetection)
+    category_exemption: CategoryExemption = Field(default_factory=CategoryExemption)
     redact_connection_paths: bool = True
 
 
@@ -42,6 +51,7 @@ class Settings(BaseModel):
     max_calls_per_day: int = 200
     workspace_dir: Path = PROJECT_ROOT / "workspace"
     max_unzipped_mb: int = 2000
+    keep_workbook_copies: bool = True       # copies in workspace/library so saved chats can reopen their workbook
     dry_run: bool = False
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
 
@@ -75,6 +85,7 @@ def load_settings(env_file: Path | None = None, privacy_file: Path | None = None
         max_calls_per_day=int(os.getenv("LLM_MAX_CALLS_PER_DAY") or 200),
         workspace_dir=ws.resolve(),
         max_unzipped_mb=int(os.getenv("MAX_UNZIPPED_MB") or 2000),
+        keep_workbook_copies=_bool(os.getenv("KEEP_WORKBOOK_COPIES"), True),
         dry_run=_bool(os.getenv("DRY_RUN"), False),
         privacy=privacy,
     )

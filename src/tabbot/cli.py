@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="tabbot", description="Tableau Insights Bot - engine commands")
+    p = argparse.ArgumentParser(prog="tabbot", description="DashInsights - engine commands")
     sub = p.add_subparsers(dest="command")
     sub.add_parser("version", help="print the version")
     ins = sub.add_parser("inspect", help="read a .twbx/.twb and print what was found (no data values)")

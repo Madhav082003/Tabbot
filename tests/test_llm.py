@@ -167,6 +167,8 @@ def test_streaming_sends_text_as_it_arrives(lw, tmp_path):
     fake = FakeStreamClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl")
     events = []
     turn = ChatSession(lw, s, client=fake).ask("Key insights?", on_event=lambda k, d: events.append((k, d)))
+    assert any(k == "tick" for k, _ in events)                  # a chance to react while the reply streams
+    events = [(k, d) for k, d in events if k != "tick"]
 
     final = SCRIPT[2]["content"][0]["text"]
     assert turn.text == final and turn.rounds == 3 and len(fake.requests) == 3
@@ -188,6 +190,27 @@ def test_streaming_display_errors_never_break_the_answer(lw, tmp_path):
     turn = ChatSession(lw, s, client=FakeStreamClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl")).ask(
         "Key insights?", on_event=broken)
     assert turn.text.startswith("**Data**") and turn.error is None
+
+
+def test_stop_mid_answer_rolls_back_and_is_logged(lw, tmp_path):
+    """Stop pressed while the answer streams: the page's rerun interrupts (a BaseException, like Streamlit's);
+    the half-finished question leaves no trace in the history, the stop is logged, the interruption continues."""
+    class Interrupt(BaseException):
+        pass
+
+    s = settings_for(tmp_path)
+    chat = ChatSession(lw, s, client=FakeStreamClient(SCRIPT, tmp_path / "audit" / "outbound.jsonl"))
+    chat.messages = [{"role": "user", "content": [{"type": "text", "text": "earlier"}]},
+                     {"role": "assistant", "content": [{"type": "text", "text": "earlier answer"}]}]
+
+    def stop_on_text(kind, data):
+        if kind == "text":
+            raise Interrupt()
+    with pytest.raises(Interrupt):
+        chat.ask("Key insights?", on_event=stop_on_text)
+    assert [m["content"][0]["text"] for m in chat.messages] == ["earlier", "earlier answer"]
+    events = [json.loads(x) for x in (tmp_path / "audit" / "usage.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert events[-1]["event"] == "stopped"
 
 
 def test_mid_stream_fallback_history(lw, tmp_path):
@@ -261,9 +284,16 @@ def test_overview_is_compact_and_groups_patterns(lw):
     ctx = ToolContext(lw=lw)
     out, err = dispatch(ctx, "list_dashboards", {})
     d = json.loads(out)
-    assert not err and len(out) < 6000 and "truncated" not in out
+    assert not err and len(out) < 7500 and "truncated" not in out
     ds = d["data_sources"][0]
-    assert ds["record"]["field"] == "RECORD_ID" and "sensitive (values never shared)" in ds["fields"]
+    assert ds["record"]["field"] == "RECORD_ID"
+    cols = ds["data_profile"]["columns"]
+    assert ds["data_profile"]["rows"] == lw.tables[0].rows
+    assert cols["NOTES"]["values_shared"] is False and "values" not in cols["NOTES"]          # free text: no values
+    assert cols["RECORD_ID"]["values_shared"] is False and cols["RECORD_ID"]["rows_per_record"] > 1
+    assert cols["CHANNEL"]["values"] == ["Email", "Phone", "Web"] and "nulls" not in cols["CHANNEL"]
+    assert cols["GENDER"]["nulls"] > 0 and cols["RECEIVED_DATE"]["range"][0] == "2021-01-02"
+    assert "values" not in cols["SUBCATEGORY"]                                               # 80 values: too many
     assert any(c.get("unused") for c in ds["calculated_fields"])
     detail = next(x for x in d["dashboards"] if x["name"] == "Category Detail")
     # Category A / Category B share one shape (line, one-value CATEGORY filter): shown once each, not grouped (<3)

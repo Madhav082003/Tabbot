@@ -42,11 +42,14 @@ def join_dims(df: pd.DataFrame, dims: list[DimSpec], sep: str) -> pd.Series:
     return out
 
 
-def primary_measure(res: RebuildResult, *roles: str) -> MeasureSpec | None:
-    for r in roles:
-        m = res.measures_by_role(r)
-        if m:
-            return m[0]
+def primary_measure(res: RebuildResult, *roles: str, plain: bool = False) -> MeasureSpec | None:
+    """The main measure by role. plain=True prefers a measure that is not a table calculation (analyses re-query
+    the data with it); a table calculation is used only when the view has nothing else, via its underlying value."""
+    for only_plain in ((True, False) if plain else (False,)):
+        for r in roles:
+            m = [x for x in res.measures_by_role(r) if not (only_plain and x.plan is not None)]
+            if m:
+                return m[0]
     return res.measures[0] if res.measures else None
 
 

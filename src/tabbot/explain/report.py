@@ -59,6 +59,18 @@ class Report:
     def to_markdown(self) -> str:
         return "\n\n".join(f"## {s.title}\n\n{s.body}" for s in self.sections)
 
+    def to_dict(self) -> dict:
+        """Plain data (for saving with a chat, so the explanation can be shown when the workbook is closed)."""
+        from dataclasses import asdict
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> Report:
+        return cls(workbook=d.get("workbook", ""),
+                   sections=[Section(**s) for s in d.get("sections", [])],
+                   questions=list(d.get("questions", [])),
+                   dashboards=[DashboardView(**v) for v in d.get("dashboards", [])])
+
     def section(self, key: str) -> Section | None:
         return next((s for s in self.sections if s.key == key), None)
 

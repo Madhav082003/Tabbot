@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from tabbot.config import Settings, get_settings
 from tabbot.data.hyper_reader import TableInfo, export_to_parquet
-from tabbot.data.profile import TableProfile, detect_entity, entity_consistency, profile_table
+from tabbot.data.profile import (
+    TableProfile,
+    detect_entity,
+    entity_consistency,
+    profile_table,
+    recheck_name_matches,
+)
 from tabbot.data.store import Store
 from tabbot.twb.model import WorkbookModel
 from tabbot.twb.parser import parse_both
@@ -30,6 +37,12 @@ class LoadedWorkbook:
     ds_tables: dict[str, str] = field(default_factory=dict)          # data source name -> table holding its data
     data_files: list[str] = field(default_factory=list)             # plain sentences: which file feeds what
     data_files_shared: list[str] = field(default_factory=list)      # same, missing file names hidden (for Claude)
+    digest: str = ""                       # sha256 of the opened file: ties saved chats to this exact workbook
+
+    @property
+    def display_name(self) -> str:
+        """The workbook's name without the file extension ('Sales Overview' for 'Sales Overview.twbx')."""
+        return Path(self.source_name).stem
 
     def table_for(self, datasource: str | None) -> str | None:
         """The table that holds a data source's data - only ever from a file that data source is linked to."""
@@ -120,6 +133,14 @@ def _load_data(lw: LoadedWorkbook, ws: Workspace, extra_extracts: list[Path] | N
                 lw.ds_tables[d.name] = hit.name
 
 
+def file_digest(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
 def load_workbook(path: Path | str, settings: Settings | None = None,
                   extra_extracts: list[Path] | None = None) -> LoadedWorkbook:
     settings = settings or get_settings()
@@ -130,7 +151,8 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
         pkg = open_upload(path, ws, extra_extracts, settings.max_unzipped_mb)
         # parse the uploaded package itself (not the unpacked .twb) so data sources can be linked to its files
         model, kit = parse_both(pkg.workbook if path.suffix.lower() == ".twb" else ws.upload / path.name)
-        lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model, kit=kit)
+        lw = LoadedWorkbook(source_name=path.name, workspace=ws, package=pkg, model=model, kit=kit,
+                            digest=file_digest(path))
         _load_data(lw, ws, extra_extracts)
         if path.suffix.lower() == ".twb":     # a .twb is not a package: say why its data is missing
             def twb(t: str) -> str:
@@ -160,4 +182,5 @@ def load_workbook(path: Path | str, settings: Settings | None = None,
         if prof is not None and prof.entity is None:
             prof.entity = detect_entity(model, ds.name, prof)
             entity_consistency(lw.store, prof)
+            recheck_name_matches(lw.store, prof, settings.privacy)
     return lw

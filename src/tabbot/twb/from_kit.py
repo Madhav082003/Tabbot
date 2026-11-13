@@ -22,6 +22,7 @@ from tabbot.twb.model import (
     Field,
     Filter,
     QuickFilter,
+    TableCalcSpec,
     Thumbnail,
     WorkbookModel,
     Worksheet,
@@ -35,16 +36,34 @@ def ref(r: KRef | None) -> FieldRef | None:
     """Kit field reference -> engine field reference (same datasource, field, derivation)."""
     if r is None:
         return None
-    if r.table_calc:
-        deriv = r.table_calc                     # engine kind -> "table_calc" (reported as unsupported)
-    elif r.kind == "special":
+    if r.kind == "special":
         deriv = ""
     elif r.kind == "bare":
         deriv = "none"
     else:
         deriv = r.derivation or "none"
     return FieldRef(datasource=r.datasource, derivation=deriv, field=r.field, extra=list(r.modifiers),
-                    type_key=r.type_key or "?", raw=r.raw, caption=r.caption)
+                    type_key=r.type_key or "?", raw=r.raw, caption=r.caption, table_calc=r.table_calc)
+
+
+def _table_calc_specs(kws: K.Worksheet) -> dict[str, TableCalcSpec]:
+    """field-ref raw -> how its table calculation runs, from the sheet's <column-instance><table-calc>."""
+    from tabbot.tparse.fieldref import parse_ref as kit_parse_ref
+
+    by_inner = {c.name.strip()[1:-1].replace("]]", "]"): c.table_calc for c in kws.column_instances
+                if c.table_calc is not None and c.name.strip().startswith("[")}
+    out: dict[str, TableCalcSpec] = {}
+    for kr in list(kws.rows.refs) + list(kws.cols.refs) + [e.field for p in kws.panes for e in p.encodings]:
+        tc = by_inner.get(kr.inner)
+        if tc is None or kr.raw in out:
+            continue
+        fields = []
+        for text in tc.ordering_fields:
+            fr = kit_parse_ref(text)
+            if fr is not None:
+                fields.append(fr.field)
+        out[kr.raw] = TableCalcSpec(type=tc.type, ordering_type=tc.ordering_type, ordering_fields=fields)
+    return out
 
 
 def _basename(path: str) -> str:
@@ -154,12 +173,10 @@ def _worksheet(kws: K.Worksheet, model: K.WorkbookModel) -> Worksheet:
         if f.mode not in SUPPORTED_FILTERS:
             ws.unsupported.append(f"filter on '{fd.field.caption or fd.field.field}' of an unsupported type "
                                   f"({fd.kind}/{fd.mode})")
-    if kws.table_calcs:
-        ws.unsupported.append(f"{len(kws.table_calcs)} table calculation(s)")
+    # table calculations are computed by the rebuild (views/table_calc.py), which reports any it cannot do
+    ws.table_calc_specs = _table_calc_specs(kws)
     for kr in list(kws.rows.refs) + list(kws.cols.refs) + [e.field for p in kws.panes for e in p.encodings]:
-        if kr.table_calc:
-            ws.unsupported.append(f"table calculation '{kr.label()}' (not computed in redraws)")
-        elif kr.kind == "unknown":
+        if kr.kind == "unknown" and not kr.table_calc:
             ws.unsupported.append(f"field reference '{kr.raw}' (unknown derivation)")
     if kws.rows.error or kws.cols.error:
         ws.unsupported.append("a shelf could not be fully parsed")

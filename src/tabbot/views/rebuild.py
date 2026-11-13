@@ -15,8 +15,17 @@ import pandas as pd
 from tabbot.data.profile import TableProfile
 from tabbot.data.store import Store, qi
 from tabbot.twb.fieldref import FieldRef, parse_ref
-from tabbot.twb.model import Filter, WorkbookModel, Worksheet
-from tabbot.views.calc_translate import Expr, Unsupported, _to_date, translate
+from tabbot.twb.model import Filter, TableCalcSpec, WorkbookModel, Worksheet
+from tabbot.views import table_calc as tcalc
+from tabbot.views.calc_translate import (
+    Expr,
+    TableCalcPlan,
+    Unsupported,
+    _to_date,
+    has_table_calc,
+    translate,
+    translate_table_calc,
+)
 
 MAX_ROWS = 20_000
 DIM_ROLES = ("rows", "cols", "color", "lod", "detail", "shape", "size", "text", "label", "tooltip", "path")
@@ -45,7 +54,14 @@ class MeasureSpec:
     roles: list[str]
     aggregation: str | None
     ref: FieldRef
-    sql: str
+    sql: str                                  # a plain aggregate (for a table calculation: its first underlying one)
+    plan: TableCalcPlan | None = None         # set when this measure is a table calculation
+    spec: TableCalcSpec | None = None         # how it runs (compute along), from the sheet
+    base_label: str = ""                      # label of `sql` when it differs from the measure (table calcs)
+
+    @property
+    def analysis_label(self) -> str:
+        return self.base_label or self.label
 
 
 @dataclass
@@ -63,6 +79,7 @@ class RebuildResult:
     truncated: bool = False
     title: str | None = None
     applied_quick_filters: dict[str, list[str]] = field(default_factory=dict)
+    table_calcs: list[str] = field(default_factory=list)   # table calculations computed here, in plain words
     # what analyses need to re-query the same view: table view name, WHERE clauses and their parameters
     datasource: str | None = None
     view: str | None = None
@@ -157,6 +174,29 @@ class _Ctx:
             sql = f"CAST(date_trunc('{part}', {d}) AS DATE)" if part in TRUNC_DATE else f"date_trunc('{part}', {d})"
             return sql, "date_trunc", part
         raise Unsupported(f"field reference {ref.raw} ({kind})")
+
+    def calc(self, name: str):
+        """The calculated field behind a reference (by internal name or caption), or None."""
+        f = self.model.field(self.ds, name) if self.ds else None
+        if f is None:
+            f = next((x for d in self.model.datasources if d.name == self.ds for x in d.fields if x.caption == name),
+                     None)
+        return f if f is not None and f.is_calculated and f.formula else None
+
+    def table_calc_plan(self, name: str, prefix: str) -> TableCalcPlan | None:
+        """Two-stage plan for a calculated field that uses table calculation functions; None if it does not."""
+        f = self.calc(name)
+        if f is None or not has_table_calc(f.formula):
+            return None
+        if name in self.stack:
+            raise Unsupported(f"circular calculation [{f.caption}]")
+        self.stack.append(name)
+        try:
+            return translate_table_calc(f.formula, self.resolve, prefix)
+        except Unsupported as exc:
+            raise Unsupported(f"calculation [{f.caption}]: {exc}") from None
+        finally:
+            self.stack.pop()
 
     def date_sql(self, ref: FieldRef) -> str:
         """The underlying date of a date-part / date-trunc reference, as a TIMESTAMP expression."""
@@ -278,15 +318,13 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
     meas_by_raw: dict[str, MeasureSpec] = {}
     for role, ref in placements:
         try:
-            if ref.kind == "measure":
+            if ref.kind in ("measure", "table_calc"):
                 if ref.raw in meas_by_raw:
                     meas_by_raw[ref.raw].roles.append(role)
                     continue
                 if role == "tooltip":
                     continue  # tooltip-only measures do not change the view
-                sql = ctx.measure_sql(ref)
-                meas_by_raw[ref.raw] = MeasureSpec(alias=f"m{len(meas_by_raw)}", label=ref.label, roles=[role],
-                                                   aggregation=ref.aggregation, ref=ref, sql=sql)
+                meas_by_raw[ref.raw] = _measure(ctx, ws, res, ref, role, f"m{len(meas_by_raw)}")
             elif ref.kind in ("dimension", "date_part", "date_trunc"):
                 if ref.raw in dim_by_raw:
                     continue
@@ -339,7 +377,12 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
         res.applied_quick_filters[ref.label] = vals
 
     # ---- query
-    sel = [f"{d.sql} AS {d.alias}" for d in res.dims] + [f"{m.sql} AS {m.alias}" for m in res.measures]
+    sel = [f"{d.sql} AS {d.alias}" for d in res.dims]
+    for m in res.measures:
+        if m.plan is None:
+            sel.append(f"{m.sql} AS {m.alias}")
+        else:      # a table calculation: its underlying aggregates per cell; the calculation itself comes after
+            sel += [f'{a} AS "{m.plan.agg_col(k)}"' for k, a in enumerate(m.plan.aggregates)]
     sql = f"SELECT {', '.join(sel)} FROM {ctx.view}"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -359,6 +402,7 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
         res.status = "failed"
         res.reasons.append(f"query failed: {str(exc).splitlines()[0][:200]}")
         return res
+    df = _table_calcs(ctx, ws, res, df, where, params_w, bool(having))
     if len(df) > MAX_ROWS:
         df, res.truncated = df.iloc[:MAX_ROWS], True
         res.reasons.append(f"view has more than {MAX_ROWS:,} cells; showing the first {MAX_ROWS:,}")
@@ -371,6 +415,65 @@ def rebuild_worksheet(model: WorkbookModel, ws: Worksheet | str, store: Store | 
     if res.reasons:
         res.status = "approximate"
     return res
+
+
+def _measure(ctx: _Ctx, ws: Worksheet, res: RebuildResult, ref: FieldRef, role: str, alias: str) -> MeasureSpec:
+    """One measure of the view. A table calculation gets a plan (computed on the cells after the query); a quick
+    table calculation that cannot be computed shows its underlying aggregate and says so."""
+    spec = ws.table_calc_specs.get(ref.raw)
+    if ref.table_calc:
+        base = ref.model_copy(update={"table_calc": None})
+        base_sql = ctx.measure_sql(base)
+        try:
+            plan = tcalc.quick_plan(ref.table_calc, base_sql, alias)
+        except Unsupported as exc:
+            res.reasons.append(f"{role}: table calculation '{ref.label}' is not computed here ({exc}); the numbers "
+                               f"shown are the underlying {base.label}")
+            return MeasureSpec(alias=alias, label=f"{base.label} (before the table calculation)", roles=[role],
+                               aggregation=base.aggregation, ref=ref, sql=base_sql)
+        return MeasureSpec(alias=alias, label=ref.label, roles=[role], aggregation=None, ref=ref, sql=base_sql,
+                           plan=plan, spec=spec, base_label=base.label)
+    if ref.aggregation == "user_aggregate":
+        plan = ctx.table_calc_plan(ref.field, alias)
+        if plan is not None:
+            return MeasureSpec(alias=alias, label=ref.label, roles=[role], aggregation=None, ref=ref,
+                               sql=plan.aggregates[0] if plan.aggregates else "COUNT(*)", plan=plan, spec=spec,
+                               base_label=f"the value {ref.label} is calculated from")
+    return MeasureSpec(alias=alias, label=ref.label, roles=[role], aggregation=ref.aggregation, ref=ref,
+                       sql=ctx.measure_sql(ref))
+
+
+def _table_calcs(ctx: _Ctx, ws: Worksheet, res: RebuildResult, df: pd.DataFrame, where: list[str], params: list,
+                 has_having: bool) -> pd.DataFrame:
+    """Compute every table calculation on the cells. One that cannot be computed shows its first underlying
+    aggregate instead, with a reason saying so (the analyst can still work from those numbers)."""
+    for m in res.measures:
+        if m.plan is None:
+            continue
+        what = (tcalc.QUICK.get(m.ref.table_calc) if m.ref.table_calc
+                else "a table calculation using " + ", ".join(dict.fromkeys(m.plan.functions)))
+        try:
+            part, addr, how = tcalc.split_dims(m.spec, res.dims)
+            tot = ctx.store.df(tcalc.totals_sql(m.plan, part, ctx.view, where), params) if m.plan.totals else None
+            df = tcalc.apply(m.plan, m.alias, df, part, addr, tot)
+        except Exception as exc:  # noqa: BLE001 - Unsupported or a DuckDB error: fall back, never fail the view
+            res.reasons.append(f"table calculation '{m.label}' could not be computed here "
+                               f"({str(exc).splitlines()[0][:160]}); the numbers shown are the value it is "
+                               "calculated from, before the table calculation")
+            df = df.rename(columns={m.plan.agg_col(0): m.alias})
+            df = df.drop(columns=[c for c in df.columns if c.startswith(f"{m.alias}__")])
+            if m.alias not in df.columns:            # e.g. INDEX(): nothing underneath to show
+                df[m.alias] = None
+            m.label = f"{m.analysis_label} (before the table calculation)"
+            m.plan = None
+            continue
+        res.table_calcs.append(f"{m.label}: {what}, computed here {how}")
+        if m.plan.order_dependent and ws.sort_count:
+            res.reasons.append(f"'{m.label}' depends on the order of the marks; it was computed in ascending order "
+                               "of the dimensions, and this sheet has its own sort, so Tableau may order differently")
+        if m.plan.totals and has_having:
+            res.reasons.append(f"'{m.label}': its total is computed before this sheet's measure filters")
+    return df
 
 
 def _same_field(raw: str, ref: FieldRef) -> bool:

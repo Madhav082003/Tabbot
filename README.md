@@ -1,4 +1,4 @@
-# Tableau Insights Bot (demo)
+# DashInsights (demo)
 
 Open any Tableau workbook (`.twbx`) on your laptop and ask Claude to explain it: what it is for, what each
 dashboard shows, what stands out in the data and what is wrong in how it is built. The workbook and its data are

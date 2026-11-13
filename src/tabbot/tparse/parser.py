@@ -390,8 +390,12 @@ def _parse_sorts(view: Element) -> list[SortDef]:
 
 
 def _parse_table_calc(ci_name: str, tc: Element) -> TableCalcDef:
+    # the field(s) a 'Field' table calc runs along: an ordering-field attribute (seen in the corpus) and/or
+    # <order> children; kept as written ('[ds].[none:Region:nk]') so they can be resolved to a field
+    fields = [tc.get("ordering-field")] if tc.get("ordering-field") else []
+    fields += [(o.get("field") or o.text or "").strip() for o in tc.findall("order")]
     return TableCalcDef(column=ci_name, type=tc.get("type"), ordering_type=tc.get("ordering-type"),
-                        ordering_fields=[_bracket_name(o.text) for o in tc.findall("order")])
+                        ordering_fields=[f for f in fields if f])
 
 
 def _parse_worksheet(el: Element, model: WorkbookModel) -> Worksheet:
@@ -445,7 +449,9 @@ def _parse_worksheet(el: Element, model: WorkbookModel) -> Worksheet:
                                                       value_column=parse_ref(rl.get("value-column", "")),
                                                       label=rl.get("label")))
         ws.panes.append(pane)
-    ws.annotations = len(table.findall("annotations/annotation"))
+    notes = table.findall("annotations/annotation")
+    ws.annotations = len(notes)
+    ws.annotation_texts = list(dict.fromkeys(t for t in (text_of(first(a, "formatted-text")) for a in notes) if t))
     ws.uses_measure_names = any(r.kind == "special" and r.field == "Measure Names" for r in ws.all_refs())
     return ws
 
@@ -508,6 +514,11 @@ def _parse_dashboard(el: Element, worksheet_names: set[str], dashboard_names: se
         elif z.kind == "web":
             db.web_objects += 1
     db.sheets = seen
+    # one entry per text, whatever the layout: phone/tablet layouts copy the zones (and a zone can repeat)
+    for dl in children(el, "devicelayouts/devicelayout"):
+        db.text_blocks += [z.text for z in _walk_zones(first(dl, "zones"), worksheet_names)
+                           if z.kind in ("text", "title") and z.text]
+    db.text_blocks = list(dict.fromkeys(db.text_blocks))
     for dl in children(el, "devicelayouts/devicelayout"):
         db.device_layouts.append(dl.get("name", "device"))
     for sp in el.iter("story-point"):

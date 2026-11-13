@@ -64,7 +64,8 @@ def delete_workspace(ws: Workspace) -> bool:
     return not ws.root.exists()
 
 
-def purge_workspaces(base_dir: Path, keep: tuple[str, ...] = ("audit", "_demo")) -> int:
+def purge_workspaces(base_dir: Path,
+                     keep: tuple[str, ...] = ("audit", "_demo", "chats", "logs", "library")) -> int:
     """Delete every per-upload workspace under base_dir (left over from earlier runs). Returns how many."""
     base = Path(base_dir)
     if not base.exists():

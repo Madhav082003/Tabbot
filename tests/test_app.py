@@ -38,8 +38,8 @@ def test_workbook_page(app, expected):
 def test_nothing_extra_on_the_page(app):
     """Feedback: no charts, no dashboard/sheet tabs, no findings banners, no metric tiles, no filters."""
     assert not app.get("plotly_chart") and not app.metric and not app.multiselect
-    groups = app.get("button_group")             # only the dashboard bar (no page tabs)
-    assert len(groups) == 1 and groups[0].key.startswith("dash_pick::")
+    assert not app.get("button_group")           # no page tabs; dashboards are picked from one dropdown
+    assert len(app.selectbox) == 1 and app.selectbox[0].key.startswith("dash_pick::")
     text = _markdown(app)
     for gone in ("Findings", "Exact definition", "Analysis of", "Worksheets"):
         assert gone not in text, gone
@@ -76,14 +76,14 @@ def test_no_demo_and_no_usage_panel(app):
 
 
 def test_dashboard_bar_lists_every_dashboard_view(app, expected):
-    bar = app.get("button_group")[0]
+    bar = app.selectbox[0]
     assert bar.options[0] == "Whole workbook"
     names = set(expected["workbook"]["dashboards"])
     assert set(bar.options[1:]) <= names and len(bar.options) > 1
 
 
 def test_selecting_a_dashboard_shows_its_preview_explanation_and_questions(app):
-    bar = app.get("button_group")[0]
+    bar = app.selectbox[0]
     pick = bar.options[1]
     bar.set_value(pick).run()
     assert not app.exception
@@ -105,7 +105,7 @@ def test_question_carries_the_selected_dashboard(fixture_twbx, monkeypatch, tmp_
     config.get_settings.cache_clear()
     at = AppTest.from_file(str(APP), default_timeout=120)
     at.run()
-    bar = at.get("button_group")[0]
+    bar = at.selectbox[0]
     pick = bar.options[1]
     bar.set_value(pick).run()
     sugs = [x.label for x in at.button if (x.key or "").startswith("sug")]

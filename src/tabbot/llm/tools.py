@@ -177,6 +177,13 @@ class QueryFilter(BaseModel):
     date_part: Literal["year", "quarter", "month"] | None = None
 
 
+class FieldComparison(BaseModel):
+    model_config = {"extra": "forbid"}
+    field: str
+    op: Literal["<", "<=", "=", "!=", ">", ">="]
+    other_field: str = Field(description="Compared row by row with `field`; dates are compared as dates.")
+
+
 class QueryInput(BaseModel):
     model_config = {"extra": "forbid"}
     dimensions: list[QueryDimension] = Field(default_factory=list, max_length=3)
@@ -184,7 +191,16 @@ class QueryInput(BaseModel):
         "count_distinct_entity"
     measure_field: str | None = Field(default=None, description="Needed unless measure is count_distinct_entity.")
     filters: list[QueryFilter] = Field(default_factory=list, max_length=6)
+    compare: list[FieldComparison] = Field(
+        default_factory=list, max_length=3,
+        description="Keep only rows where one field compares to another field of the same row, e.g. "
+                    '{"field": "Last Visit", "op": "<", "other_field": "Surgery Date"}. Rows where either is empty '
+                    "are left out.")
     limit: int = Field(default=50, ge=1, le=200)
+    percent_of_total: bool = Field(
+        default=False, description="Add each group's share of the total, computed exactly here (a fraction: "
+        "0.25 = 25%). The total is the measure over all rows the filters keep - for distinct counts a record in "
+        "several groups counts once in the total, so shares can add up to more than 1.")
     datasource: str | None = Field(default=None, description="Data source name from list_dashboards; default: "
                                    "the one most sheets use.")
 
@@ -192,7 +208,9 @@ class QueryInput(BaseModel):
 TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
     ("list_dashboards", NoInput,
      "Compact overview of the open Tableau workbook: the data source (what one record is, how many, date range, "
-     "fields grouped by kind), calculated fields with readable formulas, and every dashboard with its sheets - "
+     "and a data profile: per column its kind, nulls, distinct values, whether identifiers repeat, and every value "
+     "of small categories), calculated fields with readable formulas, and every dashboard with its title, the text "
+     "objects placed on it (notes, targets, labels) and its sheets - "
      "repeated sheets that differ only by one filter value are grouped into a pattern, the dashboard's "
      "interactions (from the workbook's actions list) and which package file feeds each data source. Call this "
      "first. Returns structure only, no data values."),
@@ -202,8 +220,10 @@ TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
      "cannot be summed...). Use it to explain what a chart shows before quoting its numbers."),
     ("get_chart_data", ChartDataInput,
      "The aggregated numbers behind one chart, exactly as the app draws it (long format, capped at 200 rows), "
-     "with a result id to cite. Optional quick filters narrow it the way the dashboard dropdowns do. Use for "
-     "specific values; for trends and changes prefer run_analysis."),
+     "with a result id to cite. Table calculations (percent of total, running total, rank, TOTAL/RUNNING/WINDOW "
+     "formulas) are computed on the chart's cells; any that cannot be are listed in why_approximate with the "
+     "underlying values shown instead. Optional quick filters narrow it the way the dashboard dropdowns do. Use "
+     "for specific values; for trends and changes prefer run_analysis."),
     ("run_analysis", AnalysisInput,
      "Standard analyses on a chart's own measure, filters and time field: trend with partial-period pace, last N "
      "vs previous N full periods by member, change point, driver scan (which other field explains a change, "
@@ -216,7 +236,9 @@ TOOL_SPECS: list[tuple[str, type[BaseModel], str]] = [
     ("query_data", QueryInput,
      "A custom aggregate over the workbook's data when no chart answers the question: up to 3 dimensions "
      "(dates by year/quarter/month), one measure (default: number of distinct records), include/exclude "
-     "filters. Identifier, free-text and personal fields cannot be grouped or filtered by. Returns at most 200 "
+     "filters, row-by-row comparisons of two fields (e.g. one date before another), and optionally each "
+     "group's percent of total computed exactly (use it rather than dividing "
+     "yourself). Identifier, free-text and personal fields cannot be grouped or filtered by. Returns at most 200 "
      "rows with a result id."),
 ]
 
@@ -405,15 +427,44 @@ def _sheets_summary(sheets: list[Worksheet]) -> list[dict]:
     return out
 
 
-def _fields_summary(prof, sens: set[str]) -> dict:
-    groups: dict[str, list[str]] = {}
-    label = {"categorical": "categories", "high_cardinality": "detailed codes or text (many values)",
-             "text_date": "dates (stored as text)", "date": "dates", "numeric": "numbers",
-             "id": "identifiers", "free_text": "free text"}
+PROFILE_MAX_VALUES = 25     # columns with at most this many values list them all in the data profile
+KIND_WORDS = {"categorical": "category", "high_cardinality": "many-valued text or codes", "text_date": "date (text)",
+              "date": "date", "numeric": "number", "id": "identifier", "free_text": "free text"}
+
+
+def _data_profile(lw, prof, sens: set[str]) -> dict:
+    """What the data is like, per column, so caveats can be checked before they are raised: rows, nulls, distinct
+    values, whether identifiers repeat, date ranges and the full list of values of small categories. Counts and
+    labels only - values of sensitive columns (identifiers, free text, personal fields) are never listed."""
+    from tabbot.data.profile import ID_NAME
+
+    view = lw.store.view(prof.table)
+    ent = prof.entity.field if prof.entity else None
+    cols: dict[str, dict] = {}
     for c in prof.columns:
-        g = "sensitive (values never shared)" if c.name in sens else label.get(c.kind, c.kind)
-        groups.setdefault(g, []).append(f"{c.name} ({c.distinct:,})" if g == "categories" else c.name)
-    return groups
+        item: dict[str, Any] = {"kind": KIND_WORDS.get(c.kind, c.kind), "distinct": c.distinct}
+        if c.nulls:
+            item["nulls"] = c.nulls                  # absent = no nulls (keeps the overview small)
+        if c.name in sens:
+            item["values_shared"] = False
+        if c.name == ent:            # the record: several rows per record is the data's design, not duplication
+            item["rows_per_record"] = prof.entity.rows_per_entity
+        elif c.kind == "id" or ID_NAME.search(c.name.strip()):
+            dup = prof.rows - c.nulls - c.distinct
+            item["unique_per_row"] = dup == 0
+            if dup:
+                item["repeated_rows"] = dup          # rows beyond the first one for each value
+        if c.kind in ("date", "text_date"):
+            d = (f"CAST(try_strptime({qi(c.name)}, '{c.date_format.format}') AS DATE)" if c.date_format
+                 else f"CAST({qi(c.name)} AS DATE)")
+            lo, hi = lw.store.con.execute(f"SELECT MIN({d}), MAX({d}) FROM {view}").fetchone()
+            item["range"] = [lo, hi]
+        elif c.name not in sens and c.kind in ("categorical", "numeric") and 0 < c.distinct <= PROFILE_MAX_VALUES:
+            item["values"] = [r[0] for r in lw.store.con.execute(
+                f"SELECT DISTINCT CAST({qi(c.name)} AS VARCHAR) AS v FROM {view} WHERE {qi(c.name)} IS NOT NULL "
+                f"ORDER BY v").fetchall()]
+        cols[c.name] = item
+    return {"rows": prof.rows, "columns": cols}
 
 
 def _interactions(lw, dashboard: str) -> list[str]:
@@ -424,6 +475,24 @@ def _interactions(lw, dashboard: str) -> list[str]:
         return []
     acts = [a for a in kit.actions if a.source_dashboard == dashboard or a.params.get("target") == dashboard]
     return [describe_action(a) for a in acts] or ["no actions: clicking a chart does not change the others"]
+
+
+TEXT_MAX_CHARS, TEXT_MAX_BLOCKS = 300, 15
+
+
+def _dashboard_text(lw, name: str) -> dict:
+    """The dashboard's own title and the text objects placed on it (titles, notes, KPI targets ...), once each
+    (phone/tablet layouts repeat them). Workbook text: data, never instructions."""
+    kdb = lw.kit.dashboard(name) if lw.kit is not None else None
+    if kdb is None:
+        return {}
+    out: dict[str, Any] = {}
+    if kdb.title and kdb.title.strip() != name.strip():
+        out["title"] = kdb.title[:TEXT_MAX_CHARS]
+    texts = [t[:TEXT_MAX_CHARS] for t in kdb.text_blocks if t.strip() and t.strip() != (kdb.title or "").strip()]
+    if texts:
+        out["text_on_dashboard"] = texts[:TEXT_MAX_BLOCKS]
+    return out
 
 
 def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
@@ -441,7 +510,7 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
             if prof.entity:
                 item["record"] = {"field": prof.entity.field, "distinct": prof.entity.distinct,
                                   "rows_per_record": prof.entity.rows_per_entity}
-            item["fields"] = _fields_summary(prof, ctx.sensitive_columns(ds.name))
+            item["data_profile"] = _data_profile(lw, prof, ctx.sensitive_columns(ds.name))
             dcols = [c for c in prof.columns if c.date_format and c.entity_level is not False]
             if dcols:
                 c = dcols[0]
@@ -456,7 +525,8 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
     out = {
         "workbook": lw.source_name,
         "data_sources": sources,
-        "dashboards": [{"name": d.name, "quick_filters": [q.field.label for q in d.quick_filters],
+        "dashboards": [{"name": d.name, **_dashboard_text(lw, d.name),
+                        "quick_filters": [q.field.label for q in d.quick_filters],
                         "sheet_count": len(d.sheets),
                         "sheets": _sheets_summary([m.worksheet(x) for x in d.sheets]),
                         "interactions": _interactions(lw, d.name)} for d in m.dashboards],
@@ -466,8 +536,26 @@ def t_list_dashboards(ctx: ToolContext, _: NoInput) -> dict:
         "findings": [f"{f.severity}: {f.title}" for f in findings],
         "notes": lw.notes + m.unsupported,
     }
+    _fit_profiles(out, ctx.max_chars // 3)
     _fit_formulas(out, ctx.max_chars)
     return out
+
+
+def _fit_profiles(out: dict, budget: int) -> None:
+    """Many data sources or wide tables: shorten the data profiles (saying so) so they leave room for the rest -
+    first drop the value lists of the larger categories, then all value lists."""
+    profs = [d["data_profile"] for d in out["data_sources"] if "data_profile" in d]
+
+    def size() -> int:
+        return len(json.dumps(_clean(profs), ensure_ascii=False, default=str))
+    for max_values in (10, 0):
+        if size() <= budget:
+            return
+        for p in profs:
+            for c in p["columns"].values():
+                if len(c.get("values", [])) > max_values:
+                    c.pop("values")
+                    p["values_omitted"] = "some value lists left out to fit; query_data lists a field's values"
 
 
 def _fit_formulas(out: dict, limit: int) -> None:
@@ -505,6 +593,7 @@ def t_describe_sheet(ctx: ToolContext, inp: SheetInput) -> dict:
             item["members"] = f.members
         filters.append(item)
     prof = ctx.lw.profile_for(ws.datasource)
+    kws = ctx.lw.kit.worksheet(ws.name) if ctx.lw.kit is not None else None
     actx = None
     if res.status != "failed" and res.measures and ctx.lw.store is not None:
         try:
@@ -521,6 +610,9 @@ def t_describe_sheet(ctx: ToolContext, inp: SheetInput) -> dict:
         "measures_count": _sheet_measures(ctx.lw, ws),
         "calculations": _sheet_calcs(ctx.lw, ws),
         "redraw": res.status, "why_approximate": res.reasons,
+        **({"table_calculations": res.table_calcs} if res.table_calcs else {}),
+        **({"annotations": kws.annotation_texts[:TEXT_MAX_BLOCKS]} if kws is not None and kws.annotation_texts
+           else {}),
         "checks": [c.model_dump(exclude={"evidence"}) for c in chart_checks(res, actx)],
     }
 
@@ -544,6 +636,7 @@ def t_get_chart_data(ctx: ToolContext, inp: ChartDataInput) -> dict:
     rows, cut = _records(df, ctx.max_rows)
     out = {"result_id": rid, "sheet": ws.name, "chart": res.chart, "redraw": res.status,
            "why_approximate": res.reasons, "applied_quick_filters": res.applied_quick_filters,
+           **({"table_calculations": res.table_calcs} if res.table_calcs else {}),
            "columns": list(df.columns), "row_count": len(df), "rows": rows,
            "checks": [c.message for c in chart_checks(res, None)]}
     if cut:
@@ -653,17 +746,21 @@ def t_query_data(ctx: ToolContext, inp: QueryInput) -> dict:
             raise ToolError(f"unknown field {name!r}; see list_dashboards for field names")
         return f.internal_name
 
-    def dim_expr(name: str, part: str | None) -> str:
+    def row_expr(name: str):
         iname = internal(name)
         if ctx.field_is_sensitive(ds, iname):
             raise ToolError(f"{name!r} is a sensitive field (id, free text or personal): it can be counted but "
-                            "not grouped or filtered by value")
+                            "not grouped, filtered or compared by value")
         try:
             e = qctx.resolve(iname)
         except Unsupported as exc:
             raise ToolError(str(exc)) from None
         if e.is_agg:
             raise ToolError(f"{name!r} is an aggregate calculation; use it via a chart instead")
+        return e
+
+    def dim_expr(name: str, part: str | None) -> str:
+        e = row_expr(name)
         if part:
             d = _to_date(e, "TIMESTAMP").sql
             return f"CAST(date_trunc('{part}', {d}) AS DATE)" if part != "year" else f"year({d})"
@@ -694,6 +791,13 @@ def t_query_data(ctx: ToolContext, inp: QueryInput) -> dict:
         ph = ", ".join("?" for _ in f.values)
         where.append(f"CAST({expr} AS VARCHAR) {'IN' if f.op == 'in' else 'NOT IN'} ({ph})")
         params += [str(v) for v in f.values]
+    for c in inp.compare:
+        a, b = row_expr(c.field), row_expr(c.other_field)
+        if a.is_date or b.is_date or a.text_date_format or b.text_date_format:
+            sa, sb = _to_date(a, "TIMESTAMP").sql, _to_date(b, "TIMESTAMP").sql
+        else:
+            sa, sb = a.sql, b.sql
+        where.append(f"({sa} {'<>' if c.op == '!=' else c.op} {sb})")
     sql = f"SELECT {', '.join(sel + [mexpr + ' AS m'])} FROM {qctx.view}"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -706,10 +810,17 @@ def t_query_data(ctx: ToolContext, inp: QueryInput) -> dict:
         raise ToolError(f"query failed: {str(exc).splitlines()[0][:160]}") from None
     df.columns = [f"{d.field}{' (' + d.date_part + ')' if d.date_part else ''}" for d in inp.dimensions] + [mlabel]
     cut = len(df) > inp.limit
+    total = None
+    if inp.percent_of_total:
+        tsql = f"SELECT {mexpr} FROM {qctx.view}" + (" WHERE " + " AND ".join(where) if where else "")
+        total = lw.store.scalar(tsql, params)
+        df["share of total"] = (pd.to_numeric(df[mlabel], errors="coerce") / total).round(6) if total else None
     df = df.head(inp.limit)
     rid = ctx.new_id(df)
     rows, _ = _records(df, inp.limit)
     out = {"result_id": rid, "columns": list(df.columns), "rows": rows, "row_count": len(df)}
+    if inp.percent_of_total:
+        out["total"] = _clean(total)
     if cut:
         out["truncated"] = f"more than {inp.limit} groups; showing the largest {inp.limit}"
     return out

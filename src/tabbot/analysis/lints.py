@@ -76,7 +76,7 @@ def l1_counts_dates(model: WorkbookModel) -> list[Finding]:
 def _has_percent(ws: Worksheet) -> bool:
     if ws.table_calcs:
         return True
-    return any(r.derivation.startswith(("pcto", "pcdf", "pctrk")) for r in ws.all_refs())
+    return any((r.table_calc or r.derivation).startswith(("pcto", "pcdf", "pctrk")) for r in ws.all_refs())
 
 
 def l2_percent_without_percentage(model: WorkbookModel) -> list[Finding]:

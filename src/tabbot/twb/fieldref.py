@@ -24,7 +24,10 @@ DATE_PARTS = {"yr": "year", "qr": "quarter", "mn": "month", "wk": "week", "dy": 
               "hr": "hour", "mi": "minute", "sc": "second"}
 DATE_TRUNCS = {"tyr": "year", "tqr": "quarter", "tmn": "month", "twk": "week", "tdy": "day",
                "thr": "hour", "tmi": "minute", "tsc": "second"}
-TABLE_CALC_PREFIXES = ("pcto", "pcdf", "cum", "diff", "rank", "pctrk", "win", "run", "mavg")
+TABLE_CALC_PREFIXES = ("pcto", "pcdf", "cum", "diff", "rank", "pctrk", "win", "run", "mavg", "fVal", "pctr",
+                       "ytd", "ytdgr", "yoy")
+TABLE_CALC_NAMES = {"pcto": "Percent of total", "pcdf": "Percent difference", "diff": "Difference",
+                    "rank": "Rank", "cum": "Running total"}
 
 
 class FieldRef(BaseModel):
@@ -35,11 +38,14 @@ class FieldRef(BaseModel):
     type_key: str              # "nk" | "ok" | "qk" | "?"
     raw: str
     caption: str | None = None  # filled in by the parser from the field index
+    table_calc: str | None = None   # quick table calculation over the aggregation, e.g. "pcto" in pcto:sum:X:qk
 
     @property
     def kind(self) -> str:
         """dimension | measure | date_part | date_trunc | table_calc | special | unknown"""
         d = self.derivation
+        if self.table_calc:
+            return "table_calc"
         if d == "none":
             return "dimension"
         if d in AGGREGATIONS:
@@ -65,6 +71,9 @@ class FieldRef(BaseModel):
     @property
     def label(self) -> str:
         name = self.caption or self.field
+        if self.table_calc:
+            base = self.model_copy(update={"table_calc": None}).label
+            return f"{TABLE_CALC_NAMES.get(self.table_calc, 'Table calculation (' + self.table_calc + ')')} of {base}"
         if self.kind == "measure":
             words = {"count_distinct": "Distinct count of", "count": "Count of"}
             if self.aggregation == "user_aggregate":
@@ -93,6 +102,12 @@ def _unescape(s: str) -> str:
 def parse_inner(datasource: str, inner: str, raw: str | None = None) -> FieldRef:
     parts = inner.split(":")
     raw = raw or f"[{datasource}].[{inner}]"
+    if len(parts) >= 4 and parts[-1].isdigit() and parts[-2] in TYPE_KEYS:
+        parts = parts[:-1]                      # trailing instance number, e.g. pcto:cnt:BMI:qk:1
+    if len(parts) >= 4 and parts[-1] in TYPE_KEYS and parts[0] in TABLE_CALC_PREFIXES \
+            and (parts[1] in AGGREGATIONS or parts[1] in DATE_PARTS or parts[1] in DATE_TRUNCS or parts[1] == "none"):
+        ref = parse_inner(datasource, ":".join(parts[1:]), raw)
+        return ref.model_copy(update={"table_calc": parts[0]})
     if len(parts) >= 3 and parts[-1] in TYPE_KEYS:
         derivation, type_key, middle = parts[0], parts[-1], parts[1:-1]
         extra: list[str] = []
