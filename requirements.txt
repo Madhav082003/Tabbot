@@ -1,0 +1,13 @@
+streamlit==1.66.1
+tableauhyperapi==0.0.26963
+duckdb==2.0.0
+pandas==3.1.1
+pyarrow==26.0.1
+anthropic==2.4.0
+pydantic==2.14.2
+defusedxml==0.7.1
+python-dotenv==1.2.4
+PyYAML==6.0.3
+xlrd==2.0.2
+openpyxl==3.1.5
+-e .
